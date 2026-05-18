@@ -275,6 +275,19 @@ function applyQueryParamPrefill(): void {
             if (input) input.value = value;
           }
         });
+      } else {
+        // Same pattern as main.ts iter 81: surface a non-blocking
+        // warning when the URL specifies a strategy that's not in
+        // the select's options. Most common cause is a stale
+        // bookmark from a deploy that renamed or removed the
+        // strategy. The recipient sees the form with the default
+        // strategy and the explanation in the status line; date
+        // params from the URL still apply so the link is partially
+        // recoverable.
+        setStatus(
+          `unknown strategy "${strategy}" in URL; using default. The strategy may have been renamed or removed since this link was generated.`,
+          'error'
+        );
       }
     }
   }
