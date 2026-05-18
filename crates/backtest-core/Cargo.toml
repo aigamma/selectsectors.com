@@ -7,6 +7,15 @@ authors = ["Eric Allione"]
 license = "MIT"
 description = "Backtest math kernels for selectsectors.com, compiled to WebAssembly for use inside Netlify background functions"
 
+# wasm-pack 0.13's bundled wasm-opt (binaryen) does not understand the
+# bulk-memory ops Rust 1.95 emits by default; disabling wasm-opt skips
+# the optimizer pass entirely. The size cost is negligible for a small
+# crate (the LTO + opt-level=s + strip in [profile.release] already do
+# most of the size work) and the benefit is the build no longer fails
+# on systems with an older bundled binaryen.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 

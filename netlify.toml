@@ -25,10 +25,17 @@
 # immediately and the result lands in Netlify Blobs for the
 # `/api/result?hash=` endpoint to read back.
 #
-# The functions themselves bundle the WASM artifact produced by
-# `npm run build:wasm` (which writes to `pkg/`). The Netlify bundler
-# automatically traces `import("../../pkg/backtest_core.js")` so the
-# WASM files come along on deploy.
+# The backtest-background function imports `pkg/backtest_core.js` and
+# at module-load time wasm-pack's JS glue does a synchronous fs.read
+# on `pkg/backtest_core_bg.wasm` (a sibling of the JS file). The
+# Netlify bundler cannot statically trace that runtime path, so we
+# include the pkg/ tree explicitly via `included_files`. The .wasm
+# artifact is built into pkg/ during `npm run build` which runs
+# `wasm-pack build` ahead of the Vite build, so by the time Netlify
+# resolves included_files, pkg/ already has the artifact.
+[functions."backtest-background"]
+  included_files = ["pkg/**"]
+  node_bundler = "esbuild"
 #
 # Long-cache the static frontend assets. Vite emits content-hashed
 # filenames under `/assets/`, so the URLs are immutable by

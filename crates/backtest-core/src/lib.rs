@@ -119,13 +119,18 @@ pub fn run_backtest(input: JsValue) -> Result<JsValue, JsValue> {
 }
 
 /// List of strategy names this WASM module knows about. Useful so the
-/// frontend's strategy picker doesn't hardcode the list.
+/// frontend's strategy picker doesn't hardcode the list. The names
+/// match serde's `rename_all = "snake_case"` output for [`StrategyKind`],
+/// which means `RsiMeanReversion` serializes to `rsi_mean_reversion`
+/// rather than the more natural-looking `rsi_meanreversion`. We
+/// preserve that exact name here so the catalog list is round-trip
+/// compatible with the deserializer.
 #[wasm_bindgen]
 pub fn strategy_catalog() -> JsValue {
     let names = vec![
         "buy_and_hold",
         "sma_crossover",
-        "rsi_meanreversion",
+        "rsi_mean_reversion",
         "momentum",
         "breakout",
     ];
