@@ -172,13 +172,18 @@
 
         <h2>Code quality and reliability</h2>
         <p>
-          The Rust strategy crate has 39 unit tests covering
-          numerical correctness and parameter validation. The
-          TypeScript helpers (canonicalize, sha256, rate-limit) have
-          21 unit tests. The CI workflow runs all of them on every
-          push. None of this guarantees the math is correct in every
-          edge case; cite the source if a result looks suspicious
-          (the source is published at
+          The Rust strategy crate has a unit-test suite covering
+          numerical correctness and parameter validation, and the
+          TypeScript layer has a large suite of module-level tests
+          plus source-of-truth parity tests that pin every claimed
+          fact on every documentation surface to its live source.
+          The CI workflow runs all of them on every push. The exact
+          test counts move with each commit and are intentionally
+          not pinned in this prose to avoid the same drift the
+          parity tests are designed to catch. None of this
+          guarantees the math is correct in every edge case; cite
+          the source if a result looks suspicious (the source is
+          published at
           <a href="https://github.com/aigamma/selectsectors.com">github.com/aigamma/selectsectors.com</a>
           and the curriculum pages inline it via build-time imports
           so what you see is what runs).
