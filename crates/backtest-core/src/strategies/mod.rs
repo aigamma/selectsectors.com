@@ -27,6 +27,7 @@
 //! enforced at the engine level so individual strategies cannot
 //! accidentally cheat.
 
+pub mod bollinger_bands;
 pub mod breakout;
 pub mod buy_and_hold;
 pub mod momentum;
@@ -61,18 +62,23 @@ pub enum StrategyKind {
     RsiMeanReversion(rsi_meanreversion::Params),
     Momentum(momentum::Params),
     Breakout(breakout::Params),
+    BollingerBands(bollinger_bands::Params),
 }
 
 impl StrategyKind {
     /// Canonical name for this strategy. Used in result blobs and in
-    /// the frontend's strategy picker.
+    /// the frontend's strategy picker. Matches serde's rename_all
+    /// = "snake_case" output exactly, so callers can use the name
+    /// returned here as the dispatcher input without further
+    /// transformation.
     pub fn name(&self) -> &'static str {
         match self {
             Self::BuyAndHold => "buy_and_hold",
             Self::SmaCrossover(_) => "sma_crossover",
-            Self::RsiMeanReversion(_) => "rsi_meanreversion",
+            Self::RsiMeanReversion(_) => "rsi_mean_reversion",
             Self::Momentum(_) => "momentum",
             Self::Breakout(_) => "breakout",
+            Self::BollingerBands(_) => "bollinger_bands",
         }
     }
 
@@ -84,6 +90,7 @@ impl StrategyKind {
             Self::RsiMeanReversion(p) => rsi_meanreversion::positions(bars, p),
             Self::Momentum(p) => momentum::positions(bars, p),
             Self::Breakout(p) => breakout::positions(bars, p),
+            Self::BollingerBands(p) => bollinger_bands::positions(bars, p),
         }
     }
 }

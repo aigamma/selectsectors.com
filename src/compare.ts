@@ -62,6 +62,7 @@ const STRATEGY_COLORS: Record<string, { color: string; label: string }> = {
   momentum: { color: '#2ecc71', label: 'Momentum' },
   rsi_mean_reversion: { color: '#f0a030', label: 'RSI mean reversion' },
   breakout: { color: '#bb6bd9', label: 'Donchian breakout' },
+  bollinger_bands: { color: '#5dd3c5', label: 'Bollinger Bands' },
 };
 
 const setStatus = (msg: string, kind: 'info' | 'error' = 'info') =>

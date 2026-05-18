@@ -50,6 +50,13 @@ export function toStrategyKind(s: StrategyRequest): unknown {
       return { momentum: { lookback: requireNumber(s.params, 'lookback') } };
     case 'breakout':
       return { breakout: { lookback: requireNumber(s.params, 'lookback') } };
+    case 'bollinger_bands':
+      return {
+        bollinger_bands: {
+          period: requireNumber(s.params, 'period'),
+          k: requireNumber(s.params, 'k'),
+        },
+      };
     default:
       throw new Error(`unknown strategy name: \`${s.name}\``);
   }
@@ -82,4 +89,5 @@ export const STRATEGY_DEFAULTS = {
     rsi_mean_reversion: { period: 14, oversold: 30, overbought: 70 },
   },
   breakout: { breakout: { lookback: 20 } },
+  bollinger_bands: { bollinger_bands: { period: 20, k: 2.0 } },
 };

@@ -133,6 +133,7 @@ pub fn strategy_catalog() -> JsValue {
         "rsi_mean_reversion",
         "momentum",
         "breakout",
+        "bollinger_bands",
     ];
     serde_wasm_bindgen::to_value(&names).unwrap()
 }

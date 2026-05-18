@@ -39,6 +39,15 @@ describe('toStrategyKind', () => {
     ).toEqual({ breakout: { lookback: 20 } });
   });
 
+  it('produces the tagged-payload wire format for bollinger_bands', () => {
+    expect(
+      toStrategyKind({
+        name: 'bollinger_bands',
+        params: { period: 20, k: 2.0 },
+      })
+    ).toEqual({ bollinger_bands: { period: 20, k: 2.0 } });
+  });
+
   it('throws on unknown strategy names', () => {
     expect(() => toStrategyKind({ name: 'nonsense', params: {} })).toThrow(
       /unknown strategy/
