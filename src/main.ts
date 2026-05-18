@@ -98,6 +98,21 @@ function renderUniverseLists(data: UniverseResponse): void {
   populateSymbolGroup('symbol-anchors-group', data.anchors);
 }
 
+/**
+ * When /api/universe fails, replace the "loading..." placeholders
+ * with a one-item error message so users see SOMETHING informative
+ * rather than waiting forever for a fetch that won't resolve. The
+ * symbol picker optgroups stay empty since the user can't pick a
+ * symbol if we don't know the universe.
+ */
+function renderUniverseLoadError(): void {
+  const message = '(unavailable, retry by refreshing)';
+  for (const id of ['sector-list', 'anchor-list']) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<li class="universe-list-error">${message}</li>`;
+  }
+}
+
 function renderList(id: string, items: string[]): void {
   const el = document.getElementById(id);
   if (!el) return;
@@ -453,7 +468,11 @@ async function init(): Promise<void> {
     loadRateStatus(),
   ]);
 
-  if (universe) renderUniverseLists(universe);
+  if (universe) {
+    renderUniverseLists(universe);
+  } else {
+    renderUniverseLoadError();
+  }
   if (rateStatus) showRateBanner(rateStatus);
 
   // Apply ?strategy= and ?symbol= pre-fill after the universe loads so

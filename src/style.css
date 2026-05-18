@@ -725,6 +725,12 @@ a:hover {
   margin: 0 0 0.6rem;
 }
 
+.universe-list-error {
+  color: var(--accent-coral);
+  font-style: italic;
+  font-size: 0.86rem;
+}
+
 .universe-col ul {
   margin: 0;
   padding: 0;

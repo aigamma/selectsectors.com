@@ -359,6 +359,16 @@ async function init(): Promise<void> {
   if (universe) {
     populateSymbolGroup('symbol-sectors-group', universe.sectors);
     populateSymbolGroup('symbol-anchors-group', universe.anchors);
+  } else {
+    // Without the universe, the symbol picker has only the static SPX
+    // option from the HTML and no SPDR sector or anchor options. The
+    // user can technically still submit with SPX but the form is much
+    // less useful. Tell them directly rather than letting them stare
+    // at an empty picker.
+    setStatus(
+      'failed to load the symbol roster from /api/universe; refresh to retry, or pick SPX which is hardcoded in the form',
+      'error'
+    );
   }
   if (rateStatus) showRateBanner(rateStatus);
 
