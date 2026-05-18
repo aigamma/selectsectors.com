@@ -30,9 +30,14 @@ build session ending 2026-05-18. The site is functionally complete:
   query parameters.
 - 4 philosophy primers under `/philosophy/` (overfitting, survivorship
   bias, lookahead bias, backtest vs live).
-- 60 unit tests (39 Rust, 21 TypeScript), three-job GitHub Actions CI
-  workflow that runs cargo test, Vitest, and the production build on
-  every push.
+- 76 unit tests (39 Rust, 37 TypeScript across rate-limit,
+  canonical-json, strategy translation, and HTML-escape helpers),
+  three-job GitHub Actions CI workflow that runs cargo test, Vitest,
+  and the production build on every push.
+- Cross-axis exploration: `/compare/` runs all five strategies on
+  one symbol; `/scan/` runs one strategy across all 23 symbols. Both
+  consume one rate-limit slot regardless of the internal backtest
+  count.
 
 Deployment dependencies: `ANTHROPIC_API_KEY` env var on the Netlify
 project for the chatbot (without it `/api/chat` returns 503). All other
