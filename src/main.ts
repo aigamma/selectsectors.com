@@ -590,6 +590,12 @@ async function init(): Promise<void> {
     document
       .getElementById('backtest-form')
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Focus the symbol picker after scroll so the user's attention
+    // lands on the just-set control. The browser's focus ring acts
+    // as the visual confirmation that the click took effect.
+    // setTimeout gives the smooth-scroll a moment to settle so the
+    // focus event doesn't fight with the scroll animation.
+    setTimeout(() => symbolSelect.focus(), 350);
   });
 
   const shareBtn = document.getElementById('share-button');
