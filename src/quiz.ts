@@ -227,6 +227,32 @@ function renderSummary(category: QuizCategory, state: QuizState): string {
       </p>
       <h2>Recap</h2>
       <ol class="quiz-recap">${recap}</ol>
+      <h2>What's next</h2>
+      <ul class="quiz-summary-next">
+        <li>
+          <strong>Another category.</strong> Five categories total at
+          <a href="/quiz/">/quiz/</a>: Rust basics, This site's Rust,
+          Quant finance basics, Rust intermediate, WebAssembly
+          internals. Progress on each is saved separately.
+        </li>
+        <li>
+          <strong>Read the curriculum.</strong> Six lessons at
+          <a href="/learn/">/learn/</a> ground in the same Rust crate
+          the questions referenced. The "this-sites-rust" lesson is
+          the densest in actual code.
+        </li>
+        <li>
+          <strong>Run a backtest.</strong> The
+          <a href="/">homepage backtester</a> runs any of the six
+          strategies on any of the 23 symbols. Two backtests per
+          hour, free on cache hits.
+        </li>
+        <li>
+          <strong>Ask SelectBot.</strong> Specific follow-ups on a
+          question you missed get more useful answers than the
+          one-line explanation on the recap above.
+        </li>
+      </ul>
       <div class="quiz-summary-actions">
         <button type="button" class="quiz-restart">Retake quiz</button>
       </div>

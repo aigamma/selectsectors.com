@@ -21,7 +21,6 @@ import { resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '..', '..', '..', '..');
 const ENV_EXAMPLE_PATH = resolve(ROOT, '.env.example');
-const FUNCTIONS_DIR = resolve(ROOT, 'netlify', 'functions');
 
 /**
  * Extract the var names declared as `VAR=` lines in .env.example.
