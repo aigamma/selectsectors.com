@@ -624,4 +624,25 @@ export function initChat(): void {
       if (panel && !panel.hidden) closePanel();
     }
   });
+
+  // "/" global shortcut to open the chat panel. Skips when the user
+  // is focused inside an input/textarea/select/contenteditable so
+  // typing "/" in the backtest form, the chat input, or any other
+  // text field doesn't accidentally toggle the chat. Pattern follows
+  // the Slack/GitHub/Discord convention. Only opens (doesn't toggle)
+  // because users have Escape for closing.
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== '/') return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const active = document.activeElement;
+    if (active && active !== document.body) {
+      const tag = active.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if ((active as HTMLElement).isContentEditable) return;
+    }
+    const panel = document.getElementById('chat-panel');
+    if (panel && !panel.hidden) return; // already open
+    ev.preventDefault();
+    openPanel();
+  });
 }
