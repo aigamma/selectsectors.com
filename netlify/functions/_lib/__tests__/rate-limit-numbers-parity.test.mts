@@ -36,6 +36,29 @@ const CHAT_SYSTEM_PROMPT_PATH = resolve(
   '_lib',
   'chat-system-prompt.mts'
 );
+const DISCLAIMER_PATH = resolve(ROOT, 'disclaimer', 'index.html');
+
+const NUMBER_TO_WORD: Record<number, string> = {
+  1: 'one',
+  2: 'two',
+  3: 'three',
+  4: 'four',
+  5: 'five',
+  6: 'six',
+  7: 'seven',
+  8: 'eight',
+  9: 'nine',
+  10: 'ten',
+  20: 'twenty',
+  30: 'thirty',
+  40: 'forty',
+  50: 'fifty',
+  60: 'sixty',
+  70: 'seventy',
+  80: 'eighty',
+  90: 'ninety',
+  100: 'one hundred',
+};
 
 const liveBacktestHour = backtestLimiter.limits.hour;
 const liveBacktestDay = backtestLimiter.limits.day;
@@ -119,6 +142,52 @@ describe('rate-limit numbers parity', () => {
     if (!m) return;
     expect(parseInt(m[1], 10)).toBe(liveChatHour);
     expect(parseInt(m[2], 10)).toBe(liveChatDay);
+  });
+
+  it('disclaimer page mentions the correct backtest caps in word form', () => {
+    // The disclaimer page describes the rate limits in plain prose
+    // for the legal/user-facing surface: "two runs per hour, five
+    // per day per IP". This is the sixth surface where the rate-
+    // limit numbers appear (after api-docs prose, api-docs JSON
+    // example, README backtest, README chat, chat-system-prompt).
+    // The disclaimer uses WORD-FORM rather than digit-form, so the
+    // regex matches against NUMBER_TO_WORD[hourLimit] and
+    // NUMBER_TO_WORD[dayLimit]. Currently "two runs per hour, five
+    // per day" matches hourLimit=2 + dayLimit=5.
+    const html = readFileSync(DISCLAIMER_PATH, 'utf8');
+    const hourWord = NUMBER_TO_WORD[liveBacktestHour];
+    const dayWord = NUMBER_TO_WORD[liveBacktestDay];
+    expect(
+      hourWord && dayWord,
+      `NUMBER_TO_WORD missing entry for ${liveBacktestHour} or ${liveBacktestDay}; extend the table`
+    ).toBeTruthy();
+    const re = new RegExp(
+      `${hourWord}\\s+runs?\\s+per\\s+hour,?\\s*${dayWord}\\s+per\\s+day`,
+      'i'
+    );
+    expect(
+      re.test(html),
+      `expected disclaimer/index.html to contain prose like "${hourWord} runs per hour, ${dayWord} per day" matching live caps ${liveBacktestHour}/${liveBacktestDay}`
+    ).toBe(true);
+  });
+
+  it('disclaimer page mentions the correct chat caps in word form', () => {
+    // "thirty messages per hour, one hundred per day per IP"
+    const html = readFileSync(DISCLAIMER_PATH, 'utf8');
+    const hourWord = NUMBER_TO_WORD[liveChatHour];
+    const dayWord = NUMBER_TO_WORD[liveChatDay];
+    expect(
+      hourWord && dayWord,
+      `NUMBER_TO_WORD missing entry for ${liveChatHour} or ${liveChatDay}; extend the table`
+    ).toBeTruthy();
+    const re = new RegExp(
+      `${hourWord}\\s+messages?\\s+per\\s+hour,?\\s*${dayWord}\\s+per\\s+day`,
+      'i'
+    );
+    expect(
+      re.test(html),
+      `expected disclaimer/index.html to contain prose like "${hourWord} messages per hour, ${dayWord} per day" matching live caps ${liveChatHour}/${liveChatDay}`
+    ).toBe(true);
   });
 
   it('chat-system-prompt.mts mentions the correct backtest + chat caps', () => {
