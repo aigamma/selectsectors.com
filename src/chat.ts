@@ -281,15 +281,67 @@ function renderChatRateHint(info: ChatRateLimitInfo): void {
   if (hourRemaining === 0) {
     el.textContent = `Out of messages this hour. Resets ${formatTimeUntilReset(info, 'hour')}.`;
     el.classList.add('exhausted');
+    applyRateLimitDisable('hour', info);
     return;
   }
   if (dayRemaining === 0) {
     el.textContent = `Out of messages today. Resets ${formatTimeUntilReset(info, 'day')}.`;
     el.classList.add('exhausted');
+    applyRateLimitDisable('day', info);
     return;
   }
   el.classList.remove('exhausted');
   el.textContent = `${hourRemaining} of ${info.hourly.limit} this hour · ${dayRemaining} of ${info.daily.limit} today`;
+  // Clear any rate-limit disable that was set when an earlier
+  // response had remaining=0. The 503 ANTHROPIC_API_KEY disable
+  // path is separate and stays disabled regardless.
+  clearRateLimitDisable();
+}
+
+/**
+ * Disable the send button + input when the chat rate limit is
+ * exhausted, and re-enable automatically when the window resets.
+ * The setTimeout is bounded to the actual time-to-reset so the panel
+ * recovers without requiring the user to refresh or re-open it.
+ */
+let rateLimitResetTimer: ReturnType<typeof setTimeout> | null = null;
+function applyRateLimitDisable(
+  window: 'hour' | 'day',
+  info: ChatRateLimitInfo
+): void {
+  const send = document.getElementById('chat-send') as HTMLButtonElement | null;
+  const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+  if (send) send.disabled = true;
+  if (input) {
+    input.disabled = true;
+    input.dataset.rateLimitDisabled = 'true';
+  }
+  if (rateLimitResetTimer) clearTimeout(rateLimitResetTimer);
+  const resetAt = window === 'hour' ? info.hourly.resetAt : info.daily.resetAt;
+  const delay = Math.max(0, resetAt - Date.now()) + 1_000;
+  rateLimitResetTimer = setTimeout(() => {
+    clearRateLimitDisable();
+    rateLimitResetTimer = null;
+  }, delay);
+}
+
+function clearRateLimitDisable(): void {
+  const send = document.getElementById('chat-send') as HTMLButtonElement | null;
+  const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+  if (input?.dataset.rateLimitDisabled === 'true') {
+    input.disabled = false;
+    delete input.dataset.rateLimitDisabled;
+  }
+  // Only re-enable send if the input is also enabled. The
+  // ANTHROPIC_API_KEY disable path sets input.disabled = true with
+  // no rateLimitDisabled marker; we don't want to clobber that.
+  if (send && input && !input.disabled) {
+    send.disabled = false;
+  }
+  if (rateLimitResetTimer) {
+    clearTimeout(rateLimitResetTimer);
+    rateLimitResetTimer = null;
+  }
 }
 
 async function sendMessage(content: string): Promise<void> {
