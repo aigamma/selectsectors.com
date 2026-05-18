@@ -157,14 +157,21 @@ function chatPanelHtml(): string {
             id="chat-input"
             class="chat-input"
             rows="2"
-            placeholder="Ask about Rust, this site, or quant finance..."
+            placeholder="Ask about Rust, this site, or quant finance... (Enter to send, Shift+Enter for newline)"
             required
           ></textarea>
           <div class="chat-form-actions">
             <button type="button" id="chat-clear" class="chat-clear">
               Clear chat
             </button>
-            <button type="submit" id="chat-send" class="chat-send">Send</button>
+            <button
+              type="submit"
+              id="chat-send"
+              class="chat-send"
+              title="Send message (Enter)"
+            >
+              Send
+            </button>
           </div>
         </form>
       </section>
