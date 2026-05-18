@@ -1,0 +1,45 @@
+[package]
+name = "backtest-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+authors = ["Eric Allione"]
+license = "MIT"
+description = "Backtest math kernels for selectsectors.com, compiled to WebAssembly for use inside Netlify background functions"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# wasm-bindgen is the Rust ↔ JS bridge for the wasm-pack output.
+# The version is pinned at scaffold time; bump after verifying the
+# wasm-pack toolchain is compatible.
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+
+# Optional: console.log forwarding from inside the WASM module. Pulled
+# in only under cfg(debug_assertions) so the release build stays
+# stripped of the console-bridge overhead.
+[dependencies.web-sys]
+version = "0.3"
+features = ["console"]
+optional = true
+
+[features]
+default = []
+console-log = ["web-sys"]
+
+[profile.release]
+# wasm-pack default release profile, plus opt-level=s to bias for
+# smaller WASM output. WASM size is the dominant cost on cold-start
+# bundle download and parse time inside the Netlify function; shaving
+# 30-50% off the binary by accepting slightly slower scalar code is a
+# good trade for our use case (most CPU time is in vector loops that
+# the WASM engine compiles to SIMD-style code regardless of the
+# Rust-level opt-level).
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

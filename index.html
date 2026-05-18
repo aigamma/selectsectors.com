@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Public backtesting surface for the SPX index, the SPDR sector ETFs, and the top-by-options-volume single names. Same instrument universe as the AI Gamma desktop backtester, rate-limited for public use." />
+    <title>Select Sectors · Backtest the index, sectors, and the top-by-volume names</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <a class="brand" href="/">Select Sectors</a>
+      <nav class="top-nav">
+        <a href="https://aigamma.com">AI Gamma</a>
+        <a href="https://about.aigamma.com">About</a>
+      </nav>
+    </header>
+
+    <main class="page-main">
+      <section class="hero">
+        <h1>Backtest the index, the sectors, and the top-by-volume names.</h1>
+        <p class="lede">
+          Twenty-three symbols. Daily EOD bars. A growing library of
+          parameterized strategies. The same universe the AI Gamma
+          desktop backtester uses, rendered as a rate-limited public
+          surface so anyone can ask a question and get an answer in
+          under a minute without installing anything.
+        </p>
+      </section>
+
+      <section class="universe">
+        <h2>Universe</h2>
+        <div class="universe-grid">
+          <div class="universe-col">
+            <h3>Index</h3>
+            <ul><li>SPX</li><li>SPY</li></ul>
+          </div>
+          <div class="universe-col">
+            <h3>SPDR sectors</h3>
+            <ul id="sector-list"><li>loading...</li></ul>
+          </div>
+          <div class="universe-col">
+            <h3>Top-by-options-volume names</h3>
+            <ul id="anchor-list"><li>loading...</li></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="backtest">
+        <h2>Run a backtest</h2>
+        <p class="status">Pre-1.0 scaffold. The strategy library and the run form are still being built.</p>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <a href="/disclaimer/" class="disclaimer-link">Disclaimer</a>
+      <span class="footer-meta">AI Gamma · Select Sectors · v0.1.0</span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

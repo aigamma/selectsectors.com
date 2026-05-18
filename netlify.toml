@@ -1,0 +1,47 @@
+# Netlify build configuration for selectsectors.com.
+
+[build]
+  # `npm run build` runs the Vite production build into `dist/`. The
+  # `build:wasm` step runs first via `prebuild` in package.json so the
+  # Rust → WASM artifact in `pkg/` exists before Vite resolves its
+  # imports. Net effect: a single `npm run build` invocation handles
+  # the full toolchain (cargo → wasm-pack → vite) without the user
+  # needing to remember a two-step sequence.
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# /api/* routes hit the Netlify Functions directory. Standard rewrite,
+# matches the convention aigamma.com uses so callers do not have to
+# remember the `/.netlify/functions/` prefix.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Background functions for the heavy backtest work. The `-background`
+# suffix is the Netlify-required marker that flips the function into
+# the 15-minute wall-clock execution path; the function returns 202
+# immediately and the result lands in Netlify Blobs for the
+# `/api/result?hash=` endpoint to read back.
+#
+# The functions themselves bundle the WASM artifact produced by
+# `npm run build:wasm` (which writes to `pkg/`). The Netlify bundler
+# automatically traces `import("../../pkg/backtest_core.js")` so the
+# WASM files come along on deploy.
+#
+# Long-cache the static frontend assets. Vite emits content-hashed
+# filenames under `/assets/`, so the URLs are immutable by
+# construction and the bytes never change at a given path.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Favicon gets a moderate TTL so a future logo update propagates in
+# under a week. Bumping the favicon by appending `?v=N` busts caches
+# immediately if needed.
+[[headers]]
+  for = "/favicon.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

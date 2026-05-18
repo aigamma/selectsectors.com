@@ -1,0 +1,28 @@
+{
+  "name": "selectsectors.com",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "npm run build:wasm && vite build",
+    "build:wasm": "wasm-pack build crates/backtest-core --target nodejs --out-dir ../../pkg --out-name backtest_core",
+    "build:frontend": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@netlify/functions": "^4.5.0",
+    "@netlify/blobs": "^11.0.0",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "netlify-cli": "^25.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^8.0.0"
+  }
+}
