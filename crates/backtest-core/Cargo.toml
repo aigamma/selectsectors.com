@@ -11,12 +11,18 @@ description = "Backtest math kernels for selectsectors.com, compiled to WebAssem
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# wasm-bindgen is the Rust ↔ JS bridge for the wasm-pack output.
-# The version is pinned at scaffold time; bump after verifying the
-# wasm-pack toolchain is compatible.
+# wasm-bindgen is the Rust to JS bridge for wasm-pack output. Version
+# pinned at scaffold time; bump after verifying the wasm-pack toolchain
+# is compatible.
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
+
+# serde_json is used by the unit tests for round-trip checks on the
+# JSON wire format the JS side actually sends. Pulled in only as a
+# dev-dependency so it does not bloat the WASM artifact.
+[dev-dependencies]
+serde_json = "1"
 
 # Optional: console.log forwarding from inside the WASM module. Pulled
 # in only under cfg(debug_assertions) so the release build stays
