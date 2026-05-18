@@ -502,3 +502,73 @@ summary; CLAUDE.md is the per-machine session context that any
 future Claude Code session should read before touching the code.
 
 ---
+
+## 2026-05-18 (continued) - v0.1.1 and v0.1.2 minor releases
+
+**What landed since the iteration-28 entry.**
+
+- **v0.1.1.** Sixth strategy: Bollinger Bands mean reversion
+  (`crates/backtest-core/src/strategies/bollinger_bands.rs`) with
+  the standard rolling-SMA + rolling-population-std band
+  construction, entry below the lower band, exit at the SMA
+  centerline. Fixed a long-standing name-mismatch bug in
+  StrategyKind::RsiMeanReversion's name() method (returned
+  "rsi_meanreversion" while serde serialized it as
+  "rsi_mean_reversion"; now consistent). Added a sitemap-validity
+  Vitest test that asserts every URL declared in sitemap.xml has
+  a corresponding HTML file in the repo. Added BreadcrumbList +
+  Article JSON-LD to 18 nested pages. Added visible breadcrumb
+  nav at the top of the same 18 pages. Added metric tooltips
+  (title attributes) to the homepage result-panel labels and the
+  /compare/ + /scan/ table headers.
+
+- **v0.1.2.** Two new quiz categories: Rust intermediate
+  (lifetimes, trait objects vs generics, closures Fn/FnMut/FnOnce,
+  smart-pointer composition, iterator laziness, Send/Sync, async
+  desugaring, match guards) and WebAssembly internals (linear
+  memory, JS-WASM boundary, what wasm-bindgen generates, why
+  serde-wasm-bindgen, wasm-pack targets, size-shrink knobs).
+  Brought the quiz catalog from 3 categories / 21 questions to 5
+  categories / 36 questions. /api/health expanded from a smoke
+  test into an operational catalog (version, deployed commit,
+  deploy id, strategy list, rate-limit caps). Course schema added
+  to /learn/ landing. FAQPage schema added to /disclaimer/.
+
+- **Post-v0.1.2 polish.** Fifth philosophy essay at
+  /philosophy/regimes/ (what a regime is operationally, strategy
+  regime preferences, how to detect the live regime, what to do
+  about regime risk). Share-link feature on the homepage result
+  panel: a Copy share link button that builds a URL encoding the
+  full input shape (strategy, symbol, date range, per-strategy
+  params), recipients open the URL to get the form pre-filled and
+  hit Run to reproduce the exact backtest. Internal-link checker
+  Vitest test that walks every HTML file in the repo and verifies
+  every <a href="/..."> target resolves to a real file (catches
+  per-page link typos that the sitemap-validity test would miss).
+  /.well-known/security.txt with RFC 9116 contact info. robots.txt
+  comment block making the "allow all crawlers (including AI
+  crawlers)" decision deliberate.
+
+**v0.1.2 state at end of iteration 45.**
+
+- 30 production HTML pages.
+- 6-strategy WASM backtester (Bollinger added in v0.1.1).
+- 5 quiz categories / 36 questions.
+- 5 philosophy essays.
+- 6 curriculum lessons.
+- Share-link feature on the homepage result panel.
+- Comprehensive structured data: WebSite, Organization, Course on
+  /learn/, FAQPage on /disclaimer/, Article on 16 content pages,
+  BreadcrumbList on 19 nested pages.
+- 117 tests (44 Rust + 73 TypeScript).
+- /api/health returns the operational catalog.
+
+**Closing again.** The /loop has continued past v0.1.0 with
+substantive additions and polish. Iteration value is decreasing as
+the site approaches true feature-completeness; recent commits have
+been smaller but still real (security.txt, regimes essay, internal-
+link test). Per the user's instruction to "exhaust all frontiers"
+the loop keeps running; future STATUS.md additions will be shorter
+as the cadence slows.
+
+---
