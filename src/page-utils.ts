@@ -117,9 +117,12 @@ export function renderRateBanner(
 
   if (exhausted) {
     const which = hourRemaining === 0 ? 'hour' : 'day';
-    const resetAt = which === 'hour' ? info.hourly.resetAt : info.daily.resetAt;
-    const minutes = Math.max(1, Math.ceil((resetAt - Date.now()) / 60000));
-    el.innerHTML = `No ${escapeHtml(noun)} left this ${which}. Next slot opens in <span class="rate-banner-count">${minutes}</span> min.`;
+    // Use formatTimeUntilReset for the human-readable time
+    // formatting (cascades into "in N hr M min" or "in N days" for
+    // long resets). The previous implementation hardcoded "in K min"
+    // which produced unreadable values like "in 1380 min" when the
+    // day window was exhausted and resetting in 23 hours.
+    el.innerHTML = `No ${escapeHtml(noun)} left this ${which}. Next slot opens <span class="rate-banner-count">${formatTimeUntilReset(info, which)}</span>.`;
     return;
   }
 

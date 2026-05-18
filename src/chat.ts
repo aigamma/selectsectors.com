@@ -13,6 +13,8 @@
 // assistant message and saves to localStorage after each frame so a
 // refresh mid-stream loses only the unsent suffix.
 
+import { formatTimeUntilReset } from './page-utils.ts';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -253,14 +255,12 @@ function renderChatRateHint(info: ChatRateLimitInfo): void {
   const hourRemaining = info.hourly.remaining;
   const dayRemaining = info.daily.remaining;
   if (hourRemaining === 0) {
-    const minutes = Math.max(1, Math.ceil((info.hourly.resetAt - Date.now()) / 60000));
-    el.textContent = `Out of messages this hour. Resets in ${minutes} min.`;
+    el.textContent = `Out of messages this hour. Resets ${formatTimeUntilReset(info, 'hour')}.`;
     el.classList.add('exhausted');
     return;
   }
   if (dayRemaining === 0) {
-    const minutes = Math.max(1, Math.ceil((info.daily.resetAt - Date.now()) / 60000));
-    el.textContent = `Out of messages today. Resets in ${minutes} min.`;
+    el.textContent = `Out of messages today. Resets ${formatTimeUntilReset(info, 'day')}.`;
     el.classList.add('exhausted');
     return;
   }
