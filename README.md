@@ -22,7 +22,7 @@ build session ending 2026-05-18. The site is functionally complete:
 - 6 Rust curriculum lessons under `/learn/`, each anchored against the
   actual `crates/backtest-core/` source via Vite's `?raw` import (the
   curriculum cannot drift from the code).
-- 3 quiz categories with 21 multiple-choice questions under `/quiz/`,
+- 5 quiz categories with 36 multiple-choice questions under `/quiz/`,
   with localStorage progress persistence.
 - 5 per-strategy explainer pages under `/strategies/{name}/`, each
   pairing intuition + math + the exact Rust source + a "Try it" link
