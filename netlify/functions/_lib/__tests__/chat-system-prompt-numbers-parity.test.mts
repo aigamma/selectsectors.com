@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { CHAT_SYSTEM_PROMPT } from '../chat-system-prompt.mts';
@@ -198,6 +198,88 @@ describe('chat system prompt /quiz/ slug enumeration parity', () => {
         CHAT_SYSTEM_PROMPT.includes(prose),
         `chat-system-prompt does not contain the prose "${prose}" expected for /quiz/${slug}/. Update the prompt's quiz enumeration.`
       ).toBe(true);
+    }
+  );
+});
+
+// Strategy signature parity. The prompt lists each strategy with
+// its parameter signature in {brace} notation (e.g., `sma_crossover`
+// { fast, slow }, `rsi_mean_reversion` { period, oversold,
+// overbought }). The signature names must match the Rust Params
+// struct fields one-to-one or SelectBot teaches users the wrong
+// parameter names. The rust-params-parity test already pins the
+// Rust Params struct fields to the toStrategyKind wire-format, but
+// not to the prompt's prose enumeration; this fills that gap.
+
+interface StrategyToCheck {
+  slug: string;
+  rustFile: string;
+}
+
+const STRATEGIES_WITH_PARAMS: StrategyToCheck[] = [
+  { slug: 'sma_crossover', rustFile: 'sma_crossover.rs' },
+  { slug: 'momentum', rustFile: 'momentum.rs' },
+  // rsi_meanreversion.rs is the actual filename (no underscore
+  // between "mean" and "reversion") because the original Rust
+  // module was named that way; the public strategy slug is the
+  // serde rename_all-derived snake_case form rsi_mean_reversion.
+  { slug: 'rsi_mean_reversion', rustFile: 'rsi_meanreversion.rs' },
+  { slug: 'breakout', rustFile: 'breakout.rs' },
+  { slug: 'bollinger_bands', rustFile: 'bollinger_bands.rs' },
+];
+
+const STRATEGIES_DIR = resolve(ROOT, 'crates', 'backtest-core', 'src', 'strategies');
+
+function extractRustParamFields(rustSource: string): string[] {
+  const blockMatch = rustSource.match(/pub struct Params \{([\s\S]*?)\n\}/);
+  if (!blockMatch) return [];
+  const body = blockMatch[1];
+  const fieldRe = /^\s+pub\s+([a-z_][a-z0-9_]*)\s*:/gm;
+  const fields: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = fieldRe.exec(body)) !== null) {
+    fields.push(m[1]);
+  }
+  return fields;
+}
+
+function extractPromptSignatureFields(
+  promptSource: string,
+  slug: string
+): string[] | null {
+  // Match: `<slug>` { field1, field2, ... } or `<slug>` { ... }:
+  // The brace block immediately follows the backquoted slug. The
+  // fields are comma-separated identifiers; capture the brace
+  // contents and split on commas.
+  const re = new RegExp(`\\\`${slug}\\\`\\s*\\{([^}]*)\\}`);
+  const m = promptSource.match(re);
+  if (!m) return null;
+  return m[1]
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+describe('chat system prompt strategy signature parity', () => {
+  it.each(STRATEGIES_WITH_PARAMS.map((s) => [s.slug, s]))(
+    'strategy %s prompt signature matches the Rust Params struct fields',
+    (_slug, strat) => {
+      const rustPath = resolve(STRATEGIES_DIR, strat.rustFile);
+      const rustSource = readFileSync(rustPath, 'utf8');
+      const rustFields = extractRustParamFields(rustSource).sort();
+      const promptFields = extractPromptSignatureFields(
+        CHAT_SYSTEM_PROMPT,
+        strat.slug
+      );
+      expect(
+        promptFields,
+        `chat-system-prompt has no signature line for \`${strat.slug}\` { ... }`
+      ).not.toBeNull();
+      if (!promptFields) return;
+      expect(
+        promptFields.sort(),
+        `prompt signature for ${strat.slug} is ${JSON.stringify(promptFields)} but Rust Params has ${JSON.stringify(rustFields)}`
+      ).toEqual(rustFields);
     }
   );
 });
