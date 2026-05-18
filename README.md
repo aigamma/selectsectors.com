@@ -51,13 +51,27 @@ build session ending 2026-05-18. The site is functionally complete:
   Module-level tests: rate-limit window math, canonical-json,
   strategy translation, HTML-escape helpers, time-until-reset
   formatting, dispatch.ts (POST + 3-shape response + polling).
-  Source-of-truth regression tests: sitemap validity, internal-link
-  checking, JSON-LD validity, env-vars parity, version-string
-  parity, vite-config-vs-HTML-pages parity, HTML-script-entries
-  parity, Rust ↔ TS strategy catalog parity, Rust Params field
-  parity, frontend-vs-backend STRATEGY_SPECS parity, strategy-specs
-  ↔ explainer pages + catalog rows parity, quiz-catalog parity (4-
-  layer), philosophy + learn catalog-rows parity, universe-roster
+  Source-of-truth regression tests: sitemap validity (forward +
+  reverse coverage), internal-link checking, JSON-LD validity,
+  env-vars parity, version-string parity (package.json + health.mts
+  + layout.ts + changelog + README), vite-config-vs-HTML-pages
+  parity, HTML-script-entries parity, Rust ↔ TS strategy catalog
+  parity, Rust Params field parity, frontend-vs-backend
+  STRATEGY_SPECS parity (option labels in forms + catalog rows +
+  explainer titles + breadcrumb leaves), quiz/philosophy/learn
+  catalog parity (catalog title ↔ page <title> + <h1> +
+  breadcrumbs + JSON-LD BreadcrumbList names + URLs), no-em-dashes
+  site-wide convention, catalog lede + meta count parity (the
+  cardinality claims like "five quizzes" must match the actual
+  subdir count), rate-limit numbers parity across 5 documentation
+  surfaces (api-docs prose + JSON + README + chat-system-prompt),
+  chat-system-prompt cardinality and slug-enumeration parity
+  (the system prompt's grounding facts pinned to the live state),
+  canonical-URL parity (og:url + JSON-LD url + @id all derived
+  from file path), og:title + twitter:title pinned to <title>
+  stem, breadcrumb leaf + ancestor parity vs NAV_LINKS and catalog
+  titles, JSON-LD TechArticle headline ↔ visible h1, api-docs
+  endpoints ↔ netlify functions parity, universe-roster
   cardinality + chat-prompt anchor + strategy interpolation. The
   parity tests automatically extend as new content is added (a 7th
   strategy, a 6th quiz, a new philosophy essay all surface in
