@@ -1075,6 +1075,17 @@ a:hover {
   border-color: rgba(46, 204, 113, 0.4);
 }
 
+.scan-symbol-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+
+.scan-symbol-link:hover {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
 .page-footer {
   display: flex;
   align-items: center;

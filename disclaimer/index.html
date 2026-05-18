@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Disclaimer for selectsectors.com. What the site is, what it isn't, what the backtest results actually mean, and the limits of any conclusion drawn from them."
+    />
+    <title>Disclaimer &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Disclaimer</span>
+        <h1>Not investment advice.</h1>
+        <p class="lesson-lede">
+          Everything on selectsectors.com is educational. The
+          backtests, the metrics, the chatbot, the strategy
+          explainers, the curriculum &mdash; all of it is for
+          learning Rust and learning quant finance, not for picking
+          stocks or sizing positions. Read this once and remember
+          it.
+        </p>
+
+        <h2>What the backtests show</h2>
+        <p>
+          A backtest on this site is a hypothesis test against
+          historical data. It takes a strategy specification (the
+          entry and exit rules, the parameters), applies it to past
+          daily bar data for one symbol over a date range, and
+          reports the metrics that fall out (total return, CAGR,
+          Sharpe, drawdown, hit rate). The result is mathematically
+          honest: the no-lookahead engine enforces that signals at
+          bar i only act on bar i+1 onwards. It is not
+          predictive of any future trading result.
+        </p>
+        <p>
+          Reasons a backtest result will not match live trading
+          performance, in roughly decreasing order of impact:
+        </p>
+        <ol>
+          <li>
+            <strong>Slippage and commissions.</strong> Bar-close
+            fills in a backtest are an idealization. Real fills
+            cross the spread, eat commissions, and on illiquid names
+            move the market against you. See
+            <a href="/philosophy/backtest-vs-live/">/philosophy/backtest-vs-live/</a>
+            for the long form.
+          </li>
+          <li>
+            <strong>Survivorship bias.</strong> The eleven anchor
+            single names this site exposes are the 2026 top-by-
+            options-volume list. Backtesting them against pre-2026
+            data overstates the result because the names that fell
+            out of the ranking are not in the universe. See
+            <a href="/philosophy/survivorship-bias/">/philosophy/survivorship-bias/</a>.
+          </li>
+          <li>
+            <strong>Overfitting.</strong> A strategy whose Sharpe
+            looks great at one specific parameter setting on one
+            specific historical window is almost always worse out-
+            of-sample. See
+            <a href="/philosophy/overfitting/">/philosophy/overfitting/</a>.
+          </li>
+          <li>
+            <strong>Regime dependence.</strong> Trend-following
+            strategies look great in trending markets and ugly in
+            chop. Mean-reversion strategies do the opposite. A
+            backtest covers one regime; the next regime may be
+            different.
+          </li>
+          <li>
+            <strong>Tax treatment.</strong> Backtests report
+            pre-tax returns. A high-turnover strategy pays the
+            higher short-term tax rate; the after-tax Sharpe is
+            often substantially worse than the pre-tax Sharpe.
+          </li>
+        </ol>
+
+        <h2>What the chatbot is and isn't</h2>
+        <p>
+          SelectBot is a focused educational chatbot scoped to four
+          topics: Rust (especially as this site uses it), the site
+          itself, quant finance basics, and the philosophy of
+          backtesting. It refuses to give investment advice or
+          predict stock prices. If you try to use it as a stock-
+          picking oracle it will redirect you. Treat its answers as
+          starting points for further reading, not as authoritative
+          conclusions. It is a language model with the limitations
+          all language models have: occasional confident wrongness,
+          knowledge that lags real-time events, no awareness of
+          your specific financial situation.
+        </p>
+
+        <h2>Data freshness and accuracy</h2>
+        <p>
+          The bar data this site queries lives in a Supabase project
+          shared with aigamma.com and is updated weekdays after the
+          US market close. There can be gaps for symbols whose
+          history is shallower than the date range you pick (the
+          eleven anchor single names start 2024-04-25 in the
+          shared database; SPX goes back to 2022-01-03; the SPDR
+          sectors are in between). Bar accuracy is whatever the
+          upstream Massive Stocks Starter and Indices Starter feeds
+          provide; we don't add corrections beyond what the feed
+          delivers.
+        </p>
+
+        <h2>Code quality and reliability</h2>
+        <p>
+          The Rust strategy crate has 39 unit tests covering
+          numerical correctness and parameter validation. The
+          TypeScript helpers (canonicalize, sha256, rate-limit) have
+          21 unit tests. The CI workflow runs all of them on every
+          push. None of this guarantees the math is correct in every
+          edge case; cite the source if a result looks suspicious
+          (the source is published at
+          <a href="https://github.com/aigamma/selectsectors.com">github.com/aigamma/selectsectors.com</a>
+          and the curriculum pages inline it via build-time imports
+          so what you see is what runs).
+        </p>
+
+        <h2>Rate limits, cost, and availability</h2>
+        <p>
+          The backtester and the strategy comparison and the
+          universe scan all share the same rate limit: two runs per
+          hour, five per day per IP. The chatbot has its own limit:
+          thirty messages per hour, one hundred per day per IP. The
+          site is free; the limits exist so a single user cannot
+          burn the AI Gamma Anthropic spending pool on this
+          public surface. There is no SLA. The site can go down at
+          any time; the data feed can change at any time; the
+          features can change without notice.
+        </p>
+
+        <h2>No relationship</h2>
+        <p>
+          Visiting this site does not create any relationship
+          between you and AI Gamma or any AI Gamma operator. We do
+          not know who you are; we do not collect personal data
+          beyond what is necessary for rate limiting (your IP, used
+          as the rate-limit key, stored in Netlify Blobs with no
+          PII attached). We do not sell, share, or otherwise
+          distribute your usage data.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>The short version.</strong> Educational only.
+          Backtest results are not predictions. The chatbot is a
+          language model, not an advisor. The data may be wrong.
+          The math may be wrong. The site may go down. Talk to a
+          licensed financial professional if you are making real
+          investment decisions.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/">&larr; Back to the backtester</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/disclaimer.ts"></script>
+  </body>
+</html>

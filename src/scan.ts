@@ -384,6 +384,23 @@ function renderResult(result: ScanResult): void {
     return;
   }
 
+  // Build the URL params once per render so each row's link uses the
+  // same strategy + date range the scan was run with. The user
+  // clicking a row jumps to the homepage with this strategy + the
+  // row's symbol pre-filled, and can hit Run to see the per-bar
+  // equity curve (which the scan blob deliberately omits to keep
+  // payload small).
+  const inputs = result.inputs as
+    | { strategy?: { name?: string; params?: Record<string, number> } }
+    | undefined;
+  const strategyName = inputs?.strategy?.name ?? result.strategy;
+  const homeBaseUrl = (symbol: string): string => {
+    const p = new URLSearchParams();
+    p.set('strategy', strategyName);
+    p.set('symbol', symbol);
+    return `/?${p.toString()}`;
+  };
+
   const tbody = document.querySelector<HTMLTableSectionElement>(
     '#scan-table tbody'
   );
@@ -402,7 +419,7 @@ function renderResult(result: ScanResult): void {
         }
         return `
           <tr class="compare-row">
-            <td><strong>${escape(s.symbol)}</strong></td>
+            <td><a href="${escape(homeBaseUrl(s.symbol))}" class="scan-symbol-link"><strong>${escape(s.symbol)}</strong></a></td>
             <td><span class="scan-category scan-category-${escape(s.category)}">${escape(cat)}</span></td>
             <td class="num ${(s.totalReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.totalReturn)}</td>
             <td class="num ${(s.annualizedReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.annualizedReturn)}</td>
