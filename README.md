@@ -9,35 +9,47 @@ Developer tier per visitor.
 
 ## Status
 
-v0.1.0. The full content + interactive surface shipped over a multi-iteration
+v0.1.2. The full content + interactive surface shipped over a multi-iteration
 build session ending 2026-05-18. The site is functionally complete:
 
 - 6-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
-  mean reversion, Donchian breakout) end-to-end through a Netlify
-  background function, with results cached by content-hash.
-- SelectBot chatbot (Anthropic SDK + prompt caching + SSE streaming)
-  covering Rust, this site, quant finance basics, and the philosophy of
-  backtesting. Floating chat panel on every page; conversation persists
-  to localStorage.
+  mean reversion, Donchian breakout, Bollinger Bands mean reversion) end-
+  to-end through a Netlify background function, with results cached by
+  content-hash and a buy-and-hold benchmark overlay on every result.
+- SelectBot chatbot (Anthropic SDK with claude-sonnet-4-6 + prompt
+  caching + SSE streaming) covering Rust, this site, quant finance
+  basics, and the philosophy of backtesting. Floating chat panel on
+  every page; conversation persists to localStorage. Rate-limited at
+  30 messages/hour and 100/day per IP.
 - 6 Rust curriculum lessons under `/learn/`, each anchored against the
   actual `crates/backtest-core/` source via Vite's `?raw` import (the
-  curriculum cannot drift from the code).
+  curriculum cannot drift from the code): why-rust, this-sites-rust,
+  ownership, enums-and-dispatch, error-handling, wasm.
 - 5 quiz categories with 36 multiple-choice questions under `/quiz/`,
-  with localStorage progress persistence.
-- 5 per-strategy explainer pages under `/strategies/{name}/`, each
+  with localStorage progress persistence: rust-basics, this-sites-rust,
+  quant-finance, rust-intermediate, wasm-internals.
+- 6 per-strategy explainer pages under `/strategies/{name}/`, each
   pairing intuition + math + the exact Rust source + a "Try it" link
   that pre-fills the backtester form via `?strategy=` and `?symbol=`
   query parameters.
-- 5 philosophy primers under `/philosophy/` (overfitting, survivorship
-  bias, lookahead bias, backtest vs live, regimes).
-- 76 unit tests (39 Rust, 37 TypeScript across rate-limit,
-  canonical-json, strategy translation, and HTML-escape helpers),
-  three-job GitHub Actions CI workflow that runs cargo test, Vitest,
-  and the production build on every push.
+- 5 philosophy primers under `/philosophy/`: overfitting, survivorship
+  bias, lookahead bias, backtest vs live, regimes.
 - Cross-axis exploration: `/compare/` runs all six strategies on
   one symbol; `/scan/` runs one strategy across all 23 symbols. Both
   consume one rate-limit slot regardless of the internal backtest
   count.
+- Reference pages: `/disclaimer/`, `/changelog/`, `/glossary/`
+  (alphabetical reference of every quant-finance + Rust term used
+  across the site).
+- 118 unit tests (44 Rust, 74 TypeScript across rate-limit,
+  canonical-json, strategy translation, HTML-escape helpers, sitemap
+  validity over 30 URLs, and internal-link checking), three-job GitHub
+  Actions CI workflow that runs cargo test, Vitest, and the production
+  build on every push.
+- SEO surface: structured data (WebSite, Organization, Course,
+  FAQPage, Article/TechArticle, BreadcrumbList), OG + Twitter Card
+  meta tags on every page, SVG OG image, sitemap.xml with 30 URLs.
+- 30 production HTML pages total.
 
 Deployment dependencies: `ANTHROPIC_API_KEY` env var on the Netlify
 project for the chatbot (without it `/api/chat` returns 503). All other
@@ -167,20 +179,31 @@ shared library), but diverge on the data plane and the agent loop.
 │   ├── sma-crossover/
 │   ├── momentum/
 │   ├── rsi-mean-reversion/
-│   └── breakout/
+│   ├── breakout/
+│   └── bollinger-bands/
+│
+├── compare/                        all 6 strategies on one symbol
+├── scan/                           one strategy across all 23 symbols
 │
 ├── philosophy/                     primers
 │   ├── index.html
 │   ├── overfitting/
 │   ├── survivorship-bias/
 │   ├── lookahead-bias/
-│   └── backtest-vs-live/
+│   ├── backtest-vs-live/
+│   └── regimes/
 │
 ├── quiz/                           interactive quizzes
 │   ├── index.html
 │   ├── rust-basics/
 │   ├── this-sites-rust/
-│   └── quant-finance/
+│   ├── quant-finance/
+│   ├── rust-intermediate/
+│   └── wasm-internals/
+│
+├── disclaimer/                     legal + risk disclosure
+├── changelog/                      release log
+├── glossary/                       term reference (quant + Rust)
 │
 ├── src/                            frontend entries (one per page) + shared
 │   ├── main.ts                     homepage entry
@@ -201,6 +224,7 @@ shared library), but diverge on the data plane and the agent loop.
 │       ├── _lib/
 │       │   ├── rate-limit.mts      parameterized rate-limiter factory
 │       │   ├── canonical-json.mts  shared cache-key derivation
+│       │   ├── strategy.mts        API to Rust-serde wire-format translation
 │       │   ├── chat-system-prompt.mts  SelectBot's grounded system prompt
 │       │   └── __tests__/          Vitest suite
 │       ├── health.mts              GET /api/health
@@ -208,9 +232,13 @@ shared library), but diverge on the data plane and the agent loop.
 │       ├── rate-status.mts         GET /api/rate-status
 │       ├── chat-status.mts         GET /api/chat-status
 │       ├── backtest.mts            POST /api/backtest (rate-limited)
+│       ├── compare.mts             POST /api/compare (all strategies, 1 symbol)
+│       ├── scan.mts                POST /api/scan (1 strategy, all 23 symbols)
 │       ├── result.mts              GET /api/result?hash=
 │       ├── chat.mts                POST /api/chat (SSE streaming)
-│       └── backtest-background.mts 15-min wall-clock WASM runner
+│       ├── backtest-background.mts 15-min wall-clock WASM runner
+│       ├── compare-background.mts  compare dispatcher
+│       └── scan-background.mts     scan dispatcher
 │
 ├── crates/
 │   └── backtest-core/              Rust to WASM
@@ -226,7 +254,8 @@ shared library), but diverge on the data plane and the agent loop.
 │               ├── sma_crossover.rs
 │               ├── momentum.rs
 │               ├── rsi_meanreversion.rs
-│               └── breakout.rs
+│               ├── breakout.rs
+│               └── bollinger_bands.rs
 │
 └── docs/
     └── architecture.md

@@ -172,20 +172,54 @@ narrower data set:
 The redistribution boundary is the reason this site is daily-bar
 only at v1 and the desktop app is the surface for chain-level work.
 
+## Surfaces that shipped after the scaffold
+
+- **SelectBot floating chat panel.** Anthropic SDK + claude-sonnet-4-6
+  + prompt caching + SSE streaming. Grounded system prompt covers
+  Rust, this site, quant finance basics, and backtesting philosophy.
+  Conversation persists to localStorage. Rate-limited at 30/hour and
+  100/day per IP. The corpus is encoded directly in the system prompt
+  rather than retrieved via RAG since the site's vocabulary is small
+  enough that the cached system prompt covers everything the bot is
+  asked about.
+- **Strategy library at `/strategies/`.** Six strategies, each with a
+  dedicated explainer page (`/strategies/{name}/`) pairing intuition,
+  math, the exact Rust source rendered via Vite `?raw` import, and a
+  Try-it deep link that pre-fills the homepage form.
+- **Cross-axis exploration.** `/compare/` runs all six strategies on
+  one symbol and ranks by Sharpe; `/scan/` runs one strategy across
+  all 23 symbols and ranks by Sharpe. Both consume one rate-limit
+  slot regardless of internal backtest count (the dispatcher fans out
+  internally and the user sees a single result).
+- **Curriculum.** Six Rust lessons (`/learn/`) and five philosophy
+  primers (`/philosophy/`), each with breadcrumb navigation, Article/
+  TechArticle JSON-LD, and OG + Twitter Card meta tags.
+- **Quiz engine.** Five categories (`/quiz/`) with 36 multiple-choice
+  questions, scored with localStorage progress persistence and a
+  Course schema.org entry.
+- **Reference pages.** `/disclaimer/`, `/changelog/`, `/glossary/`
+  (alphabetical reference of every quant-finance + Rust term used on
+  the site).
+
 ## Future surfaces
 
-Not in scope for the scaffold but worth marking as natural extensions:
+Open extensions that have not been implemented yet:
 
-- **Per-page chatbot.** Same RAG layer the aigamma.com site uses, but
-  with a smaller corpus indexed against the strategy library and the
-  results explainer prose.
-- **Strategy library page.** A grid of all parameterized strategies
-  with one-line descriptions, default param choices, and example
-  result thumbnails.
-- **Cross-symbol comparison.** Run the same strategy across all 23
-  symbols simultaneously and rank by Sharpe or drawdown.
 - **Regime conditioning.** A "run only during negative gamma" toggle
   that filters the bar set by the historical gamma regime label
   before executing the strategy. Requires syncing a regime label
   series into Supabase from aigamma.com (or independently computing
   it).
+- **Custom-strategy editor.** A Rust-like DSL inside an editor on
+  the site that compiles to a parameterized version of an existing
+  strategy. Substantially larger lift than any of the shipped
+  surfaces since it requires either a JIT compilation step or a
+  pre-baked grammar with fixed primitives.
+- **Parameter-sweep view.** A heatmap of Sharpe (or drawdown) across
+  a 2D grid of two strategy parameters, on one symbol. The compare
+  + scan endpoints suggest the right shape: a single rate-limit slot
+  that fans out internally.
+- **PNG OG image rasterization.** The SVG OG image renders correctly
+  on most platforms but Twitter wants a raster image. Plug in
+  Sharp or Resvg in a Netlify Build Plugin to rasterize once at
+  build time.
