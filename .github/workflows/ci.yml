@@ -1,0 +1,72 @@
+# CI for selectsectors.com. Three jobs run in parallel on every push
+# and pull request:
+#
+#   1. Rust unit tests via `cargo test` on the crates/backtest-core
+#      strategy library. Fast (~10 seconds on a cold cache, ~2 seconds
+#      hot).
+#   2. TypeScript checks: `npm run typecheck` plus `npm run test`
+#      (Vitest on the rate-limit and canonicalize helpers).
+#   3. Build verification: `npm run build` (which runs wasm-pack
+#      first, then Vite) to make sure the full production bundle
+#      compiles cleanly.
+#
+# If any of the three fail, the workflow fails and the PR is blocked.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust-tests:
+    name: Rust unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            crates/backtest-core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('crates/backtest-core/Cargo.toml') }}
+      - name: Run cargo test
+        run: cargo test --manifest-path crates/backtest-core/Cargo.toml --lib
+
+  typescript-tests:
+    name: TypeScript typecheck + Vitest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: |
+          curl -L https://github.com/rustwasm/wasm-pack/releases/download/v0.13.1/wasm-pack-v0.13.1-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xz -C /tmp
+          sudo cp /tmp/wasm-pack-v0.13.1-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin/
+      - run: npm ci
+      - run: npm run build

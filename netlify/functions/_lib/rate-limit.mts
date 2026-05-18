@@ -36,10 +36,10 @@ import { getStore } from '@netlify/blobs';
 // concurrent load, swap the underlying store for one with compare-
 // and-swap semantics (e.g., a Supabase table with row-level locks).
 
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
+export const HOUR_MS = 60 * 60 * 1000;
+export const DAY_MS = 24 * HOUR_MS;
 
-interface Counter {
+export interface Counter {
   hourWindowStart: number;
   hourCount: number;
   dayWindowStart: number;
@@ -55,6 +55,84 @@ export interface RateLimitDecision {
   allowed: boolean;
   reason: 'ok' | 'hour-exceeded' | 'day-exceeded';
   info: RateLimitInfo;
+}
+
+// Pure helpers exported so unit tests can exercise the window-reset
+// and decision logic without spinning up a Netlify Blobs mock. The
+// factory functions below call these and add the storage-backed I/O.
+
+export function freshCounter(now: number): Counter {
+  return {
+    hourWindowStart: now,
+    hourCount: 0,
+    dayWindowStart: now,
+    dayCount: 0,
+  };
+}
+
+export function applyWindowResets(counter: Counter, now: number): Counter {
+  const out = { ...counter };
+  if (now - out.hourWindowStart >= HOUR_MS) {
+    out.hourWindowStart = now;
+    out.hourCount = 0;
+  }
+  if (now - out.dayWindowStart >= DAY_MS) {
+    out.dayWindowStart = now;
+    out.dayCount = 0;
+  }
+  return out;
+}
+
+export function counterToInfo(
+  counter: Counter,
+  hourLimit: number,
+  dayLimit: number
+): RateLimitInfo {
+  return {
+    hourly: {
+      limit: hourLimit,
+      used: counter.hourCount,
+      remaining: Math.max(0, hourLimit - counter.hourCount),
+      resetAt: counter.hourWindowStart + HOUR_MS,
+    },
+    daily: {
+      limit: dayLimit,
+      used: counter.dayCount,
+      remaining: Math.max(0, dayLimit - counter.dayCount),
+      resetAt: counter.dayWindowStart + DAY_MS,
+    },
+  };
+}
+
+export function decideConsume(
+  counter: Counter,
+  hourLimit: number,
+  dayLimit: number
+): RateLimitDecision {
+  if (counter.hourCount >= hourLimit) {
+    return {
+      allowed: false,
+      reason: 'hour-exceeded',
+      info: counterToInfo(counter, hourLimit, dayLimit),
+    };
+  }
+  if (counter.dayCount >= dayLimit) {
+    return {
+      allowed: false,
+      reason: 'day-exceeded',
+      info: counterToInfo(counter, hourLimit, dayLimit),
+    };
+  }
+  const incremented: Counter = {
+    ...counter,
+    hourCount: counter.hourCount + 1,
+    dayCount: counter.dayCount + 1,
+  };
+  return {
+    allowed: true,
+    reason: 'ok',
+    info: counterToInfo(incremented, hourLimit, dayLimit),
+  };
 }
 
 export interface RateLimiterOptions {
@@ -81,45 +159,6 @@ export interface RateLimiter {
 export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
   const { storeName, hourLimit, dayLimit } = opts;
 
-  function freshCounter(now: number): Counter {
-    return {
-      hourWindowStart: now,
-      hourCount: 0,
-      dayWindowStart: now,
-      dayCount: 0,
-    };
-  }
-
-  function applyWindowResets(counter: Counter, now: number): Counter {
-    const out = { ...counter };
-    if (now - out.hourWindowStart >= HOUR_MS) {
-      out.hourWindowStart = now;
-      out.hourCount = 0;
-    }
-    if (now - out.dayWindowStart >= DAY_MS) {
-      out.dayWindowStart = now;
-      out.dayCount = 0;
-    }
-    return out;
-  }
-
-  function toInfo(counter: Counter): RateLimitInfo {
-    return {
-      hourly: {
-        limit: hourLimit,
-        used: counter.hourCount,
-        remaining: Math.max(0, hourLimit - counter.hourCount),
-        resetAt: counter.hourWindowStart + HOUR_MS,
-      },
-      daily: {
-        limit: dayLimit,
-        used: counter.dayCount,
-        remaining: Math.max(0, dayLimit - counter.dayCount),
-        resetAt: counter.dayWindowStart + DAY_MS,
-      },
-    };
-  }
-
   async function read(ip: string): Promise<RateLimitInfo> {
     const store = getStore(storeName);
     const now = Date.now();
@@ -127,31 +166,26 @@ export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
     const counter = existing
       ? applyWindowResets(existing, now)
       : freshCounter(now);
-    return toInfo(counter);
+    return counterToInfo(counter, hourLimit, dayLimit);
   }
 
   async function consume(ip: string): Promise<RateLimitDecision> {
     const store = getStore(storeName);
     const now = Date.now();
     const existing = (await store.get(ip, { type: 'json' })) as Counter | null;
-    let counter = existing
+    const counter = existing
       ? applyWindowResets(existing, now)
       : freshCounter(now);
-
-    if (counter.hourCount >= hourLimit) {
-      return { allowed: false, reason: 'hour-exceeded', info: toInfo(counter) };
+    const decision = decideConsume(counter, hourLimit, dayLimit);
+    if (decision.allowed) {
+      const incremented: Counter = {
+        ...counter,
+        hourCount: counter.hourCount + 1,
+        dayCount: counter.dayCount + 1,
+      };
+      await store.setJSON(ip, incremented);
     }
-    if (counter.dayCount >= dayLimit) {
-      return { allowed: false, reason: 'day-exceeded', info: toInfo(counter) };
-    }
-
-    counter = {
-      ...counter,
-      hourCount: counter.hourCount + 1,
-      dayCount: counter.dayCount + 1,
-    };
-    await store.setJSON(ip, counter);
-    return { allowed: true, reason: 'ok', info: toInfo(counter) };
+    return decision;
   }
 
   return {

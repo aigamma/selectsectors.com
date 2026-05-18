@@ -1,6 +1,7 @@
 import type { Context, Config } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { consumeRateLimit } from './_lib/rate-limit.mts';
+import { sha256OfCanonical } from './_lib/canonical-json.mts';
 
 // Synchronous dispatcher for backtest requests. Three jobs:
 //
@@ -115,33 +116,6 @@ export default async (req: Request, context: Context): Promise<Response> => {
     { status: 202 }
   );
 };
-
-// Canonical JSON keeps the cache key stable across key-order
-// permutations in the input object. Without it, two POSTs with the
-// same values but different key order would compute different
-// hashes and re-run the backtest, defeating the cache.
-function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return '[' + value.map(canonicalize).join(',') + ']';
-  }
-  const keys = Object.keys(value as Record<string, unknown>).sort();
-  const parts = keys.map((k) => {
-    const v = (value as Record<string, unknown>)[k];
-    return JSON.stringify(k) + ':' + canonicalize(v);
-  });
-  return '{' + parts.join(',') + '}';
-}
-
-async function sha256OfCanonical(value: unknown): Promise<string> {
-  const data = new TextEncoder().encode(canonicalize(value));
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 export const config: Config = {
   path: '/api/backtest',

@@ -12,7 +12,9 @@
     "build:wasm": "wasm-pack build crates/backtest-core --target nodejs --out-dir ../../pkg --out-name backtest_core",
     "build:frontend": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -24,6 +26,7 @@
     "@types/node": "^22.18.0",
     "netlify-cli": "^26.0.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.13"
+    "vite": "^8.0.13",
+    "vitest": "^4.1.6"
   }
 }

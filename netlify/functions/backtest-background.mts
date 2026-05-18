@@ -1,6 +1,7 @@
 import type { Context } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { sha256OfCanonical } from './_lib/canonical-json.mts';
 // @ts-ignore — pkg/ is built by `npm run build:wasm` and is not in the
 // TypeScript tree the typechecker looks at, so the editor and tsc see
 // this as a missing module. At runtime, the Netlify bundler picks it
@@ -258,25 +259,3 @@ async function fetchBars(
   return (data ?? []) as DailyBarRow[];
 }
 
-function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return '[' + value.map(canonicalize).join(',') + ']';
-  }
-  const keys = Object.keys(value as Record<string, unknown>).sort();
-  const parts = keys.map((k) => {
-    const v = (value as Record<string, unknown>)[k];
-    return JSON.stringify(k) + ':' + canonicalize(v);
-  });
-  return '{' + parts.join(',') + '}';
-}
-
-async function sha256OfCanonical(value: unknown): Promise<string> {
-  const data = new TextEncoder().encode(canonicalize(value));
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
