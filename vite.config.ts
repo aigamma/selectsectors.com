@@ -85,6 +85,7 @@ export default defineConfig({
           'philosophy/backtest-vs-live/index.html'
         ),
         disclaimer: resolve(__dirname, 'disclaimer/index.html'),
+        changelog: resolve(__dirname, 'changelog/index.html'),
         notFound: resolve(__dirname, '404.html'),
       },
     },

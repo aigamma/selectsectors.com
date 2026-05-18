@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Changelog for selectsectors.com. What landed in each release, in reverse-chronological order. v0.1.0 shipped 2026-05-18 with the five-strategy WASM backtester, SelectBot chat, six Rust curriculum lessons, three quiz categories, four philosophy primers, cross-axis exploration via /compare/ and /scan/, and a 76-test CI workflow."
+    />
+    <title>Changelog &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Changelog" />
+    <meta property="og:description" content="Changelog for selectsectors.com. v0.1.0 ships the five-strategy WASM backtester, SelectBot chat, Rust curriculum, quizzes, philosophy primers, /compare/, /scan/." />
+    <meta property="og:url" content="https://selectsectors.com/changelog/" />
+    <meta property="og:image" content="https://selectsectors.com/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Changelog" />
+    <meta name="twitter:description" content="Changelog for selectsectors.com." />
+    <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Changelog</span>
+        <h1>What's new.</h1>
+        <p class="lesson-lede">
+          Reverse-chronological log of what shipped on each release.
+          Versions follow semver; the site is currently v0.1.0 (a
+          stable initial release, not a stable API since most of the
+          API is internal).
+        </p>
+
+        <h2 id="v0-1-0">v0.1.0 &middot; 2026-05-18</h2>
+        <p>
+          Initial release. The site went from an empty directory to a
+          feature-complete educational backtester over a multi-day
+          autonomous build session. Everything in this list was
+          implemented, tested, and verified end-to-end before v0.1.0
+          was tagged.
+        </p>
+
+        <h3>Backtester</h3>
+        <ul>
+          <li>
+            Five strategies in the Rust crate at
+            <code>crates/backtest-core/</code>: buy-and-hold, SMA
+            crossover, momentum, RSI mean reversion (Wilder's
+            recurrence), Donchian breakout. Compiled to WebAssembly
+            via wasm-pack, loaded by the Netlify background function
+            at request time.
+          </li>
+          <li>
+            No-lookahead enforcement at the engine layer: the
+            <code>apply_positions_to_bars</code> function lags the
+            position vector by one bar so individual strategy
+            authors cannot accidentally cheat.
+          </li>
+          <li>
+            Result panel with six metrics: total return, CAGR,
+            Sharpe (annualized), max drawdown, hit rate, bar count.
+            Each label has a hover tooltip with a one-sentence
+            definition.
+          </li>
+          <li>
+            Buy-and-hold benchmark equity curve overlaid on the
+            equity chart, with a "vs buy-and-hold: +X%" summary line
+            above the chart. Skipped when the user already picked
+            buy-and-hold.
+          </li>
+        </ul>
+
+        <h3>Cross-axis exploration</h3>
+        <ul>
+          <li>
+            <a href="/compare/">/compare/</a> runs all five
+            strategies against one symbol in a single backtest with
+            an overlay chart of all five equity curves and a
+            Sharpe-ranked table.
+          </li>
+          <li>
+            <a href="/scan/">/scan/</a> runs one strategy against
+            all 23 symbols (SPX, SPY, 11 SPDR sectors, 11 anchor
+            single names) in a single backtest with a Sharpe-ranked
+            table. Symbol cells link back to the homepage with the
+            strategy + symbol pre-filled.
+          </li>
+          <li>
+            Both consume one rate-limit slot regardless of internal
+            backtest count.
+          </li>
+        </ul>
+
+        <h3>Educational content</h3>
+        <ul>
+          <li>
+            Six Rust curriculum lessons at <a href="/learn/">/learn/</a>:
+            Why Rust, A tour of this site's Rust, Ownership and
+            borrowing, Enums and dispatch, Error handling without
+            thiserror, Rust to WebAssembly. Each lesson inlines code
+            from <code>crates/backtest-core/</code> via Vite's
+            <code>?raw</code> import, so the curriculum cannot drift
+            from the source.
+          </li>
+          <li>
+            Five strategy explainer pages at
+            <a href="/strategies/">/strategies/</a> with intuition,
+            math, and the actual Rust source for each strategy. "Try
+            it" links pre-fill the backtester form.
+          </li>
+          <li>
+            Four backtesting-philosophy primers at
+            <a href="/philosophy/">/philosophy/</a>: overfitting,
+            survivorship bias, lookahead bias, backtest vs live.
+          </li>
+          <li>
+            Three quiz categories at <a href="/quiz/">/quiz/</a>:
+            Rust basics, This site's Rust, Quant finance basics. 21
+            multiple-choice questions total with explanations and
+            localStorage progress persistence.
+          </li>
+        </ul>
+
+        <h3>SelectBot chatbot</h3>
+        <ul>
+          <li>
+            Streaming chat via Server-Sent Events backed by the
+            Anthropic SDK (claude-sonnet-4-6). Floating panel
+            available on every page, conversation persisted to
+            localStorage.
+          </li>
+          <li>
+            Focused system prompt with prompt caching: covers Rust
+            (especially as this site uses it), the site itself,
+            quant finance basics, and the philosophy of backtesting.
+            Refuses investment advice and stock predictions; politely
+            defers off-topic questions.
+          </li>
+          <li>
+            Per-IP rate limit independent of the backtester: 30
+            messages/hour and 100/day.
+          </li>
+        </ul>
+
+        <h3>Tooling and infrastructure</h3>
+        <ul>
+          <li>
+            76 unit tests: 39 Rust (strategy parameter validation,
+            metric correctness, no-lookahead lag) + 37 TypeScript
+            (canonical JSON, rate-limit window math, strategy
+            translation, HTML escape).
+          </li>
+          <li>
+            Three-job GitHub Actions CI workflow: cargo test, Vitest,
+            full production build via wasm-pack + Vite.
+          </li>
+          <li>
+            Per-IP rate limiting with rolling-window resets (not
+            fixed-clock, so no boundary-spike abuse).
+          </li>
+          <li>
+            Content-hash cache for backtest results: re-running the
+            same backtest returns the cached blob instantly without
+            consuming a rate-limit slot.
+          </li>
+          <li>
+            Structured data on every content page: WebSite +
+            Organization on the homepage, Article on lessons +
+            strategies + philosophy essays, BreadcrumbList on all
+            nested pages.
+          </li>
+          <li>
+            Open Graph + Twitter Card meta tags on all 26 pages with
+            a custom 1200x630 SVG OG image.
+          </li>
+          <li>
+            Accessibility: skip-to-content link, aria-labelled
+            navigation, breadcrumbs with aria-current, semantic HTML.
+          </li>
+        </ul>
+
+        <div class="lesson-callout">
+          <strong>What's next.</strong> Future versions will add more
+          strategies (parameter-sweep view, custom strategies, more
+          quant primitives), expanded curriculum (deeper Rust topics,
+          a WASM internals lesson, a section on numerical methods),
+          and operational polish (PNG OG rasterization for Twitter,
+          performance audit, expanded daily_eod history once the
+          Massive backfill runs). The pace of post-v0.1.0 work will
+          be slower than the build session that produced v0.1.0.
+        </div>
+
+        <p style="margin-top:2rem; font-size:0.85rem; color:var(--text-secondary);">
+          The site source is on GitHub at
+          <a href="https://github.com/aigamma/selectsectors.com">github.com/aigamma/selectsectors.com</a>.
+          Every commit message is verbose and self-contained, so the
+          git log is the most detailed changelog this site has.
+        </p>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/changelog.ts"></script>
+  </body>
+</html>
