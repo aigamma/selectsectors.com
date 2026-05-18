@@ -34,7 +34,7 @@
         <div class="universe-grid">
           <div class="universe-col">
             <h3>Index</h3>
-            <ul><li>SPX</li><li>SPY</li></ul>
+            <ul><li>SPX</li></ul>
           </div>
           <div class="universe-col">
             <h3>SPDR sectors</h3>
@@ -49,7 +49,75 @@
 
       <section class="backtest">
         <h2>Run a backtest</h2>
-        <p class="status">Pre-1.0 scaffold. The strategy library and the run form are still being built.</p>
+
+        <div class="rate-banner" id="rate-banner" aria-live="polite">
+          <span class="rate-banner-loading">checking your daily allowance...</span>
+        </div>
+
+        <form id="backtest-form" class="backtest-form">
+          <div class="field">
+            <label for="symbol">Symbol</label>
+            <select id="symbol" name="symbol" required>
+              <option value="">select an instrument...</option>
+              <optgroup label="Index">
+                <option value="SPX">SPX</option>
+              </optgroup>
+              <optgroup label="SPDR sectors" id="symbol-sectors-group"></optgroup>
+              <optgroup label="Top-by-options-volume names" id="symbol-anchors-group"></optgroup>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="strategy">Strategy</label>
+            <select id="strategy" name="strategy" required>
+              <option value="buy_and_hold">Buy and hold</option>
+            </select>
+            <div class="field-hint">
+              Additional strategies arrive as the WASM backtest core grows; the placeholder buy-and-hold is the scaffold's smoke test for the end-to-end path.
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="start-date">Start date</label>
+              <input type="date" id="start-date" name="start-date" required />
+            </div>
+            <div class="field">
+              <label for="end-date">End date</label>
+              <input type="date" id="end-date" name="end-date" required />
+            </div>
+          </div>
+
+          <button type="submit" id="run-button" class="run-button">Run backtest</button>
+        </form>
+
+        <div id="status-line" class="status-line" aria-live="polite"></div>
+
+        <div id="result-panel" class="result-panel" hidden>
+          <h3>Result</h3>
+          <div class="result-meta">
+            <div class="result-meta-cell">
+              <div class="result-meta-label">Total return</div>
+              <div class="result-meta-value" id="result-total-return">-</div>
+            </div>
+            <div class="result-meta-cell">
+              <div class="result-meta-label">Sharpe (annualized)</div>
+              <div class="result-meta-value" id="result-sharpe">-</div>
+            </div>
+            <div class="result-meta-cell">
+              <div class="result-meta-label">Max drawdown</div>
+              <div class="result-meta-value" id="result-drawdown">-</div>
+            </div>
+            <div class="result-meta-cell">
+              <div class="result-meta-label">Bars</div>
+              <div class="result-meta-value" id="result-bars">-</div>
+            </div>
+          </div>
+          <div id="result-chart-wrap" class="result-chart-wrap">
+            <svg id="result-chart" viewBox="0 0 800 240" preserveAspectRatio="none" aria-label="Equity curve"></svg>
+          </div>
+          <div class="result-footnote" id="result-footnote"></div>
+        </div>
       </section>
     </main>
 
