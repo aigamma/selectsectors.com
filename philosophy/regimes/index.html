@@ -220,6 +220,57 @@
           single-window backtest hides this entirely.
         </div>
 
+        <h2>What's next</h2>
+        <p>
+          The five philosophy primers (overfitting, survivorship
+          bias, lookahead bias, backtest vs live, regimes) frame
+          how to read backtest results honestly. The natural next
+          step is to apply them on actual results:
+        </p>
+        <ul>
+          <li>
+            <strong>Run the same strategy on multiple sub-periods.</strong>
+            Pick a strategy on the
+            <a href="/">homepage backtester</a> and run it across
+            2022, 2023, 2024, and 2025 separately. Compare the
+            per-year Sharpe; if it ranges widely (say -0.5 to
+            +1.5), the single-window number from a full backtest
+            is hiding the variance.
+          </li>
+          <li>
+            <strong>Compare strategies on regime-bound windows.</strong>
+            <a href="/compare/">/compare/</a> runs all six
+            strategies on one symbol. Run it on 2020 (negative
+            gamma / volatile) vs 2023 (low-vol grind) vs 2025 and
+            see which strategies trade off well against each other
+            across the regime mix.
+          </li>
+          <li>
+            <strong>Scan one strategy across the universe.</strong>
+            <a href="/scan/">/scan/</a> runs one strategy across
+            all 23 symbols. The Sharpe distribution across symbols
+            for the same strategy is the cross-sectional regime
+            variance: if Momentum has Sharpe 1.8 on NVDA but -0.4
+            on XLU, that gap is regime-dependence in name space.
+          </li>
+          <li>
+            <strong>Read how the Rust enforces no-lookahead.</strong>
+            <a href="/learn/this-sites-rust/">/learn/this-sites-rust/</a>
+            shows the <code>apply_positions_to_bars</code>
+            function that lags the position vector by one bar at
+            the engine level. The lookahead-bias essay describes
+            the hazard; this is the code that prevents it.
+          </li>
+          <li>
+            <strong>Ask SelectBot about anything here.</strong> The
+            chat panel at bottom-right is grounded in these
+            essays. Specific questions ("what's a reasonable
+            fold count for a 5-year backtest?", "how does
+            regime conditioning interact with overfitting?") get
+            opinionated answers rather than generic boilerplate.
+          </li>
+        </ul>
+
         <nav class="lesson-nav">
           <div class="lesson-nav-prev">
             <a href="/philosophy/backtest-vs-live/">&larr; Backtest vs live</a>
