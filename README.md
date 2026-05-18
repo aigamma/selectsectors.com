@@ -80,7 +80,7 @@ build session ending 2026-05-18. The site is functionally complete:
   on every push.
 - SEO surface: structured data (WebSite, Organization, Course,
   FAQPage, Article/TechArticle, BreadcrumbList), OG + Twitter Card
-  meta tags on every page, SVG OG image, sitemap.xml with 31 URLs.
+  meta tags on every page, SVG OG image, sitemap.xml with 33 URLs.
 - 33 production HTML pages total (added /glossary/ + /api-docs/
   in v0.1.3).
 

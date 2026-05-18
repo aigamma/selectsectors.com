@@ -20,6 +20,7 @@ import { resolve } from 'node:path';
 const ROOT = resolve(__dirname, '..', '..');
 const README_PATH = resolve(ROOT, 'README.md');
 const CHANGELOG_PATH = resolve(ROOT, 'changelog', 'index.html');
+const SITEMAP_PATH = resolve(ROOT, 'public', 'sitemap.xml');
 
 function shouldSkipDir(name: string): boolean {
   return (
@@ -90,5 +91,24 @@ describe('production HTML page count parity', () => {
       parseInt(m[1], 10),
       `changelog meta description says ${m[1]} pages but actual count is ${liveCount}. Update the meta description.`
     ).toBe(liveCount);
+  });
+
+  it('README.md sitemap URL count matches the actual sitemap.xml URL count', () => {
+    const readme = readFileSync(README_PATH, 'utf8');
+    const sitemap = readFileSync(SITEMAP_PATH, 'utf8');
+    // Match: "sitemap.xml with <N> URLs" in README.
+    const re = /sitemap\.xml\s+with\s+(\d+)\s+URLs?/i;
+    const m = readme.match(re);
+    expect(
+      m,
+      `expected "sitemap.xml with <N> URLs" pattern in README.md`
+    ).not.toBeNull();
+    if (!m) return;
+    const claimed = parseInt(m[1], 10);
+    const actualUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].length;
+    expect(
+      claimed,
+      `README.md says sitemap.xml has ${claimed} URLs but the file actually contains ${actualUrls}. Update README or the sitemap.`
+    ).toBe(actualUrls);
   });
 });
