@@ -488,7 +488,10 @@ function clearConversation(): void {
   renderConversation();
   setChatStatus('');
   const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
-  if (input) input.value = '';
+  if (input) {
+    input.value = '';
+    input.style.height = '';
+  }
 }
 
 function openPanel(): void {
@@ -538,6 +541,9 @@ export function initChat(): void {
     if (!input) return;
     const text = input.value;
     input.value = '';
+    // Reset the auto-grown height so the textarea collapses back to
+    // its base size after the message is sent.
+    input.style.height = '';
     sendMessage(text).catch((err) => {
       console.error('sendMessage threw', err);
       finishWithError(`unexpected error: ${(err as Error).message}`);
@@ -552,6 +558,18 @@ export function initChat(): void {
       ev.preventDefault();
       form?.requestSubmit();
     }
+  });
+
+  // Auto-grow the textarea as the user types so long composed
+  // messages are fully visible. Caps at 200px to avoid the panel
+  // expanding past a sensible size; beyond that the textarea
+  // scrolls internally. The reset-to-auto-then-set pattern is the
+  // standard idiom for textarea auto-grow because setting height
+  // directly on a non-empty textarea doesn't shrink it on delete.
+  const MAX_INPUT_HEIGHT_PX = 200;
+  input?.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, MAX_INPUT_HEIGHT_PX) + 'px';
   });
 
   clearBtn?.addEventListener('click', () => clearConversation());
