@@ -28,7 +28,7 @@
 //! ## Standard deviation: population, not sample
 //!
 //! The std calculation divides by `period`, not `period - 1`. Bollinger
-//! Bands historically use the population formula; Wilder's
+//! Bands historically use the population formula; John Bollinger's
 //! own description in Bollinger on Bollinger Bands uses N rather
 //! than N-1. This matches what charting platforms render.
 
