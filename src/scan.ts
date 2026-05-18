@@ -245,6 +245,97 @@ function categoryLabel(c: ScanSymbolEntry['category']): string {
   }
 }
 
+function applyQueryParamPrefill(): void {
+  // Recipients of a shared /scan/ URL get the form pre-filled with
+  // the sender's strategy + per-strategy params + date range. The
+  // strategy-params inputs are rendered synchronously by the change
+  // handler on the strategy select, so we can copy p_<key>=<value>
+  // values right after dispatching the change event.
+  const params = new URLSearchParams(window.location.search);
+  const strategy = params.get('strategy');
+  const start = params.get('start');
+  const end = params.get('end');
+
+  if (strategy) {
+    const select = document.getElementById('strategy') as HTMLSelectElement | null;
+    if (select) {
+      const opt = Array.from(select.options).find((o) => o.value === strategy);
+      if (opt) {
+        select.value = strategy;
+        select.dispatchEvent(new Event('change'));
+        queueMicrotask(() => {
+          for (const [key, value] of params) {
+            if (!key.startsWith('p_')) continue;
+            const paramKey = key.slice(2);
+            const input = document.querySelector<HTMLInputElement>(
+              `input[data-param-key="${paramKey}"]`
+            );
+            if (input) input.value = value;
+          }
+        });
+      }
+    }
+  }
+
+  if (start) {
+    const startEl = document.getElementById(
+      'start-date'
+    ) as HTMLInputElement | null;
+    if (startEl) startEl.value = start;
+  }
+  if (end) {
+    const endEl = document.getElementById(
+      'end-date'
+    ) as HTMLInputElement | null;
+    if (endEl) endEl.value = end;
+  }
+}
+
+async function handleShareClick(): Promise<void> {
+  // Build a /scan/?strategy=...&start=...&end=...&p_<key>=<value>...
+  // URL that recipients can open to pre-fill the form. The scan
+  // surface needs strategy + params + dateRange (no symbol since
+  // /scan/ runs across all 23 symbols by definition).
+  const strategyEl = document.getElementById(
+    'strategy'
+  ) as HTMLSelectElement | null;
+  const startEl = document.getElementById(
+    'start-date'
+  ) as HTMLInputElement | null;
+  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
+  if (!strategyEl?.value || !startEl?.value || !endEl?.value) {
+    setShareFeedback('fill in the form first', 'error');
+    return;
+  }
+
+  const url = new URL('/scan/', window.location.origin);
+  url.searchParams.set('strategy', strategyEl.value);
+  url.searchParams.set('start', startEl.value);
+  url.searchParams.set('end', endEl.value);
+  for (const [key, value] of Object.entries(readStrategyParams())) {
+    url.searchParams.set(`p_${key}`, String(value));
+  }
+
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    setShareFeedback('copied', 'ok');
+  } catch {
+    setShareFeedback(url.toString(), 'error');
+  }
+}
+
+function setShareFeedback(message: string, kind: 'ok' | 'error'): void {
+  const el = document.getElementById('share-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle('error', kind === 'error');
+  if (kind === 'ok') {
+    setTimeout(() => {
+      if (el.textContent === message) el.textContent = '';
+    }, 2000);
+  }
+}
+
 async function init(): Promise<void> {
   mountSiteShell('scan');
   setDefaultDateRange();
@@ -260,12 +351,22 @@ async function init(): Promise<void> {
   const rateStatus = await loadRateStatus();
   if (rateStatus) showRateBanner(rateStatus);
 
+  applyQueryParamPrefill();
+
   const form = document.getElementById('scan-form');
   form?.addEventListener('submit', (ev) => {
     handleSubmit(ev as SubmitEvent).catch((err) => {
       console.error('handleSubmit threw', err);
       setStatus(`unexpected error: ${(err as Error).message}`, 'error');
       setRunDisabled(false);
+    });
+  });
+
+  const shareBtn = document.getElementById('share-button');
+  shareBtn?.addEventListener('click', () => {
+    handleShareClick().catch((err) => {
+      console.error('handleShareClick threw', err);
+      setShareFeedback((err as Error).message, 'error');
     });
   });
 }
