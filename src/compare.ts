@@ -189,7 +189,7 @@ function renderResult(result: CompareResult): void {
             </td>
             <td class="num ${(s.totalReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.totalReturn)}</td>
             <td class="num ${(s.annualizedReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.annualizedReturn)}</td>
-            <td class="num">${numFmt(s.sharpe)}</td>
+            <td class="num ${(s.sharpe ?? 0) >= 0 ? 'positive' : 'negative'}">${numFmt(s.sharpe)}</td>
             <td class="num">${pctFmt(s.maxDrawdown)}</td>
             <td class="num">${pctFmt(s.hitRate)}</td>
           </tr>

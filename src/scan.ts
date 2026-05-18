@@ -219,7 +219,7 @@ function renderResult(result: ScanResult): void {
             <td><span class="scan-category scan-category-${escapeHtml(s.category)}">${escapeHtml(cat)}</span></td>
             <td class="num ${(s.totalReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.totalReturn)}</td>
             <td class="num ${(s.annualizedReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.annualizedReturn)}</td>
-            <td class="num">${numFmt(s.sharpe)}</td>
+            <td class="num ${(s.sharpe ?? 0) >= 0 ? 'positive' : 'negative'}">${numFmt(s.sharpe)}</td>
             <td class="num">${pctFmt(s.maxDrawdown)}</td>
             <td class="num">${pctFmt(s.hitRate)}</td>
             <td class="num">${s.bars ?? '-'}</td>
