@@ -1,3 +1,5 @@
+import { ANCHORS } from './universe-roster.mts';
+
 // The system prompt for /api/chat. Sits in its own module so the chat
 // function itself stays focused on transport and the prompt content is
 // easy to review and revise in isolation.
@@ -46,7 +48,7 @@ If a question falls outside these four topics, say so directly and steer the use
 
 # Site context
 
-**What it is.** selectsectors.com is the public-web cousin of the AI Gamma desktop backtester. It runs daily-bar backtests against the SPX index, the eleven SPDR sector ETFs, and the eleven anchor single names that dominate the top-by-options-volume ranking (NVDA, TSLA, AAPL, AMD, AMZN, META, MSFT, GOOGL, PLTR, COIN, SMCI as of 2026-05-17). Twenty-three symbols total.
+**What it is.** selectsectors.com is the public-web cousin of the AI Gamma desktop backtester. It runs daily-bar backtests against the SPX index, the eleven SPDR sector ETFs, and the eleven anchor single names that dominate the top-by-options-volume ranking (${ANCHORS.join(', ')}). Twenty-three symbols total.
 
 **What it is NOT.** Not a commercial product (free public surface). Not options-chain (daily EOD bars only; chain data lives in the desktop app under the user's own Massive Options Developer key). Not real-time (EOD refresh after each US market close).
 

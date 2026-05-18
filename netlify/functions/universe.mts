@@ -1,4 +1,5 @@
 import type { Context, Config } from '@netlify/functions';
+import { SECTORS, ANCHORS } from './_lib/universe-roster.mts';
 
 // The 23-symbol universe rendered as a JSON list. Lives server-side so
 // the roster can rotate over time (e.g., the top-by-options-volume
@@ -11,21 +12,8 @@ import type { Context, Config } from '@netlify/functions';
 // list is stable on a quarter-to-quarter basis but the long-term
 // answer is to read it from Supabase so it stays in sync with the
 // roster maintenance pipeline. For the scaffold, it is hardcoded
-// here and updated by hand until the Supabase roster wiring lands.
-
-const SECTORS = [
-  'XLB', 'XLC', 'XLE', 'XLF', 'XLI',
-  'XLK', 'XLP', 'XLU', 'XLV', 'XLY', 'XLRE',
-];
-
-const ANCHORS = [
-  // Top-by-options-volume names pinned at scaffold time (2026-05-17).
-  // Source: aigamma.com options-volume-roster anchor tier. Refresh
-  // this list when the roster is regenerated; the canonical place for
-  // automated sync is a follow-on Supabase table read.
-  'NVDA', 'TSLA', 'AAPL', 'AMD', 'AMZN',
-  'META', 'MSFT', 'GOOGL', 'PLTR', 'COIN', 'SMCI',
-];
+// in _lib/universe-roster.mts and updated by hand until the Supabase
+// roster wiring lands.
 
 export default async (_req: Request, _context: Context): Promise<Response> => {
   return Response.json({

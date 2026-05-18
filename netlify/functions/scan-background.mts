@@ -3,6 +3,7 @@ import { getStore } from '@netlify/blobs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sha256OfCanonical } from './_lib/canonical-json.mts';
 import { toStrategyKind } from './_lib/strategy.mts';
+import { SECTORS, ALL_EQUITY_SYMBOLS } from './_lib/universe-roster.mts';
 // @ts-ignore — pkg/ is built by `npm run build:wasm`; resolved at deploy time.
 import { run_backtest } from '../../pkg/backtest_core.js';
 
@@ -68,36 +69,6 @@ interface WasmResult {
   hit_rate: number;
   equity_curve: WasmEquityPoint[];
 }
-
-const SECTORS = [
-  'XLB',
-  'XLC',
-  'XLE',
-  'XLF',
-  'XLI',
-  'XLK',
-  'XLP',
-  'XLU',
-  'XLV',
-  'XLY',
-  'XLRE',
-];
-
-const ANCHORS = [
-  'NVDA',
-  'TSLA',
-  'AAPL',
-  'AMD',
-  'AMZN',
-  'META',
-  'MSFT',
-  'GOOGL',
-  'PLTR',
-  'COIN',
-  'SMCI',
-];
-
-const ALL_EQUITY_SYMBOLS = [...SECTORS, ...ANCHORS, 'SPY'];
 
 export default async (req: Request, _context: Context): Promise<Response> => {
   let body: ScanRequest;
