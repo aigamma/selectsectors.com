@@ -43,8 +43,8 @@
           <li>All endpoints accept and return <strong>application/json</strong> unless noted.</li>
           <li>Origin is <code>https://selectsectors.com</code>. The <code>/api/*</code> prefix is rewritten to <code>/.netlify/functions/*</code> by <code>netlify.toml</code>.</li>
           <li>Rate limit is per-IP, two rolling windows: <strong>backtest</strong> at 2/hour and 5/day; <strong>chat</strong> at 30/hour and 100/day.</li>
-          <li>Cache hits on <code>/api/backtest</code>, <code>/api/compare</code>, and <code>/api/scan</code> bypass rate limit (deterministic re-runs of an already-cached result cost nothing on the backend).</li>
-          <li>Long backtests dispatch to a Netlify Background Function (15-min wall clock) and return <strong>202 Accepted</strong> with a content hash; poll <code>/api/result?hash=&lt;hash&gt;</code> for completion.</li>
+          <li>Cache hits on <code>/api/backtest</code>, <code>/api/compare</code>, and <code>/api/scan</code> return <code>{ status: "ready", cached: true, result }</code> immediately.</li>
+          <li>Cache MISSES still consume one rate-limit slot, then dispatch to a Netlify Background Function (15-min wall clock) and return <strong>202 Accepted</strong> with a content hash; poll <code>/api/result?hash=&lt;hash&gt;</code> for completion.</li>
         </ul>
 
         <h2>Read endpoints (no rate limit)</h2>
@@ -93,23 +93,32 @@
         without consuming a slot. Used by the homepage to render the
         "you have N left" banner on page load.</p>
         <pre><code>{
-  "hourRemaining": 2,
-  "dayRemaining":  5,
-  "hourResetAt":   "2026-05-18T06:30:00.000Z",
-  "dayResetAt":    "2026-05-19T05:30:00.000Z"
+  "caps": { "hour": 2, "day": 5 },
+  "hourly": {
+    "limit": 2, "used": 0, "remaining": 2,
+    "resetAt": 1747560000000
+  },
+  "daily": {
+    "limit": 5, "used": 0, "remaining": 5,
+    "resetAt": 1747646400000
+  }
 }</code></pre>
+        <p><code>resetAt</code> is a Unix epoch milliseconds value,
+        not a string. The window is rolling, not fixed-clock; each
+        window resets exactly 60 minutes (or 24 hours) after the
+        first request inside it.</p>
 
         <h3>GET /api/chat-status</h3>
-        <p>Current chat rate-limit counters and the
-        <code>ANTHROPIC_API_KEY</code> liveness flag. If the key is
-        unset, the chat panel still renders but every send returns
-        503.</p>
+        <p>Current chat rate-limit counters. Same shape as
+        rate-status but with the chat caps (30/hour, 100/day) and
+        the chat counter store. If <code>ANTHROPIC_API_KEY</code> is
+        unset on the Netlify project, this endpoint still returns
+        the counters; the failure mode shows up at <code>/api/chat</code>
+        send time as a 503.</p>
         <pre><code>{
-  "hourRemaining": 30,
-  "dayRemaining":  100,
-  "hourResetAt":   "...",
-  "dayResetAt":    "...",
-  "available":     true
+  "caps": { "hour": 30, "day": 100 },
+  "hourly": { "limit": 30, "used": 0, "remaining": 30, "resetAt": &lt;ms&gt; },
+  "daily":  { "limit": 100, "used": 0, "remaining": 100, "resetAt": &lt;ms&gt; }
 }</code></pre>
 
         <h2>Write endpoints (rate-limited)</h2>
@@ -122,66 +131,66 @@
 
         <h4>Request</h4>
         <pre><code>{
-  "symbol":    "SPY",
-  "startDate": "2024-01-01",
-  "endDate":   "2025-12-31",
-  "strategy":  {
-    "kind": "sma_crossover",
-    "fastWindow": 20,
-    "slowWindow": 50
-  }
+  "symbol": "SPY",
+  "strategy": {
+    "name":   "sma_crossover",
+    "params": { "fast": 20, "slow": 50 }
+  },
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
 }</code></pre>
 
-        <h4>Response (cache hit)</h4>
+        <h4>Response 200 (cache hit)</h4>
         <pre><code>{
   "status": "ready",
-  "hash":   "&lt;sha256 hex&gt;",
+  "hash":   "&lt;sha256 hex, 64 chars&gt;",
   "cached": true,
   "result": { /* see Result shape below */ }
 }</code></pre>
 
-        <h4>Response (queued)</h4>
+        <h4>Response 202 (queued)</h4>
         <pre><code>{
   "status": "queued",
   "hash":   "&lt;sha256 hex&gt;",
-  "rateLimits": { /* updated info */ }
+  "rateLimits": { /* RateLimitInfo */ }
 }</code></pre>
 
-        <h4>Response (429 rate-limited)</h4>
+        <h4>Response 429 (rate-limited)</h4>
         <pre><code>{
-  "status":  "rate_limited",
-  "reason":  "hour_exceeded" | "day_exceeded",
-  "rateLimits": { /* counters + reset times */ }
+  "error":  "rate limit exceeded",
+  "reason": "hour-exceeded" | "day-exceeded",
+  "rateLimits": { /* RateLimitInfo with current counters */ }
 }</code></pre>
+        <p>The <code>Retry-After</code> response header is set in
+        seconds to the time until the relevant window resets.</p>
 
         <h3>POST /api/compare</h3>
-        <p>Run all six strategies on one symbol over one date range.
-        Consumes <strong>one</strong> rate-limit slot regardless of
-        the internal backtest count. Cache key is the symbol + date
-        range + strategy catalog hash (a different catalog version
-        invalidates).</p>
+        <p>Run all six strategies on one symbol over one date range
+        using each strategy's default parameters. Consumes
+        <strong>one</strong> rate-limit slot regardless of the
+        internal backtest count. The hash input is tagged with
+        <code>"mode": "compare-all"</code> so the cache key cannot
+        collide with a single-strategy run on the same symbol +
+        date range.</p>
 
         <h4>Request</h4>
         <pre><code>{
-  "symbol":    "XLE",
-  "startDate": "2024-01-01",
-  "endDate":   "2025-12-31"
+  "symbol": "XLE",
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
 }</code></pre>
 
         <h4>Result shape (when ready)</h4>
         <pre><code>{
   "symbol": "XLE",
-  "startDate": "2024-01-01",
-  "endDate": "2025-12-31",
-  "results": [
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" },
+  "strategies": [
     {
-      "strategy": "buy_and_hold",
+      "name": "buy_and_hold",
       "totalReturn": 0.234,
       "sharpe": 1.12,
       "maxDrawdown": 0.083,
       "hitRate": 0.534,
       "barCount": 504
-    },
+    }
     /* ... five more strategies ... */
   ]
 }</code></pre>
@@ -191,21 +200,23 @@
         date range. Consumes <strong>one</strong> rate-limit slot.
         Internally fans out to one Supabase query with an IN clause
         covering all 23 symbols, then runs the WASM strategy 23
-        times against the partitioned bars.</p>
+        times against the partitioned bars. Hash input is tagged
+        with <code>"mode": "scan-all"</code>.</p>
 
         <h4>Request</h4>
         <pre><code>{
-  "strategy":  { "kind": "momentum", "lookback": 60 },
-  "startDate": "2024-01-01",
-  "endDate":   "2025-12-31"
+  "strategy": {
+    "name":   "momentum",
+    "params": { "lookback": 60 }
+  },
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
 }</code></pre>
 
         <h4>Result shape (when ready)</h4>
         <pre><code>{
-  "strategy": { "kind": "momentum", "lookback": 60 },
-  "startDate": "2024-01-01",
-  "endDate": "2025-12-31",
-  "results": [
+  "strategy": { "name": "momentum", "params": { "lookback": 60 } },
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" },
+  "symbols": [
     {
       "symbol": "NVDA",
       "totalReturn": 0.847,
@@ -213,7 +224,7 @@
       "maxDrawdown": 0.214,
       "hitRate": 0.521,
       "barCount": 504
-    },
+    }
     /* ... 22 more symbols ... */
   ]
 }</code></pre>
@@ -232,13 +243,13 @@
   ]
 }</code></pre>
 
-        <h4>Response</h4>
-        <p>Content-Type <code>text/event-stream</code>. SSE events
-        emit incremental <code>delta</code> messages matching the
-        Anthropic streaming-event shape; clients should concatenate
-        <code>text_delta</code> blocks to assemble the reply.</p>
+        <h4>Response 200 (SSE stream)</h4>
+        <p>Content-Type <code>text/event-stream</code>. The body
+        forwards Anthropic's SDK streaming events verbatim; clients
+        should concatenate <code>content_block_delta</code> events'
+        <code>delta.text</code> fields to assemble the reply.</p>
 
-        <h4>Response (503 if ANTHROPIC_API_KEY unset)</h4>
+        <h4>Response 503 (no API key)</h4>
         <pre><code>{
   "error": "chat_unavailable",
   "reason": "ANTHROPIC_API_KEY not set on the Netlify project"
@@ -248,67 +259,86 @@
 
         <h3>GET /api/result?hash=&lt;hex&gt;</h3>
         <p>Fetch a backtest, compare, or scan result by content
-        hash. Returns 202 with <code>{ status: "pending" }</code>
-        while the background function is still running; returns 200
-        with the full result blob once it's complete.</p>
+        hash. <code>hash</code> must be 64 lowercase hex chars; any
+        other shape returns 400. Returns 202 while the background
+        function is still running; 200 once it's complete.</p>
 
-        <h4>Response (pending)</h4>
+        <h4>Response 202 (pending)</h4>
         <pre><code>{ "status": "pending", "hash": "&lt;hex&gt;" }</code></pre>
 
-        <h4>Response (ready)</h4>
+        <h4>Response 200 (ready)</h4>
         <pre><code>{
   "status": "ready",
   "hash":   "&lt;hex&gt;",
   "result": { /* the appropriate result shape from above */ }
 }</code></pre>
 
+        <h4>Response 400 (malformed hash)</h4>
+        <pre><code>{
+  "error": "missing or malformed hash; expected a 64-char hex sha256"
+}</code></pre>
+
         <h2>Result shape (single backtest)</h2>
-        <p>The <code>/api/backtest</code> result blob, also produced
-        by the WASM core for use inside <code>/api/compare</code>
-        and <code>/api/scan</code> aggregates.</p>
+        <p>The <code>/api/backtest</code> result blob. The compare
+        and scan aggregates each contain trimmed versions of this
+        shape (no equity-curve arrays in the per-row entries; only
+        the summary metrics).</p>
         <pre><code>{
   "symbol":      "SPY",
-  "startDate":   "2024-01-01",
-  "endDate":     "2025-12-31",
-  "strategy":    { "kind": "sma_crossover", "fastWindow": 20, "slowWindow": 50 },
+  "dateRange":   { "start": "2024-01-01", "end": "2025-12-31" },
+  "strategy":    { "name": "sma_crossover", "params": { "fast": 20, "slow": 50 } },
   "barCount":    504,
   "totalReturn": 0.187,
   "cagr":        0.093,
   "sharpe":      1.04,
   "maxDrawdown": 0.072,
   "hitRate":     0.542,
-  "equity":      [ 1.0, 1.002, 1.001, /* ... */ ],
+  "equity":      [ 1.0, 1.002, 1.001 /* ... barCount entries ... */ ],
   "benchmark": {
     "label":       "buy and hold",
     "totalReturn": 0.211,
     "sharpe":      1.18,
-    "equity":      [ 1.0, /* ... */ ]
+    "equity":      [ 1.0 /* ... barCount entries ... */ ]
   }
 }</code></pre>
 
+        <h2>RateLimitInfo shape</h2>
+        <p>Returned by <code>/api/rate-status</code>,
+        <code>/api/chat-status</code>, and embedded in the 202 and
+        429 responses from <code>/api/backtest</code> +
+        <code>/api/compare</code> + <code>/api/scan</code>. Two
+        windows, each with limit + used + remaining + resetAt (ms
+        Unix epoch).</p>
+        <pre><code>{
+  "hourly": { "limit": &lt;n&gt;, "used": &lt;n&gt;, "remaining": &lt;n&gt;, "resetAt": &lt;ms&gt; },
+  "daily":  { "limit": &lt;n&gt;, "used": &lt;n&gt;, "remaining": &lt;n&gt;, "resetAt": &lt;ms&gt; }
+}</code></pre>
+
         <h2>Strategy catalog</h2>
-        <p>Every strategy's <code>kind</code> tag plus its parameter
-        names. Defaults match the values returned by the Rust
-        <code>strategy_catalog</code> WASM export.</p>
+        <p>Every strategy's <code>name</code> tag plus its parameter
+        names. Defaults match the values exported from
+        <code>netlify/functions/_lib/strategy.mts</code> and
+        consumed by the compare endpoint.</p>
         <pre><code>buy_and_hold        (no params)
-sma_crossover       fastWindow: u32, slowWindow: u32
-momentum            lookback: u32
-rsi_mean_reversion  period: u32, oversold: f64, overbought: f64
-breakout            window: u32
-bollinger_bands     period: u32, stdMultiplier: f64</code></pre>
+sma_crossover       fast: number, slow: number               (defaults: 20, 50)
+momentum            lookback: number                          (default: 60)
+rsi_mean_reversion  period: number, oversold: number, overbought: number
+                                                              (defaults: 14, 30, 70)
+breakout            lookback: number                          (default: 20)
+bollinger_bands     period: number, k: number                 (defaults: 20, 2.0)</code></pre>
 
         <h2>Status codes</h2>
         <dl class="glossary-list">
           <dt>200 OK</dt>
-          <dd>Read endpoints, cached backtest result, finished result poll.</dd>
+          <dd>Read endpoints succeeded, or a cached backtest result was returned, or a polled result is ready.</dd>
           <dt>202 Accepted</dt>
-          <dd>Write endpoints when the background function was dispatched; poll <code>/api/result</code>.</dd>
+          <dd>Write endpoints when the background function was dispatched; poll <code>/api/result</code>. Also returned by <code>/api/result</code> itself when the requested hash is still pending.</dd>
           <dt>400 Bad Request</dt>
-          <dd>Malformed JSON body or invalid params (e.g., unknown strategy kind, negative window).</dd>
+          <dd>Malformed JSON body, missing required field, or (for <code>/api/result</code>) a hash that does not match the 64-char hex sha256 pattern.</dd>
+          <dt>405 Method Not Allowed</dt>
+          <dd>The write endpoints (<code>/backtest</code>, <code>/compare</code>, <code>/scan</code>) only accept POST.</dd>
           <dt>429 Too Many Requests</dt>
           <dd>Rate-limit exhausted. Response body carries reset timestamps; <code>Retry-After</code> header set in seconds.</dd>
-          <dt>500 Internal Server Error</dt>
-          <dd>Background function crashed before writing a result blob. The result blob will eventually carry an <code>error</code> field if the failure was downstream of the dispatcher.</dd>
           <dt>503 Service Unavailable</dt>
           <dd><code>/api/chat</code> only, when <code>ANTHROPIC_API_KEY</code> is unset on the Netlify project.</dd>
         </dl>
