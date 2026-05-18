@@ -76,9 +76,25 @@ function loadConversation(): ChatMessage[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return (parsed as ChatMessage[])
+    const filtered = (parsed as ChatMessage[])
       .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .slice(-MAX_HISTORY);
+    // Drop trailing empty assistant placeholders. These are left in
+    // localStorage when a user closes the tab mid-stream: sendMessage
+    // pushes both the user message and an empty assistant message
+    // (the streaming target) and calls saveConversation BEFORE the
+    // fetch, so the placeholder persists if the stream is
+    // interrupted by tab close. On reload that placeholder would
+    // render as an empty assistant bubble below the user's message,
+    // which is visually meaningless. Trim it; the user can re-send.
+    while (
+      filtered.length > 0 &&
+      filtered[filtered.length - 1].role === 'assistant' &&
+      filtered[filtered.length - 1].content === ''
+    ) {
+      filtered.pop();
+    }
+    return filtered;
   } catch {
     return [];
   }
