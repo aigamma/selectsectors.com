@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Rust to WebAssembly with wasm-bindgen and serde-wasm-bindgen. What wasm-pack actually produces and how the Netlify function imports it."
+    />
+    <title>Rust to WebAssembly &middot; Learn &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 06 &middot; Rust to WASM</span>
+        <h1>Rust to WebAssembly.</h1>
+        <p class="lesson-lede">
+          Compiling a Rust crate to WebAssembly is one
+          <code>wasm-pack build</code> away. The interesting parts
+          are the JS-Rust boundary: how <code>#[wasm_bindgen]</code>
+          marks the exports, how <code>serde-wasm-bindgen</code>
+          marshals JSON-shaped data, and what
+          <code>wasm-pack build --target nodejs</code> actually
+          drops into <code>pkg/</code>.
+        </p>
+
+        <h2>The compilation target</h2>
+        <p>
+          Rust compiles to many targets. For WebAssembly, the two
+          most common are:
+        </p>
+        <ul>
+          <li>
+            <code>wasm32-unknown-unknown</code> &mdash; bare WASM,
+            no OS, no stdlib. The default for wasm-pack output.
+          </li>
+          <li>
+            <code>wasm32-wasi</code> &mdash; WASM with the WASI
+            system interface, used for server-side WASM runtimes.
+          </li>
+        </ul>
+        <p>
+          This site uses <code>wasm32-unknown-unknown</code>: the
+          backtest math has no I/O needs (all inputs come in as a
+          JS object, all outputs go back as a JS object), so the
+          unknown-unknown target is the smallest and fastest to load.
+        </p>
+
+        <h2>What <code>wasm-pack build --target nodejs</code> produces</h2>
+        <p>
+          The <code>--target nodejs</code> flag tells wasm-pack to
+          emit JS glue suitable for a Node.js runtime. Running:
+        </p>
+        <pre><code>wasm-pack build crates/backtest-core --target nodejs --out-dir ../../pkg --out-name backtest_core</code></pre>
+        <p>
+          drops these files into <code>pkg/</code>:
+        </p>
+        <ul>
+          <li>
+            <code>backtest_core_bg.wasm</code> &mdash; the actual
+            WebAssembly binary (~98 KB for this site's crate).
+          </li>
+          <li>
+            <code>backtest_core.js</code> &mdash; the JS glue that
+            instantiates the WASM module and exposes the
+            <code>#[wasm_bindgen]</code> functions as CommonJS
+            exports.
+          </li>
+          <li>
+            <code>backtest_core.d.ts</code> &mdash; TypeScript
+            declarations for the exports.
+          </li>
+          <li>
+            <code>package.json</code> &mdash; a package manifest
+            that lets npm-style consumers pick up the JS as the
+            <code>main</code> entry.
+          </li>
+        </ul>
+        <p>
+          The Netlify background function imports it with a normal
+          ES module import (Node 22 supports ESM-importing CJS
+          modules) and calls <code>run_backtest</code> directly.
+        </p>
+
+        <h2>The <code>#[wasm_bindgen]</code> attribute</h2>
+        <p>
+          The attribute marks a function (or struct, or method) as
+          callable from JS. The wasm-bindgen macro generates a
+          thin trampoline that handles the JS-WASM type marshalling:
+        </p>
+        <pre><code>#[wasm_bindgen]
+pub fn run_backtest(input: JsValue) -&gt; Result&lt;JsValue, JsValue&gt; {
+    let inputs: BacktestInputs = serde_wasm_bindgen::from_value(input)
+        .map_err(|e| JsValue::from_str(&amp;format!("bad input: {e}")))?;
+    let result = run_backtest_inner(inputs)
+        .map_err(|e| JsValue::from_str(&amp;e.to_string()))?;
+    serde_wasm_bindgen::to_value(&amp;result)
+        .map_err(|e| JsValue::from_str(&amp;format!("serialize: {e}")))
+}</code></pre>
+        <p>
+          The signature is <code>JsValue -&gt; Result&lt;JsValue, JsValue&gt;</code>
+          because <code>JsValue</code> is the opaque "anything from
+          JS" type. Errors come back as strings the JS caller sees
+          as thrown exceptions.
+        </p>
+
+        <h2>serde-wasm-bindgen does the marshalling</h2>
+        <p>
+          The actual JS-to-Rust conversion happens in
+          <code>serde_wasm_bindgen::from_value</code>: it walks the
+          JS object using serde's Deserialize trait and populates the
+          corresponding Rust struct field by field. Same in reverse
+          via <code>to_value</code> for the output.
+        </p>
+        <p>
+          The benefit of going through serde instead of hand-writing
+          the JsValue manipulation is that Rust's type system stays
+          in charge. Our <code>BacktestInputs</code> struct has
+          <code>#[derive(Deserialize)]</code>; the input shape is
+          enforced at the boundary, and a malformed input (missing
+          field, wrong type) produces a clean error message instead
+          of a runtime crash inside the strategy code.
+        </p>
+
+        <h2>The "bridge cost"</h2>
+        <p>
+          There's a real cost to crossing the JS-WASM boundary:
+          serde-wasm-bindgen walks the entire input object on every
+          call (~tens of microseconds for ~1000 bars), and walks the
+          entire output object on the way back. For short-running
+          functions called many times, this can dominate.
+        </p>
+        <p>
+          Two ways to mitigate:
+        </p>
+        <ul>
+          <li>
+            <strong>Batch.</strong> Call WASM once with the full
+            input rather than many times with pieces of it. The
+            backtest crate does this: one call per backtest, not
+            one call per bar.
+          </li>
+          <li>
+            <strong>Typed arrays.</strong> For large numeric arrays,
+            you can pass a Float64Array directly via wasm-bindgen
+            without going through serde; the JS-side Float64Array
+            backs onto WASM linear memory with no copy. We don't
+            use this here because the bar series isn't large enough
+            for the optimization to matter; for a much bigger
+            workload it's the right next step.
+          </li>
+        </ul>
+
+        <h2>Loading WASM in the Netlify function</h2>
+        <p>
+          The wasm-pack output uses <code>fs.readFileSync</code> at
+          module-load time to read the .wasm bytes from disk and
+          instantiate the module. That works fine inside a Netlify
+          function as long as the .wasm file is shipped alongside
+          the function bundle. Netlify's bundler does not statically
+          trace the readFileSync call, so we have to tell it
+          explicitly which files to include:
+        </p>
+        <pre><code>[functions."backtest-background"]
+  included_files = ["pkg/**"]
+  node_bundler = "esbuild"</code></pre>
+        <p>
+          With that block in <code>netlify.toml</code>, the entire
+          <code>pkg/</code> tree ships into the function bundle and
+          the readFileSync resolves at runtime.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>The takeaway.</strong> wasm-pack handles 90% of
+          the Rust-to-WASM packaging. wasm-bindgen marks the
+          exports; serde-wasm-bindgen does the JSON marshalling;
+          the JS glue knows how to instantiate the module. The
+          remaining 10% is bundler config to ship the .wasm file
+          alongside the consuming code. Once wired, calling Rust
+          from a Netlify function is indistinguishable from calling
+          any other CommonJS module.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/error-handling/">&larr; Error handling</a>
+          </div>
+          <div class="lesson-nav-next">
+            Back to
+            <a href="/learn/">Curriculum index &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-wasm.ts"></script>
+  </body>
+</html>

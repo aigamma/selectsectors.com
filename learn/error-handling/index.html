@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Error handling in Rust without thiserror. The BacktestError walkthrough, the WASM-bundle-size trade-off, and when reaching for the macro becomes the right call."
+    />
+    <title>Error handling without thiserror &middot; Learn &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 05 &middot; Error handling</span>
+        <h1>Error handling without thiserror.</h1>
+        <p class="lesson-lede">
+          Rust has no exceptions. Every function that can fail
+          returns <code>Result&lt;T, E&gt;</code>, and the caller
+          must either handle the error or propagate it explicitly
+          with <code>?</code>. The question is what to use for
+          <code>E</code>. This site uses a hand-rolled enum; here is
+          why, and when the popular <code>thiserror</code> macro
+          becomes the better choice.
+        </p>
+
+        <h2>Result is the only failure mode</h2>
+        <p>
+          A Rust function can return <code>T</code> (always
+          succeeds), <code>Option&lt;T&gt;</code> (might return
+          nothing, with no failure detail), or
+          <code>Result&lt;T, E&gt;</code> (might fail, with the
+          failure shape <code>E</code>). The
+          <code>?</code> operator propagates an Err up the call
+          stack; the compiler enforces that the calling function
+          either also returns Result (with a compatible E) or
+          handles the error before returning.
+        </p>
+        <p>
+          The convention for the error type is to define an enum
+          with one variant per failure mode the function can have.
+          This gives callers exhaustive pattern matching on the
+          failure cases, which is the same compile-time-checked
+          dispatch we saw with <code>StrategyKind</code>.
+        </p>
+
+        <h2>BacktestError, the actual enum</h2>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/error.rs</p>
+          <pre><code id="src-error"></code></pre>
+        </div>
+        <p>
+          Four variants, each describing a specific failure mode the
+          backtest can produce. The <code>Display</code> impl
+          formats each variant into a human-readable string the JS
+          side can show to the user. The <code>std::error::Error</code>
+          impl marks the type as a real Rust error type for any
+          third-party code that wants to treat it as one.
+        </p>
+
+        <h2>Why not just use <code>thiserror</code>?</h2>
+        <p>
+          The popular <code>thiserror</code> crate is a derive macro
+          that generates the <code>Display</code> and
+          <code>Error</code> impls automatically from format-string
+          attributes on each variant. Most Rust crates use it. The
+          equivalent BacktestError with thiserror is:
+        </p>
+        <pre><code>#[derive(Debug, Clone, thiserror::Error)]
+pub enum BacktestError {
+    #[error("not enough bars: strategy requires at least {required} but only {given} were provided")]
+    NotEnoughBars { required: usize, given: usize },
+    // ... etc
+}</code></pre>
+        <p>
+          Less code, identical behavior. The reason we don't use it
+          here is bundle size: <code>thiserror</code> brings in
+          ~60 KB of expanded macro output for a four-variant enum we
+          can write by hand in fifty lines. The crate compiles to
+          WebAssembly and ships inside a Netlify function bundle;
+          every dependency costs bytes.
+        </p>
+        <p>
+          That trade-off shifts as the error surface grows. At ten
+          variants, the hand-rolled version becomes tedious and
+          error-prone (literally; you might forget to add a match
+          arm to <code>Display</code> for a new variant). At that
+          point thiserror is the right pick. The crate's own
+          comment notes the migration condition.
+        </p>
+
+        <h2>The <code>?</code> operator</h2>
+        <p>
+          The <code>?</code> operator is the syntactic sugar that
+          makes error propagation ergonomic. It applies to any
+          <code>Result&lt;T, E&gt;</code> and either unwraps the
+          <code>Ok</code> value or returns the <code>Err</code> from
+          the enclosing function:
+        </p>
+        <pre><code>fn run() -&gt; Result&lt;f64, BacktestError&gt; {
+    let positions = strategy.positions(&amp;bars)?;
+    //                                          ^ on Err, return immediately
+    let sharpe = compute_sharpe(&amp;positions);
+    Ok(sharpe)
+}</code></pre>
+        <p>
+          The expression before <code>?</code> must return a Result
+          whose <code>E</code> is convertible (via <code>From</code>)
+          to the enclosing function's error type. For
+          <code>BacktestError</code> we don't need any
+          <code>From</code> impls because the strategies and the
+          run_backtest function all share the same error type.
+        </p>
+
+        <h2>What about <code>anyhow</code>?</h2>
+        <p>
+          <code>anyhow::Error</code> is a type-erased error wrapper:
+          you put any error in, and the caller can only look at the
+          string representation. It's the right pick for application
+          code where the caller doesn't care which specific failure
+          occurred ("just print something useful and exit"). It's
+          the wrong pick for library code, where callers do care and
+          need to pattern-match on the specific error kind.
+        </p>
+        <p>
+          This site's crate is library code (consumed by the
+          Netlify function), so the typed enum approach wins. The
+          JS side could also use the string representation
+          (BacktestError implements Display via to_string()) but it
+          can also key off the variant tag if it wanted to.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>The pattern.</strong> Library code: hand-rolled
+          enum at small variant counts; thiserror once the count
+          grows. Application code where callers don't need
+          structured access to failure detail: anyhow. The lazy
+          default for an exploratory script: anyhow. The thoughtful
+          default for a crate other code depends on: typed enum.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/enums-and-dispatch/">&larr; Enums and dispatch</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next lesson
+            <a href="/learn/wasm/">Rust to WebAssembly &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-error-handling.ts"></script>
+  </body>
+</html>

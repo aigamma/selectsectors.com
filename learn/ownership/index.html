@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Ownership and borrowing in Rust. The &[DailyBar] story explained through the strategy functions that walk bar series without taking ownership."
+    />
+    <title>Ownership and borrowing &middot; Learn &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 03 &middot; Ownership</span>
+        <h1>Ownership and borrowing in numerical code.</h1>
+        <p class="lesson-lede">
+          The single most-cited reason Rust feels different from
+          other languages is the ownership system. The clearest way
+          to learn it is to read code that uses it sensibly. This
+          site's <code>&amp;[DailyBar]</code> parameter shape is a
+          working example of the right default.
+        </p>
+
+        <h2>The three rules</h2>
+        <p>Rust's ownership system is three sentences long:</p>
+        <ol>
+          <li>Each value has a single owner.</li>
+          <li>When the owner goes out of scope, the value is dropped.</li>
+          <li>A value can be borrowed (shared or mutable) but only one mutable borrow exists at a time, and no shared borrow can coexist with a mutable one.</li>
+        </ol>
+        <p>
+          Every Rust program is an application of these three rules
+          to concrete types. The compiler checks them at compile
+          time; if they're violated, the code doesn't build.
+        </p>
+
+        <h2>What "move" actually means</h2>
+        <p>
+          When you write <code>let w = v;</code> for a type that
+          doesn't implement <code>Copy</code> (like <code>Vec&lt;T&gt;</code>
+          or <code>String</code>), the value moves from <code>v</code>
+          into <code>w</code>. <code>v</code> can no longer be used;
+          the compiler will reject any subsequent reference to it.
+        </p>
+        <pre><code>let v = vec![1, 2, 3];
+let w = v;        // v moved into w
+println!("{:?}", v);  // ERROR: value moved here</code></pre>
+        <p>
+          For primitive types that do implement <code>Copy</code>
+          (i8 through i128, f32, f64, bool, char), assignment makes
+          a bitwise copy and the original stays valid. That's why
+          <code>let x = 5; let y = x;</code> works fine.
+        </p>
+
+        <h2>Borrowing: the right default for read-only access</h2>
+        <p>
+          Most code doesn't actually need to take ownership of its
+          inputs. A function that walks a vector and returns some
+          derived value (a sum, a mean, a max) just needs to read
+          the vector. Borrowing with <code>&amp;Vec&lt;T&gt;</code>
+          (or more idiomatically <code>&amp;[T]</code>) lets the
+          function read the data without claiming ownership.
+        </p>
+        <p>
+          This site's strategy functions all follow this pattern.
+          Every <code>positions()</code> function takes
+          <code>bars: &amp;[DailyBar]</code>. The strategy walks the
+          slice, computes a position vector, returns it. The caller
+          keeps the bar series and can hand it to another strategy
+          without cloning.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/momentum.rs (signature)</p>
+          <pre><code id="src-momentum-sig"></code></pre>
+        </div>
+
+        <h2>Why <code>&amp;[T]</code> and not <code>&amp;Vec&lt;T&gt;</code>?</h2>
+        <p>
+          Slices (<code>&amp;[T]</code>) are more general than
+          references to vectors (<code>&amp;Vec&lt;T&gt;</code>). A
+          function that takes <code>&amp;[T]</code> can be called
+          with a Vec (which auto-derefs to a slice), an array slice
+          (<code>&amp;arr[..]</code>), or any other slice-like type.
+          A function that takes <code>&amp;Vec&lt;T&gt;</code> can
+          only be called with an actual Vec.
+        </p>
+        <p>
+          The convention is: take <code>&amp;[T]</code> in function
+          parameters when you only need to read the data. Take
+          <code>&amp;mut Vec&lt;T&gt;</code> if you need to push to
+          it. Take <code>Vec&lt;T&gt;</code> if you need to own it
+          (e.g., to store it somewhere). The default should be the
+          most general read-only form.
+        </p>
+
+        <h2>The borrow checker in practice</h2>
+        <p>
+          Rust's borrow checker enforces the rules at compile time.
+          Two patterns trip up new Rust programmers most often:
+        </p>
+
+        <h3>1. Iterating and mutating simultaneously</h3>
+        <pre><code>let mut v = vec![1, 2, 3];
+for x in &v {
+    if *x == 2 {
+        v.push(4);   // ERROR: cannot borrow v as mutable
+    }                // because it is also borrowed as immutable
+}</code></pre>
+        <p>
+          The fix is to collect the indices you want to modify in a
+          first pass, then modify in a second pass after the
+          immutable borrow ends. Or restructure to avoid the
+          simultaneous read+modify.
+        </p>
+
+        <h3>2. Returning a reference to a local</h3>
+        <pre><code>fn bad() -&gt; &amp;[i32] {
+    let v = vec![1, 2, 3];
+    &amp;v[..]    // ERROR: returns reference to local v
+}              // v is dropped here, reference would dangle</code></pre>
+        <p>
+          The fix is to return the owned <code>Vec&lt;i32&gt;</code>
+          instead. The borrow checker catches the dangling-reference
+          bug at compile time; in C++ this would silently produce
+          undefined behavior.
+        </p>
+
+        <h2>What this buys you in practice</h2>
+        <p>
+          Three things you stop worrying about:
+        </p>
+        <ul>
+          <li>
+            <strong>Use-after-free.</strong> The borrow checker
+            won't let you reference something whose owner has been
+            dropped.
+          </li>
+          <li>
+            <strong>Double-free.</strong> Each value has exactly one
+            owner; when that owner goes out of scope, the value is
+            dropped exactly once.
+          </li>
+          <li>
+            <strong>Iterator invalidation.</strong> Mutating a
+            collection while iterating it is a compile error, not a
+            runtime crash.
+          </li>
+        </ul>
+
+        <div class="lesson-callout">
+          <strong>The mental shift.</strong> Move ownership only
+          when you mean to. Borrow shared when you only need to
+          read. Borrow mutable when you need to write, but only one
+          at a time. The compiler enforces these by default; the
+          friction in the first few weeks of Rust is the compiler
+          teaching you to be explicit about which mode you're in.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/this-sites-rust/">&larr; A tour of this site's Rust</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next lesson
+            <a href="/learn/enums-and-dispatch/">Enums and dispatch &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-ownership.ts"></script>
+  </body>
+</html>

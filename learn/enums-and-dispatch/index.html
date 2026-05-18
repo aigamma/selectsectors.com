@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tagged enums as a dispatch table in Rust. StrategyKind walked through with the serde JSON wire format and the alternatives (trait objects, function pointers, HashMaps)."
+    />
+    <title>Enums and dispatch &middot; Learn &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 04 &middot; Enums &amp; dispatch</span>
+        <h1>Enums as dispatch tables.</h1>
+        <p class="lesson-lede">
+          Rust's <code>enum</code> is much more than a list of
+          constants. It is a tagged union: each variant can carry
+          its own data, and pattern matching on the variant lets you
+          do type-safe, exhaustive dispatch with no runtime overhead.
+          This site's <code>StrategyKind</code> is a working example.
+        </p>
+
+        <h2>The basic shape</h2>
+        <p>
+          An enum lists its variants. Variants can be:
+        </p>
+        <ul>
+          <li><strong>Unit:</strong> <code>BuyAndHold</code> (no payload)</li>
+          <li><strong>Tuple:</strong> <code>SmaCrossover(Params)</code> (positional payload)</li>
+          <li><strong>Struct:</strong> <code>Limit { price: f64, qty: u32 }</code> (named-field payload)</li>
+        </ul>
+        <p>
+          The Rust compiler knows the complete set of variants at
+          compile time. A <code>match</code> expression on the enum
+          must handle every variant or the compiler rejects it; this
+          is the "exhaustiveness" guarantee.
+        </p>
+
+        <h2>The dispatch pattern</h2>
+        <p>
+          This site's <code>StrategyKind</code> uses the tagged enum
+          to dispatch the right strategy at runtime without virtual
+          calls or HashMap lookups. The
+          <code>positions</code> method matches on
+          <code>self</code> and forwards to the right submodule:
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/mod.rs (StrategyKind)</p>
+          <pre><code id="src-strategy-kind"></code></pre>
+        </div>
+        <p>
+          Three things to notice. First, the enum variants name the
+          strategy types directly; there's no separate registry to
+          maintain. Second, the <code>positions</code> method takes
+          <code>&amp;self</code> (borrowed) and pattern-matches; the
+          compiler turns this into a jump table at compile time.
+          Third, adding a new strategy means adding a variant to the
+          enum and a new arm to the match; the compiler will refuse
+          to build until you handle the new variant in
+          <code>name()</code> and <code>positions()</code> both.
+        </p>
+
+        <h2>How serde encodes it on the wire</h2>
+        <p>
+          The <code>#[serde(rename_all = "snake_case")]</code>
+          attribute on the enum controls JSON encoding. With this
+          attribute, the externally-tagged serialization (which is
+          serde's default for enums) produces:
+        </p>
+        <pre><code>// BuyAndHold (unit variant)
+"buy_and_hold"
+
+// SmaCrossover(Params { fast: 20, slow: 50 }) (tuple variant)
+{ "sma_crossover": { "fast": 20, "slow": 50 } }</code></pre>
+        <p>
+          The JS dispatcher in the backtest function builds these
+          shapes from the <code>{name, params}</code> shape the
+          frontend sends. Round-tripping through serde produces a
+          fully-typed Rust enum on the other side; the compiler
+          knows which variant it is and the strategy-specific Params
+          struct is accessible by pattern destructuring.
+        </p>
+
+        <h2>vs trait objects (<code>dyn Trait</code>)</h2>
+        <p>
+          An alternative dispatch pattern in Rust is the trait
+          object: define a <code>trait Strategy</code> with a
+          <code>positions(&amp;self, bars: &amp;[DailyBar])</code>
+          method, implement it for each strategy type, store strategy
+          instances as <code>Box&lt;dyn Strategy&gt;</code>, dispatch
+          via virtual call.
+        </p>
+        <p>
+          Trait objects are the right pick when the set of
+          implementations is open (third-party crates can implement
+          your trait) or when you need to store many instances of
+          different types in the same collection
+          (<code>Vec&lt;Box&lt;dyn Strategy&gt;&gt;</code>). They
+          have a small runtime cost: each call is one indirection
+          through the vtable.
+        </p>
+        <p>
+          The enum approach is the right pick when the set is closed
+          and known at compile time (exactly the case here: five
+          strategies, all in this crate, all known to the JS caller).
+          The compiler can optimize the match better than the
+          runtime can optimize the vtable lookup.
+        </p>
+
+        <h2>vs function pointers / HashMaps</h2>
+        <p>
+          You could also model dispatch with a HashMap from name to
+          function pointer:
+        </p>
+        <pre><code>let dispatch: HashMap&lt;&amp;str, fn(&amp;[DailyBar]) -&gt; Vec&lt;f64&gt;&gt; =
+    [("buy_and_hold", buy_and_hold::positions),
+     ("momentum", momentum::positions)]
+    .into_iter().collect();</code></pre>
+        <p>
+          This works but breaks the type safety of the per-strategy
+          Params: each function pointer would have a different
+          signature for params, so you can't put them in the same
+          map without erasing the type. The tagged enum keeps the
+          type system on your side: each variant has its specific
+          payload type, the compiler knows it, and the dispatch is
+          exhaustive by construction.
+        </p>
+
+        <h2>When the enum gets too big</h2>
+        <p>
+          If the set of variants grows past ~20, the
+          <code>positions</code> match arms become tedious and the
+          enum file itself becomes unwieldy. At that point the right
+          pattern is often to combine: an enum for the "kind" tag
+          that dispatches into trait-object-based per-kind handlers.
+          But for 5 strategies in a small crate, the pure enum is
+          the simplest correct shape.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>The rule of thumb.</strong> Closed set, known at
+          compile time, few variants: tagged enum. Open set (anyone
+          can add a new implementation), or many heterogeneous
+          instances stored together: trait object. Performance-
+          critical hot path: enum (zero indirection) over trait
+          object (one vtable lookup per call).
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/ownership/">&larr; Ownership and borrowing</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next lesson
+            <a href="/learn/error-handling/">Error handling without thiserror &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-enums-and-dispatch.ts"></script>
+  </body>
+</html>

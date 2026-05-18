@@ -33,6 +33,16 @@ export default defineConfig({
           __dirname,
           'learn/this-sites-rust/index.html'
         ),
+        learnOwnership: resolve(__dirname, 'learn/ownership/index.html'),
+        learnEnumsAndDispatch: resolve(
+          __dirname,
+          'learn/enums-and-dispatch/index.html'
+        ),
+        learnErrorHandling: resolve(
+          __dirname,
+          'learn/error-handling/index.html'
+        ),
+        learnWasm: resolve(__dirname, 'learn/wasm/index.html'),
         quiz: resolve(__dirname, 'quiz/index.html'),
         quizRustBasics: resolve(__dirname, 'quiz/rust-basics/index.html'),
         quizThisSitesRust: resolve(
