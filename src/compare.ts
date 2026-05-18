@@ -308,6 +308,11 @@ function applyQueryParamPrefill(): void {
       'symbol'
     ) as HTMLSelectElement | null;
     if (symbolSelect) {
+      // Symbol option appears asynchronously after the universe load
+      // resolves. After ~2 s of retries we surface a warning the same
+      // way the homepage does, since the unselected picker would
+      // otherwise leave the recipient unsure why their link didn't
+      // pre-fill.
       let tries = 0;
       const tryAssign = () => {
         const opt = Array.from(symbolSelect.options).find(
@@ -317,6 +322,11 @@ function applyQueryParamPrefill(): void {
           symbolSelect.value = opt.value;
         } else if (tries++ < 20) {
           setTimeout(tryAssign, 100);
+        } else {
+          setStatus(
+            `unknown symbol "${symbol}" in URL; not in the current universe. The symbol may have been rotated out of the roster since this link was generated.`,
+            'error'
+          );
         }
       };
       tryAssign();

@@ -446,6 +446,10 @@ function applyQueryParamPrefill(): void {
     if (symbolSelect) {
       // The symbol picker is populated asynchronously after /api/universe
       // resolves, so retry briefly until the option exists or we time out.
+      // After 20 tries at 100 ms each (~2 s) we surface a warning so a
+      // user with a stale-bookmark URL pointing at a renamed or removed
+      // symbol sees an explicit explanation rather than an unselected
+      // picker. Same pattern as the unknown-strategy warning.
       let tries = 0;
       const tryAssign = () => {
         const opt = Array.from(symbolSelect.options).find(
@@ -455,6 +459,11 @@ function applyQueryParamPrefill(): void {
           symbolSelect.value = opt.value;
         } else if (tries++ < 20) {
           setTimeout(tryAssign, 100);
+        } else {
+          setStatus(
+            `unknown symbol "${symbol}" in URL; not in the current universe. The symbol may have been rotated out of the roster since this link was generated.`,
+            'error'
+          );
         }
       };
       tryAssign();
