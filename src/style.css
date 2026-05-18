@@ -93,6 +93,56 @@ a:hover {
   max-width: 760px;
 }
 
+/* Visible breadcrumb at the top of each nested page. Companion to
+   the BreadcrumbList JSON-LD structured data; both should agree on
+   the path. Style is intentionally subdued so it reads as
+   navigation chrome, not content. */
+
+.page-breadcrumb {
+  margin-bottom: 1.25rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.page-breadcrumb ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.page-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.page-breadcrumb li:not(:last-child)::after {
+  content: '›';
+  color: var(--bg-card-border);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.page-breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+
+.page-breadcrumb a:hover {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.page-breadcrumb [aria-current="page"] {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 /* Curriculum layout (used by /learn pages). */
 
 .curriculum {
