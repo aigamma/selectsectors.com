@@ -6,6 +6,7 @@ import {
   escapeHtml,
   loadRateStatus,
   renderRateBanner,
+  renderRateBannerLoadError,
   setButtonDisabled,
   setDefaultDateRange,
   setShareFeedback,
@@ -334,7 +335,11 @@ async function init(): Promise<void> {
   }
 
   const rateStatus = await loadRateStatus();
-  if (rateStatus) showRateBanner(rateStatus);
+  if (rateStatus) {
+    showRateBanner(rateStatus);
+  } else {
+    renderRateBannerLoadError('rate-banner');
+  }
 
   applyQueryParamPrefill();
 

@@ -126,6 +126,21 @@ export function renderRateBanner(
   el.innerHTML = `You have <span class="rate-banner-count">${hourRemaining}</span> of ${info.hourly.limit} ${escapeHtml(noun)} left this hour, and <span class="rate-banner-count">${dayRemaining}</span> of ${info.daily.limit} today.`;
 }
 
+/** Replace the rate-banner's "checking your daily allowance..." with
+ *  a graceful failure message when /api/rate-status returns null
+ *  (network error, function down). The user can still try a
+ *  backtest; the failure here is informational, not blocking. The
+ *  exhausted class is deliberately not toggled because a "couldn't
+ *  read your counters" state is not the same as a "you have zero
+ *  left" state, and rendering them with the same coral styling
+ *  would mislead the user about whether they can run a backtest. */
+export function renderRateBannerLoadError(elementId: string): void {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.innerHTML =
+    'Rate counters unavailable; try a backtest and the response will show your current state.';
+}
+
 /** Populate an <optgroup> with one <option> per symbol. The element
  *  ID is for the optgroup itself (not its parent select). */
 export function populateSymbolGroup(elementId: string, items: string[]): void {

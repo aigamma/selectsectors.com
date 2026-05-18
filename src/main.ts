@@ -6,6 +6,7 @@ import {
   loadRateStatus,
   populateSymbolGroup,
   renderRateBanner,
+  renderRateBannerLoadError,
   setButtonDisabled,
   setDefaultDateRange,
   setShareFeedback,
@@ -473,7 +474,11 @@ async function init(): Promise<void> {
   } else {
     renderUniverseLoadError();
   }
-  if (rateStatus) showRateBanner(rateStatus);
+  if (rateStatus) {
+    showRateBanner(rateStatus);
+  } else {
+    renderRateBannerLoadError('rate-banner');
+  }
 
   // Apply ?strategy= and ?symbol= pre-fill after the universe loads so
   // the symbol picker has its options populated by the time we look up

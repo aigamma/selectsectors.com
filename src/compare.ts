@@ -6,6 +6,7 @@ import {
   loadRateStatus,
   populateSymbolGroup,
   renderRateBanner,
+  renderRateBannerLoadError,
   setButtonDisabled,
   setDefaultDateRange,
   setShareFeedback,
@@ -370,7 +371,11 @@ async function init(): Promise<void> {
       'error'
     );
   }
-  if (rateStatus) showRateBanner(rateStatus);
+  if (rateStatus) {
+    showRateBanner(rateStatus);
+  } else {
+    renderRateBannerLoadError('rate-banner');
+  }
 
   applyQueryParamPrefill();
 
