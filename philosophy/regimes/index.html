@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Market regimes: trending vs mean-reverting, high-vol vs low-vol, crisis vs normal. Why a strategy that worked across one regime can fail in the next, and how to read your backtest with the regime in mind."
+    />
+    <title>Regimes &middot; Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Regimes" />
+    <meta property="og:description" content="Market regimes: trending vs mean-reverting, high-vol vs low-vol, crisis vs normal. Why a strategy that worked across one regime can fail in the next." />
+    <meta property="og:url" content="https://selectsectors.com/philosophy/regimes/" />
+    <meta property="og:image" content="https://selectsectors.com/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Regimes" />
+    <meta name="twitter:description" content="Market regimes and what they do to a backtest." />
+    <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Regimes",
+      "description": "Market regimes: trending vs mean-reverting, high-vol vs low-vol, crisis vs normal. Why a strategy that worked across one regime can fail in the next, and how to read your backtest with the regime in mind.",
+      "url": "https://selectsectors.com/philosophy/regimes/",
+      "image": "https://selectsectors.com/og-image.svg",
+      "datePublished": "2026-05-18",
+      "dateModified": "2026-05-18",
+      "author": { "@type": "Organization", "name": "AI Gamma", "url": "https://aigamma.com" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "AI Gamma",
+        "url": "https://aigamma.com",
+        "logo": { "@type": "ImageObject", "url": "https://selectsectors.com/og-image.svg" }
+      },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://selectsectors.com/philosophy/regimes/" }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://selectsectors.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Philosophy", "item": "https://selectsectors.com/philosophy/" },
+        { "@type": "ListItem", "position": 3, "name": "Regimes", "item": "https://selectsectors.com/philosophy/regimes/" }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main page-main-narrow">
+      <nav class="page-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/philosophy/">Philosophy</a></li>
+          <li aria-current="page">Regimes</li>
+        </ol>
+      </nav>
+
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/philosophy/">&larr; Philosophy</a></p>
+        <h1>Regimes.</h1>
+        <p class="lesson-lede">
+          A strategy that worked great across the 2024 bull market
+          can lose money across 2025 if the regime shifts. Backtests
+          summarize behavior across whatever regimes happened to be
+          in the test window. Reading the result honestly means
+          knowing which regimes the window covered, which one is
+          live now, and how the strategy is likely to behave in
+          each.
+        </p>
+
+        <h2>What is a regime?</h2>
+        <p>
+          A regime is a stretch of market behavior with stable
+          statistical character. The character can be defined many
+          ways; the three most useful axes are:
+        </p>
+        <ul>
+          <li>
+            <strong>Direction.</strong> Trending up, trending down,
+            or sideways. Defined operationally as the sign of the
+            slope of a long-window (250-bar) moving average.
+          </li>
+          <li>
+            <strong>Volatility.</strong> Calm (annualized realized
+            vol under 12%) or stressed (over 25%). Defined
+            operationally as the rolling 30-day std dev of daily
+            returns, times sqrt(252).
+          </li>
+          <li>
+            <strong>Mean reversion vs trend persistence.</strong>
+            The autocorrelation of daily returns. Positive
+            autocorrelation = trends self-perpetuate. Negative
+            autocorrelation = bounces follow drops. Zero = random
+            walk.
+          </li>
+        </ul>
+        <p>
+          Combining these three gives a regime grid: trending +
+          calm, trending + stressed, sideways + calm, sideways +
+          stressed, etc. Different strategies prefer different
+          cells.
+        </p>
+
+        <h2>Strategy regime preferences</h2>
+        <p>
+          The strategies in this site's library all have regime
+          preferences worth naming explicitly:
+        </p>
+        <ul>
+          <li>
+            <strong>SMA crossover / momentum / breakout.</strong>
+            Trend-following. Want trending + calm. The trend
+            provides the directional bet; calm volatility means
+            fewer whipsaw signals.
+          </li>
+          <li>
+            <strong>RSI mean reversion / Bollinger Bands.</strong>
+            Mean-reverting. Want sideways + range-bound. The
+            sideways behavior is the source of the edge; calm
+            volatility keeps the bands tight enough that breaches
+            are meaningful.
+          </li>
+          <li>
+            <strong>Buy and hold.</strong> Wants trending up. Is
+            agnostic to volatility (within reason; high-vol
+            trending-up markets still favor it but the drawdowns
+            during corrections are larger).
+          </li>
+        </ul>
+        <p>
+          A backtest that ran a momentum strategy through a 2022
+          equity-bear, 2023 chop, and 2024 bull market will show a
+          decent overall Sharpe but the three sub-periods would
+          look wildly different. Most of the return is the 2024
+          tail; the 2022 and 2023 sub-periods would show flat-to-
+          negative returns. The Sharpe averages over the regimes;
+          the realized P&L depends on which regime you happen to
+          deploy into.
+        </p>
+
+        <h2>How to detect the live regime</h2>
+        <p>
+          The honest answer: you cannot, with high confidence, in
+          real time. Regime labels are easy to assign in
+          retrospect; the boundary between "noisy chop" and "the
+          start of a new trend" is exactly the kind of signal that
+          fools every momentum-detection algorithm in the
+          literature.
+        </p>
+        <p>
+          What you can do: look at the current rolling vol vs its
+          long-run distribution, look at the sign of the long-window
+          moving average, and look at the recent realized
+          autocorrelation. Together these give you a probabilistic
+          read on which regime you're in. If your strategy is
+          trend-following and the rolling vol is unusually high
+          while autocorrelation is negative, you're probably about
+          to get chopped. That's not certainty, but it's better
+          than ignoring the regime entirely.
+        </p>
+
+        <h2>What to do about it</h2>
+        <p>
+          Three honest options, in increasing order of complexity:
+        </p>
+        <ol>
+          <li>
+            <strong>Accept the regime risk.</strong> Buy and hold
+            is the simplest example: you accept that drawdowns will
+            be deep during bear markets and that you'll just sit
+            through them. The historical equity premium has paid
+            buy-and-holders to bear this risk; the future may or
+            may not.
+          </li>
+          <li>
+            <strong>Match strategy to regime in real time.</strong>
+            Trade trend-following strategies when the regime is
+            trending, switch to mean reversion when it's sideways.
+            Operationally: run a regime classifier, gate strategy
+            execution on its output. The hard part is the
+            classifier; in practice these tend to lag the regime
+            change by enough that the gating eats most of the
+            benefit.
+          </li>
+          <li>
+            <strong>Combine strategies that are uncorrelated
+            across regimes.</strong> Run a trend-following strategy
+            and a mean-reversion strategy together with sized
+            positions. Their returns partially cancel during
+            choppy markets (the mean-reversion makes money while
+            the trend-follower loses) and partially compound
+            during trending markets (the trend-follower makes
+            money while the mean-reversion loses). The combined
+            Sharpe is often higher than either standalone, and the
+            max drawdown is meaningfully smaller. This is the
+            simplest version of "factor diversification".
+          </li>
+        </ol>
+
+        <div class="lesson-callout">
+          <strong>The honest takeaway.</strong> A single backtest
+          number on a single regime-mix is one data point. Run the
+          same strategy on multiple non-overlapping sub-periods
+          (call them folds); look at the Sharpe distribution
+          across folds; that variation is your regime-uncertainty
+          estimate. If the per-fold Sharpe ranges from -1 to +3,
+          the strategy is high-variance under regime change; if
+          it ranges from +0.5 to +1.5, it's more robust. The
+          single-window backtest hides this entirely.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/philosophy/backtest-vs-live/">&larr; Backtest vs live</a>
+          </div>
+          <div class="lesson-nav-next">
+            Back to
+            <a href="/philosophy/">Philosophy index &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-regimes.ts"></script>
+  </body>
+</html>
