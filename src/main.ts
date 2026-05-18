@@ -1,57 +1,41 @@
 import { mountSiteShell } from './layout.ts';
 import { STRATEGY_SPECS } from './strategy-specs.ts';
+import {
+  escapeHtml,
+  loadRateStatus,
+  populateSymbolGroup,
+  renderRateBanner,
+  setButtonDisabled,
+  setDefaultDateRange,
+  setStatus as setStatusUtil,
+  type RateLimitInfo,
+} from './page-utils.ts';
+import { dispatchAndPoll } from './dispatch.ts';
 
-// Frontend entry. Six concerns mounted at page load:
+// Homepage frontend entry. Six concerns mounted at page load:
 //
 //   1. Universe roster — fetched from /api/universe and rendered into
 //      the sector + anchor lists in the universe panel AND into the
 //      backtest form's symbol <optgroup> elements.
 //   2. Rate-limit banner — fetched from /api/rate-status and rendered
-//      as "you have N backtests left this hour, M today". No slot is
-//      consumed; the read-only endpoint is the right shape for an
-//      always-on indicator that lets the user know before clicking
-//      Run whether they have allowance left.
-//   3. Strategy picker — five strategies wired to the WASM engine.
-//      Each strategy carries a description and (where applicable) a
-//      set of parameter fields with sensible defaults. The params
-//      container re-renders whenever the strategy changes; the submit
-//      handler reads the fields' current values into the params
-//      object on the request body.
-//   4. Backtest run — submit handler that POSTs to /api/backtest,
-//      handles the three response shapes (ready/cached, queued,
-//      429), and on queued, polls /api/result every 1.5 seconds
-//      until either a result is ready or the wait exceeds 60 s.
+//      as "you have N backtests left this hour, M today" via the
+//      shared page-utils renderer.
+//   3. Strategy picker — five strategies wired to the WASM engine,
+//      driven by the shared STRATEGY_SPECS catalog. The params
+//      container re-renders whenever the strategy changes.
+//   4. Backtest run — submit handler that POSTs to /api/backtest via
+//      the shared dispatchAndPoll helper. The shared helper handles
+//      the three response shapes (ready/cached, queued, 429) and the
+//      poll loop; this module supplies the page-specific callbacks.
 //   5. Result panel — six metric cells (total return, CAGR, sharpe,
-//      max drawdown, hit rate, bars) plus an inline SVG equity curve
-//      colored by sign of final equity.
+//      max drawdown, hit rate, bars) plus the benchmark overlay chart
+//      that compares the chosen strategy against buy-and-hold on the
+//      same bar series.
 //   6. SelectBot — floating chat panel (see src/chat.ts).
 
 interface UniverseResponse {
   sectors: string[];
   anchors: string[];
-}
-
-interface RateLimitInfo {
-  hourly: { limit: number; used: number; remaining: number; resetAt: number };
-  daily: { limit: number; used: number; remaining: number; resetAt: number };
-}
-
-interface RateStatusResponse extends RateLimitInfo {
-  caps: { hour: number; day: number };
-}
-
-interface BacktestDispatchResponse {
-  status: 'ready' | 'queued';
-  hash: string;
-  cached?: boolean;
-  result?: BacktestResult;
-  rateLimits?: RateLimitInfo;
-}
-
-interface BacktestErrorResponse {
-  error: string;
-  reason?: string;
-  rateLimits?: RateLimitInfo;
 }
 
 interface EquityPoint {
@@ -87,11 +71,12 @@ interface BacktestResult {
   computeMs?: number;
 }
 
-interface ResultPollResponse {
-  status: 'pending' | 'ready';
-  hash: string;
-  result?: BacktestResult;
-}
+const setStatus = (msg: string, kind: 'info' | 'error' = 'info') =>
+  setStatusUtil('status-line', msg, kind);
+const setRunDisabled = (disabled: boolean) =>
+  setButtonDisabled('run-button', disabled);
+const showRateBanner = (info: RateLimitInfo) =>
+  renderRateBanner('rate-banner', info, 'backtests');
 
 async function loadUniverse(): Promise<UniverseResponse | null> {
   try {
@@ -114,104 +99,7 @@ function renderUniverseLists(data: UniverseResponse): void {
 function renderList(id: string, items: string[]): void {
   const el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = items.map((s) => `<li>${escape(s)}</li>`).join('');
-}
-
-function populateSymbolGroup(id: string, items: string[]): void {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = items
-    .map((s) => `<option value="${escape(s)}">${escape(s)}</option>`)
-    .join('');
-}
-
-async function loadRateStatus(): Promise<RateStatusResponse | null> {
-  try {
-    const res = await fetch('/api/rate-status');
-    if (!res.ok) throw new Error(`/api/rate-status -> ${res.status}`);
-    return (await res.json()) as RateStatusResponse;
-  } catch (err) {
-    console.warn('rate status fetch failed', err);
-    return null;
-  }
-}
-
-function renderRateBanner(info: RateLimitInfo): void {
-  const el = document.getElementById('rate-banner');
-  if (!el) return;
-  const hourRemaining = info.hourly.remaining;
-  const dayRemaining = info.daily.remaining;
-  const exhausted = hourRemaining === 0 || dayRemaining === 0;
-  el.classList.toggle('exhausted', exhausted);
-
-  if (exhausted) {
-    const which = hourRemaining === 0 ? 'hour' : 'day';
-    const resetAt =
-      which === 'hour' ? info.hourly.resetAt : info.daily.resetAt;
-    const minutes = Math.max(1, Math.ceil((resetAt - Date.now()) / 60000));
-    el.innerHTML = `No backtests left this ${which}. Next slot opens in <span class="rate-banner-count">${minutes}</span> min.`;
-    return;
-  }
-
-  el.innerHTML = `You have <span class="rate-banner-count">${hourRemaining}</span> of ${info.hourly.limit} backtests left this hour, and <span class="rate-banner-count">${dayRemaining}</span> of ${info.daily.limit} today.`;
-}
-
-function setStatus(message: string, kind: 'info' | 'error' = 'info'): void {
-  const el = document.getElementById('status-line');
-  if (!el) return;
-  el.textContent = message;
-  el.classList.toggle('error', kind === 'error');
-}
-
-function setRunDisabled(disabled: boolean): void {
-  const btn = document.getElementById('run-button') as HTMLButtonElement | null;
-  if (!btn) return;
-  btn.disabled = disabled;
-}
-
-function escape(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => {
-    switch (c) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      case "'":
-        return '&#39;';
-      default:
-        return c;
-    }
-  });
-}
-
-function setDefaultDateRange(): void {
-  // Default: last 365 calendar days, clamped to today on the right
-  // edge. The Supabase shallow-history reality (daily_eod runs only
-  // 2024-04-25 onwards as of scaffold) means defaulting to 1 year
-  // back is almost always safe; SPX has more history but the form
-  // defaults are the same regardless of the symbol the user picks.
-  const today = new Date();
-  const endDate = today.toISOString().slice(0, 10);
-  const startDateD = new Date(today);
-  startDateD.setUTCDate(startDateD.getUTCDate() - 365);
-  const startDate = startDateD.toISOString().slice(0, 10);
-
-  const startEl = document.getElementById('start-date') as HTMLInputElement | null;
-  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
-  if (startEl) {
-    startEl.value = startDate;
-    startEl.min = '2022-01-03';
-    startEl.max = endDate;
-  }
-  if (endEl) {
-    endEl.value = endDate;
-    endEl.min = '2022-01-03';
-    endEl.max = endDate;
-  }
+  el.innerHTML = items.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
 }
 
 function renderStrategyParams(strategyName: string): void {
@@ -233,12 +121,12 @@ function renderStrategyParams(strategyName: string): void {
       const stepAttr = p.step !== undefined ? ` step="${p.step}"` : '';
       return `
         <div class="field">
-          <label for="param-${escape(p.key)}">${escape(p.label)}</label>
+          <label for="param-${escapeHtml(p.key)}">${escapeHtml(p.label)}</label>
           <input
             type="number"
-            id="param-${escape(p.key)}"
-            name="param-${escape(p.key)}"
-            data-param-key="${escape(p.key)}"
+            id="param-${escapeHtml(p.key)}"
+            name="param-${escapeHtml(p.key)}"
+            data-param-key="${escapeHtml(p.key)}"
             value="${p.defaultValue}"
             inputmode="decimal"${minAttr}${maxAttr}${stepAttr}
             required
@@ -297,70 +185,23 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   setStatus('dispatching backtest...');
   hideResultPanel();
 
-  let dispatched: BacktestDispatchResponse | BacktestErrorResponse;
-  try {
-    const res = await fetch('/api/backtest', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    dispatched = (await res.json()) as
-      | BacktestDispatchResponse
-      | BacktestErrorResponse;
-    if (res.status === 429) {
-      const err = dispatched as BacktestErrorResponse;
-      const which = err.reason === 'hour-exceeded' ? 'hour' : 'day';
-      setStatus(`rate limit exceeded for this ${which}; retry after the banner resets`, 'error');
-      if (err.rateLimits) renderRateBanner(err.rateLimits);
-      setRunDisabled(false);
-      return;
-    }
-    if (!res.ok) {
-      const err = dispatched as BacktestErrorResponse;
-      setStatus(`error: ${err.error ?? res.statusText}`, 'error');
-      setRunDisabled(false);
-      return;
-    }
-  } catch (err) {
-    setStatus(`network error: ${(err as Error).message}`, 'error');
-    setRunDisabled(false);
-    return;
-  }
-
-  const dispatch = dispatched as BacktestDispatchResponse;
-  if (dispatch.rateLimits) renderRateBanner(dispatch.rateLimits);
-
-  if (dispatch.status === 'ready' && dispatch.result) {
-    setStatus(
-      dispatch.cached ? 'cached result returned instantly' : 'result ready'
-    );
-    renderResult(dispatch.result);
-    setRunDisabled(false);
-    return;
-  }
-
-  setStatus('queued; polling for the result...');
-  const start_t = Date.now();
-  const POLL_MS = 1500;
-  const TIMEOUT_MS = 60_000;
-  while (Date.now() - start_t < TIMEOUT_MS) {
-    await new Promise((r) => setTimeout(r, POLL_MS));
-    try {
-      const pollRes = await fetch(
-        `/api/result?hash=${encodeURIComponent(dispatch.hash)}`
+  await dispatchAndPoll<BacktestResult>({
+    endpoint: '/api/backtest',
+    body,
+    pollTimeoutMs: 60_000,
+    onRateLimits: showRateBanner,
+    onStatus: setStatus,
+    onResult: (result) => renderResult(result),
+    onRateExceeded: (reason) => {
+      const which = reason === 'hour-exceeded' ? 'hour' : 'day';
+      setStatus(
+        `rate limit exceeded for this ${which}; retry after the banner resets`,
+        'error'
       );
-      const pollJson = (await pollRes.json()) as ResultPollResponse;
-      if (pollJson.status === 'ready' && pollJson.result) {
-        setStatus(`done in ${((Date.now() - start_t) / 1000).toFixed(1)}s`);
-        renderResult(pollJson.result);
-        setRunDisabled(false);
-        return;
-      }
-    } catch (err) {
-      console.warn('poll failed', err);
-    }
-  }
-  setStatus('timed out waiting for the result; try again', 'error');
+    },
+    onError: (message) => setStatus(`error: ${message}`, 'error'),
+  });
+
   setRunDisabled(false);
 }
 
@@ -529,7 +370,7 @@ function renderEquityChart(
 }
 
 function applyQueryParamPrefill(): void {
-  // /strategies/{name}/ pages link back to / with `?strategy=<name>`
+  // /strategies/{name}/ and /scan/ link back to / with `?strategy=<name>`
   // (and optional &symbol=<sym>) so the user can run a backtest on the
   // strategy they were just reading about without retyping anything.
   const params = new URLSearchParams(window.location.search);
@@ -584,7 +425,7 @@ async function init(): Promise<void> {
   ]);
 
   if (universe) renderUniverseLists(universe);
-  if (rateStatus) renderRateBanner(rateStatus);
+  if (rateStatus) showRateBanner(rateStatus);
 
   // Apply ?strategy= and ?symbol= pre-fill after the universe loads so
   // the symbol picker has its options populated by the time we look up
