@@ -77,9 +77,12 @@
         <h3>GET /api/universe</h3>
         <p>The 22-name roster from the upstream
         options-volume-roster: eleven SPDR sector ETFs plus eleven
-        anchor single names. SPX and SPY are added client-side
-        because they're the index and the broad-market proxy
-        (always present) rather than rotating universe members.</p>
+        anchor single names. SPX is added client-side because it's
+        the index (always present in the catalog) rather than a
+        rotating universe member; SPY exists in the upstream
+        Supabase table but is intentionally excluded from the
+        public-site universe because its returns are near-identical
+        to SPX.</p>
         <pre><code>{
   "sectors": ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK",
               "XLP", "XLU", "XLV", "XLY", "XLRE"],
@@ -131,7 +134,7 @@
 
         <h4>Request</h4>
         <pre><code>{
-  "symbol": "SPY",
+  "symbol": "SPX",
   "strategy": {
     "name":   "sma_crossover",
     "params": { "fast": 20, "slow": 50 }
@@ -265,7 +268,7 @@
         return and the cumulative equity value.</p>
         <pre><code>{
   "inputs": {
-    "symbol":    "SPY",
+    "symbol":    "SPX",
     "strategy":  { "name": "sma_crossover", "params": { "fast": 20, "slow": 50 } },
     "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
   },
@@ -360,9 +363,8 @@
   "computeMs":  3812
 }</code></pre>
         <p><code>category</code> is one of <code>"index"</code>
-        (SPX), <code>"broad"</code> (SPY), <code>"sector"</code>
-        (the 11 SPDR ETFs), or <code>"anchor"</code> (the 11
-        single names).</p>
+        (SPX), <code>"sector"</code> (the 11 SPDR ETFs), or
+        <code>"anchor"</code> (the 11 single names).</p>
 
         <h3>Error result blob</h3>
         <p>When a background function fails before producing

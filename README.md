@@ -125,12 +125,15 @@ API calls.
 | Category              | Symbols                                                                    |
 | --------------------- | -------------------------------------------------------------------------- |
 | SPX index             | SPX                                                                        |
-| Broad-market ETF      | SPY (proxy for SPX execution slippage)                                     |
 | SPDR sector ETFs (11) | XLB, XLC, XLE, XLF, XLI, XLK, XLP, XLU, XLV, XLY, XLRE                     |
 | Anchor single names   | The eleven names from `aigamma.com/options-volume-roster` (top-by-OV)      |
 
 The eleven anchor single names match the count of the SPDR sector ETFs
-intentionally so the two groups read in parallel on the UI.
+intentionally so the two groups read in parallel on the UI. SPY is
+present in the upstream Supabase `daily_eod` table but is not part of
+the public-site universe because its daily returns are near-identical
+to SPX (both track the S&P 500), so a SPY scan row would be a
+visually-redundant near-duplicate of the SPX row.
 
 ## Why this exists
 
