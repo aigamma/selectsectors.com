@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Run one strategy across the entire 23-symbol universe in a single backtest call. Ranked by Sharpe so you can see at a glance which symbols the strategy works best on."
+    />
+    <title>Scan universe &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main">
+      <section class="hero">
+        <h1>Scan the entire universe.</h1>
+        <p class="lede">
+          Pick one strategy and one date range; the scanner runs that
+          strategy against every symbol in the catalog (SPX, SPY, the
+          eleven SPDR sectors, and the eleven anchor names) in a
+          single backtest call, then ranks the results by Sharpe.
+          The fastest way to find out which symbols the strategy
+          actually works on.
+        </p>
+      </section>
+
+      <section class="backtest">
+        <h2>Run a scan</h2>
+
+        <div class="rate-banner" id="rate-banner" aria-live="polite">
+          <span class="rate-banner-loading">checking your daily allowance...</span>
+        </div>
+
+        <form id="scan-form" class="backtest-form">
+          <div class="field">
+            <label for="strategy">Strategy</label>
+            <select id="strategy" name="strategy" required>
+              <option value="buy_and_hold">Buy and hold</option>
+              <option value="sma_crossover">SMA crossover</option>
+              <option value="momentum">Momentum</option>
+              <option value="rsi_mean_reversion">RSI mean reversion</option>
+              <option value="breakout">Donchian breakout</option>
+            </select>
+            <div class="field-hint" id="strategy-description"></div>
+          </div>
+
+          <div id="strategy-params" class="strategy-params"></div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="start-date">Start date</label>
+              <input type="date" id="start-date" name="start-date" required />
+            </div>
+            <div class="field">
+              <label for="end-date">End date</label>
+              <input type="date" id="end-date" name="end-date" required />
+            </div>
+          </div>
+
+          <button type="submit" id="run-button" class="run-button">Scan universe</button>
+        </form>
+
+        <div id="status-line" class="status-line" aria-live="polite"></div>
+
+        <div id="result-panel" class="result-panel" hidden>
+          <h3>Ranked by Sharpe</h3>
+          <div class="compare-table-wrap">
+            <table id="scan-table" class="compare-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Category</th>
+                  <th class="num">Total return</th>
+                  <th class="num">CAGR</th>
+                  <th class="num">Sharpe</th>
+                  <th class="num">Max DD</th>
+                  <th class="num">Hit rate</th>
+                  <th class="num">Bars</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="result-footnote" id="result-footnote"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/scan.ts"></script>
+  </body>
+</html>

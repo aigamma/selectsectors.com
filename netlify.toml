@@ -54,6 +54,11 @@
 [functions."compare-background"]
   included_files = ["pkg/**"]
   node_bundler = "esbuild"
+
+# Same packaging as the other background functions.
+[functions."scan-background"]
+  included_files = ["pkg/**"]
+  node_bundler = "esbuild"
 #
 # Long-cache the static frontend assets. Vite emits content-hashed
 # filenames under `/assets/`, so the URLs are immutable by

@@ -51,6 +51,7 @@ export default defineConfig({
         ),
         quizQuantFinance: resolve(__dirname, 'quiz/quant-finance/index.html'),
         compare: resolve(__dirname, 'compare/index.html'),
+        scan: resolve(__dirname, 'scan/index.html'),
         strategies: resolve(__dirname, 'strategies/index.html'),
         strategyBuyAndHold: resolve(
           __dirname,

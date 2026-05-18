@@ -34,6 +34,7 @@ type ActivePage =
   | 'quiz'
   | 'strategies'
   | 'compare'
+  | 'scan'
   | 'philosophy'
   | 'none';
 
@@ -46,6 +47,7 @@ interface NavLink {
 const NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Backtest', page: 'home' },
   { href: '/compare/', label: 'Compare', page: 'compare' },
+  { href: '/scan/', label: 'Scan', page: 'scan' },
   { href: '/strategies/', label: 'Strategies', page: 'strategies' },
   { href: '/learn/', label: 'Learn Rust', page: 'learn' },
   { href: '/quiz/', label: 'Quiz', page: 'quiz' },

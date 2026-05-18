@@ -1040,6 +1040,41 @@ a:hover {
   background: var(--swatch-color, var(--text-secondary));
 }
 
+/* Cross-symbol scan page (/scan/). */
+
+.scan-category {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+  background: var(--bg-page);
+  border: 1px solid var(--bg-card-border);
+  color: var(--text-secondary);
+}
+
+.scan-category-index {
+  color: var(--accent-amber);
+  border-color: rgba(240, 160, 48, 0.4);
+}
+
+.scan-category-broad {
+  color: var(--text-primary);
+  border-color: var(--bg-card-border);
+}
+
+.scan-category-sector {
+  color: var(--accent-blue);
+  border-color: rgba(74, 158, 255, 0.4);
+}
+
+.scan-category-anchor {
+  color: var(--accent-green);
+  border-color: rgba(46, 204, 113, 0.4);
+}
+
 .page-footer {
   display: flex;
   align-items: center;

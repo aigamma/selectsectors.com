@@ -428,7 +428,7 @@ function renderLegend(strategies: StrategyComparisonEntry[]): void {
 }
 
 async function init(): Promise<void> {
-  mountSiteShell('strategies');
+  mountSiteShell('compare');
   setDefaultDateRange();
 
   const [universe, rateStatus] = await Promise.all([
