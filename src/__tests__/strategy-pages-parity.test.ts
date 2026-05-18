@@ -92,6 +92,40 @@ describe('strategy-specs ↔ catalog rows parity', () => {
   );
 });
 
+describe('strategy-specs ↔ explainer <title> parity', () => {
+  const strategyNames = Object.keys(STRATEGY_SPECS).sort();
+
+  it.each(strategyNames)(
+    'strategy %s explainer <title> starts with STRATEGY_SPECS.name',
+    (name) => {
+      const kebab = snakeToKebab(name);
+      const path = resolve(ROOT, 'strategies', kebab, 'index.html');
+      const source = readFileSync(path, 'utf8');
+      const titleRe = /<title>([^<]+)<\/title>/;
+      const m = source.match(titleRe);
+      expect(
+        m,
+        `strategies/${kebab}/index.html has no <title> tag`
+      ).not.toBeNull();
+      if (!m) return;
+      const title = m[1].trim();
+      const expectedName = STRATEGY_SPECS[name].name;
+      // The convention is "<name> · Strategies · Select Sectors"
+      // (rendered as the U+00B7 middle-dot character or the HTML
+      // entity &middot;). The test asserts the title BEGINS with
+      // the strategy's display name; the trailing suffix is a
+      // separate convention pinned by the sitemap and SEO surface
+      // and is not what this test is about. We also tolerate the
+      // &middot; entity vs the literal middot character because
+      // the HTML files use the entity form by convention.
+      expect(
+        title.startsWith(expectedName),
+        `strategies/${kebab}/index.html <title> is "${title}" but should start with STRATEGY_SPECS["${name}"].name = "${expectedName}". Update the title tag.`
+      ).toBe(true);
+    }
+  );
+});
+
 describe('snakeToKebab helper', () => {
   it('converts single-word names unchanged', () => {
     expect(snakeToKebab('momentum')).toBe('momentum');
