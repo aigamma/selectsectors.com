@@ -20,7 +20,7 @@ import { dispatchAndPoll } from './dispatch.ts';
 //   2. Rate-limit banner — fetched from /api/rate-status and rendered
 //      as "you have N backtests left this hour, M today" via the
 //      shared page-utils renderer.
-//   3. Strategy picker — five strategies wired to the WASM engine,
+//   3. Strategy picker — six strategies wired to the WASM engine,
 //      driven by the shared STRATEGY_SPECS catalog. The params
 //      container re-renders whenever the strategy changes.
 //   4. Backtest run — submit handler that POSTs to /api/backtest via

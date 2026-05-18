@@ -12,7 +12,7 @@ Developer tier per visitor.
 v0.1.0. The full content + interactive surface shipped over a multi-iteration
 build session ending 2026-05-18. The site is functionally complete:
 
-- 5-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
+- 6-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
   mean reversion, Donchian breakout) end-to-end through a Netlify
   background function, with results cached by content-hash.
 - SelectBot chatbot (Anthropic SDK + prompt caching + SSE streaming)
@@ -34,7 +34,7 @@ build session ending 2026-05-18. The site is functionally complete:
   canonical-json, strategy translation, and HTML-escape helpers),
   three-job GitHub Actions CI workflow that runs cargo test, Vitest,
   and the production build on every push.
-- Cross-axis exploration: `/compare/` runs all five strategies on
+- Cross-axis exploration: `/compare/` runs all six strategies on
   one symbol; `/scan/` runs one strategy across all 23 symbols. Both
   consume one rate-limit slot regardless of the internal backtest
   count.

@@ -35,6 +35,29 @@
           API is internal).
         </p>
 
+        <h2 id="v0-1-1">v0.1.1 &middot; 2026-05-18 (later same day)</h2>
+        <ul>
+          <li>
+            Added Bollinger Bands mean reversion as the sixth strategy.
+            Enter long when the close drops below SMA &minus; k &times;
+            std; exit at the SMA centerline. Reachable from /, /scan/,
+            and /compare/, with a full
+            <a href="/strategies/bollinger-bands/">explainer page</a>.
+          </li>
+          <li>
+            Fixed a long-standing name-mismatch bug: the RSI
+            strategy's result blob carried
+            <code>strategy: "rsi_meanreversion"</code> while every
+            other API surface used <code>rsi_mean_reversion</code>.
+            Now consistent.
+          </li>
+          <li>
+            Added a sitemap-validity test: every URL declared in
+            sitemap.xml must correspond to a real HTML file in the
+            repo. Catches broken-link regressions before they ship.
+          </li>
+        </ul>
+
         <h2 id="v0-1-0">v0.1.0 &middot; 2026-05-18</h2>
         <p>
           Initial release. The site went from an empty directory to a
