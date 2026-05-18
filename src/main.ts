@@ -53,6 +53,21 @@ interface BacktestErrorResponse {
   rateLimits?: RateLimitInfo;
 }
 
+interface EquityPoint {
+  date: string;
+  ret: number;
+  equity: number;
+}
+
+interface BenchmarkResult {
+  name: string;
+  totalReturn: number;
+  annualizedReturn: number;
+  sharpe: number;
+  maxDrawdown: number;
+  equityCurve: EquityPoint[];
+}
+
 interface BacktestResult {
   inputs: unknown;
   bars: number;
@@ -63,7 +78,8 @@ interface BacktestResult {
   sharpe: number;
   maxDrawdown: number;
   hitRate?: number;
-  equityCurve?: Array<{ date: string; ret: number; equity: number }>;
+  equityCurve?: EquityPoint[];
+  benchmark?: BenchmarkResult | null;
   note?: string;
   error?: string;
   computedAt: string;
@@ -457,7 +473,34 @@ function renderResult(result: BacktestResult): void {
     : `computed in ${result.computeMs ?? '?'} ms`;
   setText('result-footnote', footnote);
 
-  renderEquityChart(result.equityCurve ?? []);
+  // Surface the strategy-vs-benchmark gap as a small line under the
+  // metric cells so the user can see at a glance whether the chosen
+  // strategy actually beat buy-and-hold on the same bar series.
+  if (result.benchmark) {
+    const stratReturn = result.totalReturn;
+    const benchReturn = result.benchmark.totalReturn;
+    const diff = stratReturn - benchReturn;
+    const diffPct = (diff * 100).toFixed(2);
+    const sign = diff >= 0 ? '+' : '';
+    const summaryText =
+      `vs buy-and-hold: ${sign}${diffPct}% (${(benchReturn * 100).toFixed(2)}% benchmark return)`;
+    setText('result-benchmark-summary', summaryText);
+    const summaryEl = document.getElementById('result-benchmark-summary');
+    if (summaryEl) {
+      summaryEl.hidden = false;
+      summaryEl.classList.remove('positive', 'negative');
+      if (diff > 0) summaryEl.classList.add('positive');
+      else if (diff < 0) summaryEl.classList.add('negative');
+    }
+  } else {
+    const summaryEl = document.getElementById('result-benchmark-summary');
+    if (summaryEl) summaryEl.hidden = true;
+  }
+
+  renderEquityChart(
+    result.equityCurve ?? [],
+    result.benchmark?.equityCurve ?? null
+  );
 }
 
 function setText(id: string, value: string): void {
@@ -475,7 +518,8 @@ function setTextWithSign(id: string, value: string, signSource: number): void {
 }
 
 function renderEquityChart(
-  curve: Array<{ date: string; equity: number }>
+  curve: Array<{ date: string; equity: number }>,
+  benchmarkCurve: Array<{ date: string; equity: number }> | null
 ): void {
   const svg = document.getElementById('result-chart');
   if (!svg) return;
@@ -493,28 +537,60 @@ function renderEquityChart(
   const innerW = width - padLeft - padRight;
   const innerH = height - padTop - padBottom;
 
+  // Compute the y-axis range from both curves together so they share
+  // the same scale and the comparison is visually honest.
   let minEq = curve[0].equity;
   let maxEq = curve[0].equity;
   for (const p of curve) {
     if (p.equity < minEq) minEq = p.equity;
     if (p.equity > maxEq) maxEq = p.equity;
   }
+  if (benchmarkCurve) {
+    for (const p of benchmarkCurve) {
+      if (p.equity < minEq) minEq = p.equity;
+      if (p.equity > maxEq) maxEq = p.equity;
+    }
+  }
+  // Include the baseline at 1.0 in the range so it's always visible.
+  if (1.0 < minEq) minEq = 1.0;
+  if (1.0 > maxEq) maxEq = 1.0;
   const range = maxEq - minEq || 1;
 
-  const pts = curve.map((p, i) => {
-    const x = padLeft + (i / (curve.length - 1)) * innerW;
-    const y = padTop + ((maxEq - p.equity) / range) * innerH;
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  });
+  const toPath = (
+    points: Array<{ date: string; equity: number }>
+  ): string => {
+    return points
+      .map((p, i) => {
+        const x = padLeft + (i / (points.length - 1)) * innerW;
+        const y = padTop + ((maxEq - p.equity) / range) * innerH;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(' ');
+  };
 
-  const finalEq = curve[curve.length - 1].equity;
-  const color = finalEq >= 1.0 ? '#2ecc71' : '#d85a30';
-
+  const stratPts = toPath(curve);
+  const stratFinal = curve[curve.length - 1].equity;
+  const stratColor = stratFinal >= 1.0 ? '#2ecc71' : '#d85a30';
   const baselineY = padTop + ((maxEq - 1.0) / range) * innerH;
+
+  const benchPath =
+    benchmarkCurve && benchmarkCurve.length >= 2
+      ? toPath(benchmarkCurve)
+      : null;
+
+  // Layer order: baseline (back), benchmark (middle), strategy (front).
+  // The benchmark uses a subdued accent-blue dashed line so it reads as
+  // a reference rather than competing for visual weight with the user's
+  // strategy.
   svg.innerHTML = `
     <line x1="${padLeft}" y1="${baselineY.toFixed(2)}" x2="${padLeft + innerW}" y2="${baselineY.toFixed(2)}"
           stroke="#1f2530" stroke-width="1" stroke-dasharray="4 4" />
-    <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.6" />
+    ${
+      benchPath
+        ? `<polyline points="${benchPath}" fill="none" stroke="#4a9eff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7" />`
+        : ''
+    }
+    <polyline points="${stratPts}" fill="none" stroke="${stratColor}" stroke-width="1.6" />
   `;
 }
 

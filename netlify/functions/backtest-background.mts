@@ -150,12 +150,32 @@ export default async (req: Request, _context: Context): Promise<Response> => {
   }));
 
   let wasmResult: WasmResult;
+  let benchmarkResult: WasmResult | null = null;
   try {
     wasmResult = run_backtest({
       symbol: body.symbol,
       bars: wasmBars,
       strategy,
     }) as WasmResult;
+
+    // Always run buy-and-hold on the same bar series as a benchmark
+    // so the frontend can overlay the two equity curves and the user
+    // can see whether the chosen strategy beats the reference. We skip
+    // the duplicate run when the user's own strategy IS buy-and-hold
+    // (the result and the benchmark would be identical bytes).
+    if (body.strategy.name !== 'buy_and_hold') {
+      try {
+        benchmarkResult = run_backtest({
+          symbol: body.symbol,
+          bars: wasmBars,
+          strategy: 'buy_and_hold',
+        }) as WasmResult;
+      } catch (err) {
+        // The benchmark is supplementary; if it fails we still ship
+        // the primary result. Log for diagnosis but don't propagate.
+        console.warn('benchmark buy-and-hold failed', err);
+      }
+    }
   } catch (err) {
     await store.setJSON(hash, {
       error: `wasm backtest failed: ${(err as Error).message ?? err}`,
@@ -176,6 +196,16 @@ export default async (req: Request, _context: Context): Promise<Response> => {
     maxDrawdown: wasmResult.max_drawdown,
     hitRate: wasmResult.hit_rate,
     equityCurve: wasmResult.equity_curve,
+    benchmark: benchmarkResult
+      ? {
+          name: 'buy_and_hold',
+          totalReturn: benchmarkResult.total_return,
+          annualizedReturn: benchmarkResult.annualized_return,
+          sharpe: benchmarkResult.sharpe,
+          maxDrawdown: benchmarkResult.max_drawdown,
+          equityCurve: benchmarkResult.equity_curve,
+        }
+      : null,
     note: `WASM ${wasmResult.strategy} over ${wasmResult.n_bars} bars from ${wasmResult.first_date} to ${wasmResult.last_date}`,
     computedAt: new Date().toISOString(),
     computeMs: Date.now() - startedAt,

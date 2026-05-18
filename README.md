@@ -9,7 +9,34 @@ Developer tier per visitor.
 
 ## Status
 
-Pre-1.0 scaffold. The repo is greenfield as of 2026-05-17.
+v0.1.0. The full content + interactive surface shipped over a multi-iteration
+build session ending 2026-05-18. The site is functionally complete:
+
+- 5-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
+  mean reversion, Donchian breakout) end-to-end through a Netlify
+  background function, with results cached by content-hash.
+- SelectBot chatbot (Anthropic SDK + prompt caching + SSE streaming)
+  covering Rust, this site, quant finance basics, and the philosophy of
+  backtesting. Floating chat panel on every page; conversation persists
+  to localStorage.
+- 6 Rust curriculum lessons under `/learn/`, each anchored against the
+  actual `crates/backtest-core/` source via Vite's `?raw` import (the
+  curriculum cannot drift from the code).
+- 3 quiz categories with 21 multiple-choice questions under `/quiz/`,
+  with localStorage progress persistence.
+- 5 per-strategy explainer pages under `/strategies/{name}/`, each
+  pairing intuition + math + the exact Rust source + a "Try it" link
+  that pre-fills the backtester form via `?strategy=` and `?symbol=`
+  query parameters.
+- 4 philosophy primers under `/philosophy/` (overfitting, survivorship
+  bias, lookahead bias, backtest vs live).
+- 60 unit tests (39 Rust, 21 TypeScript), three-job GitHub Actions CI
+  workflow that runs cargo test, Vitest, and the production build on
+  every push.
+
+Deployment dependencies: `ANTHROPIC_API_KEY` env var on the Netlify
+project for the chatbot (without it `/api/chat` returns 503). All other
+env vars are already set: `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 
 ## Stack
 
@@ -103,47 +130,135 @@ shared library), but diverge on the data plane and the agent loop.
 ```
 .
 ├── README.md
-├── CLAUDE.md                  (gitignored; Claude session context)
+├── CLAUDE.md                       (gitignored; Claude session context)
+├── STATUS.md                       (append-only iteration log)
 ├── .gitignore
+├── .github/workflows/ci.yml        cargo test + vitest + build
 ├── netlify.toml
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts
-├── index.html
-├── src/                       frontend entry
-│   ├── main.ts
+├── vite.config.ts                  multi-entry: 25 page entries
+├── vitest.config.ts
+│
+├── index.html                      homepage (the backtester)
+├── 404.html
+├── public/                         static assets copied to dist/
+│   ├── favicon.svg
+│   ├── robots.txt
+│   └── sitemap.xml
+│
+├── learn/                          curriculum
+│   ├── index.html                  six-card landing
+│   ├── why-rust/                   lesson 01
+│   ├── this-sites-rust/            lesson 02 (inlines crate source)
+│   ├── ownership/                  lesson 03
+│   ├── enums-and-dispatch/         lesson 04
+│   ├── error-handling/             lesson 05
+│   └── wasm/                       lesson 06
+│
+├── strategies/                     one page per strategy
+│   ├── index.html                  catalog
+│   ├── buy-and-hold/
+│   ├── sma-crossover/
+│   ├── momentum/
+│   ├── rsi-mean-reversion/
+│   └── breakout/
+│
+├── philosophy/                     primers
+│   ├── index.html
+│   ├── overfitting/
+│   ├── survivorship-bias/
+│   ├── lookahead-bias/
+│   └── backtest-vs-live/
+│
+├── quiz/                           interactive quizzes
+│   ├── index.html
+│   ├── rust-basics/
+│   ├── this-sites-rust/
+│   └── quant-finance/
+│
+├── src/                            frontend entries (one per page) + shared
+│   ├── main.ts                     homepage entry
+│   ├── layout.ts                   shared shell (header, footer, chat mount)
+│   ├── chat.ts                     SelectBot floating chat panel
+│   ├── quiz.ts                     quiz engine (mountQuiz)
+│   ├── quiz-data/*.json            quiz content
+│   ├── strategy-page.ts            shared strategy-page helper
+│   ├── learn-*.ts                  per-lesson entries
+│   ├── strategy-*.ts               per-strategy entries
+│   ├── philosophy-*.ts             per-essay entries
+│   ├── quiz-*.ts                   per-quiz entries
+│   ├── not-found.ts                404 entry
 │   └── style.css
+│
 ├── netlify/
-│   └── functions/             TypeScript serverless + background functions
+│   └── functions/                  TypeScript serverless + background
 │       ├── _lib/
-│       │   └── rate-limit.mts      Netlify Blobs rate-limit helper
+│       │   ├── rate-limit.mts      parameterized rate-limiter factory
+│       │   ├── canonical-json.mts  shared cache-key derivation
+│       │   ├── chat-system-prompt.mts  SelectBot's grounded system prompt
+│       │   └── __tests__/          Vitest suite
 │       ├── health.mts              GET /api/health
 │       ├── universe.mts            GET /api/universe
-│       ├── rate-status.mts         GET /api/rate-status (read-only)
-│       ├── backtest.mts            POST /api/backtest (rate-limited dispatch)
+│       ├── rate-status.mts         GET /api/rate-status
+│       ├── chat-status.mts         GET /api/chat-status
+│       ├── backtest.mts            POST /api/backtest (rate-limited)
 │       ├── result.mts              GET /api/result?hash=
-│       └── backtest-background.mts 15-minute wall-clock worker
+│       ├── chat.mts                POST /api/chat (SSE streaming)
+│       └── backtest-background.mts 15-min wall-clock WASM runner
+│
 ├── crates/
-│   └── backtest-core/         Rust → WASM
+│   └── backtest-core/              Rust to WASM
 │       ├── Cargo.toml
 │       └── src/
-│           └── lib.rs
+│           ├── lib.rs              WASM entry points
+│           ├── bars.rs             DailyBar
+│           ├── metrics.rs          Sharpe, drawdown, hit rate, CAGR
+│           ├── error.rs            BacktestError enum
+│           └── strategies/         one file per strategy
+│               ├── mod.rs          StrategyKind dispatch
+│               ├── buy_and_hold.rs
+│               ├── sma_crossover.rs
+│               ├── momentum.rs
+│               ├── rsi_meanreversion.rs
+│               └── breakout.rs
+│
 └── docs/
     └── architecture.md
 ```
 
 ## Local development
 
-Requires Node 20+, Rust 1.79+, `wasm-pack`, and the Netlify CLI.
+Requires Node 22+, Rust 1.79+, `wasm-pack`, and the Netlify CLI.
 
 ```sh
 git clone https://github.com/aigamma/selectsectors.com.git
 cd selectsectors.com
 npm install
-cargo install wasm-pack         # one-time
+
+# wasm-pack: install via cargo, or download the prebuilt binary if
+# `cargo install` hits a transient registry-cache issue.
+cargo install wasm-pack
+# or:
+# curl -L https://github.com/rustwasm/wasm-pack/releases/download/v0.13.1/wasm-pack-v0.13.1-x86_64-unknown-linux-musl.tar.gz | tar -xz
+
 npm run build:wasm              # builds crates/backtest-core → pkg/
+npm run typecheck               # TypeScript strict checks
+npm run test                    # Vitest on rate-limit + canonical-json
+cargo test --manifest-path crates/backtest-core/Cargo.toml --lib
+
 netlify dev                     # frontend on :8888, functions on :8888/api/*
 ```
+
+Environment variables (see `.env.example`):
+
+- `SUPABASE_URL` — the shared aigamma.com Supabase project URL
+  (committed in `.env.example` since it's a public domain).
+- `SUPABASE_ANON_KEY` — the read-only publishable key. Read-only
+  posture; RLS gates any write paths.
+- `ANTHROPIC_API_KEY` — required for `/api/chat`. Without it, the
+  chat panel still renders but every send returns a 503. Set on the
+  Netlify project under Site settings -> Environment variables.
 
 ## License
 

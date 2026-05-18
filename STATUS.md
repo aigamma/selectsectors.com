@@ -164,3 +164,172 @@ and env-var-configured; awaiting GitHub repo link in the UI.
 Custom domain: not yet attached.
 
 ---
+
+## 2026-05-17/18 - Multi-iteration build: from scaffold to feature-complete v0.1.0
+
+**Current task.** Continued the /loop dynamic mode across nine
+iterations (3 through 11 in the running count) and built the full
+educational site on top of the iteration-2 scaffold. The user's
+brief: "build a full-stack prototype" with Rust teaching as the
+dominant theme, including an interactive quiz and a useful
+chatbot. Below is the consolidated summary; each commit message
+is the canonical record for the specific change.
+
+**Iteration 3 (Rust strategy library, commit e299fc9).** Expanded
+crates/backtest-core from a one-function placeholder into a
+five-strategy library: buy_and_hold, sma_crossover (with sliding-
+window mean), momentum (lookback price comparison),
+rsi_meanreversion (Wilder RSI with seeding), breakout
+(Donchian-style). Modular split into bars.rs, error.rs, metrics.rs
+(mean, std_dev, annualized_sharpe, max_drawdown, hit_rate,
+equity_curve, total_return, cagr), strategies/{mod.rs, one per
+strategy}, lib.rs (WASM glue). 39 unit tests covering happy paths,
+parameter validation rejections, and not-enough-bars rejections.
+Hand-rolled BacktestError enum with manual Display/Error impls
+(no thiserror; the WASM bundle-size reasoning is in the module
+comment). Externally-tagged StrategyKind enum with serde
+rename_all = "snake_case".
+
+**Iteration 3 (WASM wiring, commit 5ceee74).** Wired the WASM
+engine end-to-end. wasm-pack 0.13.1 installed via direct binary
+download from github releases (cargo install failed twice with
+gzip-decode errors on a corrupted windows crate tarball in the
+local registry cache). Cargo.toml gained
+[package.metadata.wasm-pack.profile.release] wasm-opt = false
+because the bundled binaryen pre-dates the bulk-memory and
+i64.trunc_sat_f64_s ops rustc 1.95 emits. backtest-background.mts
+now imports run_backtest from ../../pkg/backtest_core.js, translates
+the dispatcher's {name, params} shape into the externally-tagged
+StrategyKind enum, calls the WASM, and writes the result blob.
+netlify.toml picked up [functions."backtest-background"]
+included_files = ["pkg/**"] so the Netlify bundler ships the
+.wasm sibling that wasm-pack's runtime fs.readFileSync needs.
+
+**Iteration 4 (frontend strategy controls, commit 1a83991).**
+Lit up all five strategies in the homepage form with dynamic
+per-strategy parameter controls. The strategy <select> grows to
+five options; below it sits a strategy-params container that
+re-renders on strategy change with the right input fields for
+the selected strategy (SMA: fast/slow; RSI: period/oversold/
+overbought; momentum: lookback; breakout: lookback; buy-and-hold:
+none). Defaults are conventional (SMA 20/50, RSI 14 30/70,
+momentum 60, breakout 20). Result panel gains CAGR and hit-rate
+cells alongside the existing total return, sharpe, drawdown, and
+bars cells.
+
+**Iteration 4 (chatbot, commit 3e01fab).** SelectBot end-to-end.
+@anthropic-ai/sdk added; _lib/chat-system-prompt.mts holds a
+~5000-token system prompt grounding the bot in Rust (this site's
+code specifically), this site itself, quant finance basics, and
+the philosophy of backtesting. chat.mts is the SSE-streaming
+Netlify function using claude-sonnet-4-6 with prompt caching
+(cache_control: ephemeral on the system prompt; 5-min TTL turns
+the system prompt into ~0.1x cost per subsequent message inside
+a session). chat-status.mts mirrors rate-status.mts for the chat
+limiter. _lib/rate-limit.mts refactored into a parameterized
+factory with backtestLimiter (2/hour, 5/day) and chatLimiter
+(30/hour, 100/day) as pre-configured exports. Frontend chat.ts is
+a ~440-line floating chat panel with localStorage persistence,
+SSE rendering, lightweight inline markdown (fenced code blocks,
+backticks, bold, italic, paragraphs), Enter-to-send keyboard
+handling, and four welcome-prompt chips. Requires ANTHROPIC_API_KEY
+on the Netlify project (added to .env.example).
+
+**Iteration 5 (multi-page shell + first 2 curriculum lessons,
+commit e70a591).** Lifted the site into a multi-page application.
+src/layout.ts owns the shared shell (header + footer + chat
+panel); each page's HTML has three mount-point divs that the
+layout fills. vite.config.ts went multi-entry (initially 5
+entries, grew to 25 across subsequent iterations). 404.html with
+breadcrumbs. public/favicon.svg (inline SVG ascending-line glyph
+in accent-blue). public/robots.txt + sitemap.xml. Catch-all 404
+redirect in netlify.toml. The /learn/ curriculum landing as a
+six-card directory, plus the Why-Rust lesson (essay-style) and
+the This-Sites-Rust lesson (showcase page that inlines four crate
+files via Vite's ?raw imports so the curriculum cannot drift
+from the code).
+
+**Iteration 6 (quiz engine, commit 8963bbe).** Interactive quiz
+engine end-to-end. src/quiz.ts (~250 lines) is a generic mountQuiz
+function that takes a QuizCategory (slug, title, description,
+questions[]) and renders the one-at-a-time-with-explanations flow.
+Three JSON category files (rust-basics, this-sites-rust,
+quant-finance) with 7 multiple-choice questions each, all
+calibrated to the curriculum scope. State persists to localStorage
+under selectsectors-quiz:v1:{slug}; re-orders or re-numbers of
+questions don't lose existing answers because the answers map is
+keyed by question id. Summary screen shows N-of-M score,
+percentage, opinionated score-band blurb, per-question recap with
+green/coral markers, and a Retake button.
+
+**Iteration 7 (strategy explainer pages, commit da1c4a2).** Five
+per-strategy pages under /strategies/{name}/ plus the landing,
+each pairing the intuition and math with the actual Rust source
+via ?raw imports. "Try it" links jump to / with ?strategy= and
+?symbol= query parameters that the homepage's applyQueryParamPrefill
+reads to pre-fill the form. Buy-and-hold page is the shortest;
+RSI is the longest (the Wilder recurrence deserves a paragraph
+on the seeding step). Momentum page cites Jegadeesh-Titman 1993
+and the 2009 momentum crash. Breakout page traces from Donchian
+1960s through the Turtle Traders 1980s.
+
+**Iteration 8 (philosophy primers, commit 7c1f2a2).** /philosophy/
+landing plus four primer essays: overfitting (the canonical grid-
+search-then-ship failure, the two defenses that work), survivorship
+bias (the top-by-options-volume universe is the exact case),
+lookahead bias (the apply_positions_to_bars lag at the engine
+layer), backtest vs live (six things a backtest gets wrong, the
+30-50% mental discount rule).
+
+**Iteration 9 (remaining 4 curriculum lessons, commit 02a5fdc).**
+Ownership and borrowing (the &[DailyBar] story), Enums and
+dispatch (StrategyKind walkthrough with comparison to trait
+objects and HashMaps), Error handling without thiserror (the
+BacktestError walkthrough plus the macro-cost trade-off), Rust
+to WebAssembly (toolchain end-to-end: targets, wasm-pack output,
+#[wasm_bindgen], serde-wasm-bindgen, the JS-WASM bridge cost,
+included_files in netlify.toml).
+
+**Iteration 10 (test suite, commit 5397870).** Lifted the
+duplicated canonicalize/sha256 helpers into _lib/canonical-json.mts.
+Extracted pure window-reset and decision logic from the rate-limit
+factory closure into testable top-level exports. Vitest installed,
+21 unit tests across the two helper modules (12 for canonical-json,
+9 for rate-limit). .github/workflows/ci.yml with three jobs:
+cargo test, typescript-tests (typecheck + vitest), and build
+(wasm-pack via binary download + npm run build).
+
+**Iteration 11 (this entry, plus README sweep + benchmark
+overlay).** README.md updated to describe the v0.1.0 site
+(previously still said "pre-1.0 scaffold"). Repo layout updated
+to reflect the 25-entry multi-page site. backtest-background.mts
+now runs buy_and_hold as a benchmark on the same bar series
+alongside the user's strategy (skipped when the user already
+picked buy_and_hold), and includes both equity curves in the
+result blob. Frontend renderEquityChart overlays the benchmark
+as a subdued dashed accent-blue line, computes a shared y-axis
+range so the comparison is honest, and adds a "vs buy-and-hold:
++X%" summary line above the chart colored green/coral by sign.
+Chart legend below the SVG names the two lines.
+
+**Deployment dependencies.** ANTHROPIC_API_KEY needs to be set
+on the Netlify project for the chatbot to function in production.
+SUPABASE_URL and SUPABASE_ANON_KEY are already configured.
+GitHub repo selectsectors.com needs to be linked to the Netlify
+project in the UI (the Netlify MCP does not expose a direct
+repo-link operation). Custom domain selectsectors.com needs to
+be attached after the GitHub link.
+
+**Pending follow-ups.** Optional Playwright smoke test (deferred
+because it needs a real ANTHROPIC_API_KEY in CI and adds CI
+runtime). Additional quiz categories beyond the initial three
+(Rust intermediate, WASM-specific, deeper philosophy). Cross-
+symbol comparison feature (run the same strategy on all 23
+symbols and rank). Per-strategy default-params via the
+strategy_catalog WASM export rather than the duplicated
+STRATEGY_SPECS in src/main.ts. SVG-based syntax highlighting for
+inlined Rust code blocks. Backfill of daily_eod from 2022-01-03
+to 2024-04-25 for the 22 stock/ETF symbols (left as a separately-
+authorized operation since it spends Massive API quota).
+
+---
