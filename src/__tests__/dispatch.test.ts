@@ -175,3 +175,87 @@ describe('dispatchAndPoll - network failure on POST', () => {
     expect(captured.results).toEqual([]);
   });
 });
+
+describe('dispatchAndPoll - non-429 4xx response', () => {
+  it('calls onError with the response body error message on 400', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      jsonResponse(400, { error: 'missing symbol' })
+    );
+
+    const captured = fresh();
+    const out = await dispatchAndPoll(makeOpts(captured));
+
+    expect(out).toBeNull();
+    expect(captured.errors).toEqual(['missing symbol']);
+    expect(captured.results).toEqual([]);
+    expect(captured.rateExceededCalls).toEqual([]);
+  });
+});
+
+describe('dispatchAndPoll - polling timeout', () => {
+  it('emits a timeout status message when the poll never returns ready', async () => {
+    const f = global.fetch as ReturnType<typeof vi.fn>;
+    // POST returns 202 queued; then every subsequent poll stays
+    // pending until pollTimeoutMs (set low for the test) expires.
+    f.mockResolvedValueOnce(
+      jsonResponse(200, {
+        status: 'queued',
+        hash: 'never-ready',
+        rateLimits: FAKE_INFO,
+      })
+    );
+    // mockResolvedValue (not mockResolvedValueOnce) so every
+    // subsequent poll returns the same pending response.
+    f.mockResolvedValue(
+      jsonResponse(202, { status: 'pending', hash: 'never-ready' })
+    );
+
+    const captured = fresh();
+    // Use a very short pollTimeoutMs so the test runs fast.
+    const opts = { ...makeOpts(captured), pollTimeoutMs: 200, pollIntervalMs: 50 };
+    const out = await dispatchAndPoll(opts);
+
+    expect(out).toBeNull();
+    const timeoutStatus = captured.statuses.find(
+      (s) => s.msg.includes('timed out') && s.kind === 'error'
+    );
+    expect(timeoutStatus, 'expected a timed-out error status').toBeDefined();
+    expect(captured.results).toEqual([]);
+  });
+});
+
+describe('dispatchAndPoll - mid-poll fetch failure', () => {
+  it('continues polling after a transient poll failure and still delivers the result', async () => {
+    const fakeResult = { sharpe: 0.95 };
+    const f = global.fetch as ReturnType<typeof vi.fn>;
+    // POST: queued.
+    f.mockResolvedValueOnce(
+      jsonResponse(200, {
+        status: 'queued',
+        hash: 'transient',
+        rateLimits: FAKE_INFO,
+      })
+    );
+    // First poll throws (transient network blip).
+    f.mockRejectedValueOnce(new Error('transient'));
+    // Second poll: ready.
+    f.mockResolvedValueOnce(
+      jsonResponse(200, {
+        status: 'ready',
+        hash: 'transient',
+        result: fakeResult,
+      })
+    );
+
+    const captured = fresh();
+    const out = await dispatchAndPoll(makeOpts(captured));
+
+    expect(out).toEqual(fakeResult);
+    expect(captured.results).toEqual([fakeResult]);
+    // 1 POST + 1 throwing poll + 1 successful poll = 3 fetch calls.
+    expect(f).toHaveBeenCalledTimes(3);
+    // No error is reported to the user; the transient failure was
+    // swallowed by the loop's internal try/catch.
+    expect(captured.errors).toEqual([]);
+  });
+});
