@@ -30,6 +30,7 @@ const PACKAGE_JSON_PATH = resolve(ROOT, 'package.json');
 const HEALTH_MTS_PATH = resolve(ROOT, 'netlify', 'functions', 'health.mts');
 const LAYOUT_TS_PATH = resolve(ROOT, 'src', 'layout.ts');
 const CHANGELOG_PATH = resolve(ROOT, 'changelog', 'index.html');
+const README_PATH = resolve(ROOT, 'README.md');
 
 interface PackageJson {
   version: string;
@@ -69,5 +70,29 @@ describe('version parity across package.json, health.mts, layout.ts, and changel
     // appears so a future iteration that bumps package.json but
     // forgets the changelog lede gets caught.
     expect(source).toContain(`currently v${canonicalVersion}`);
+  });
+
+  it('changelog meta description claims the current version', () => {
+    // Meta description tag on /changelog/ (used for search results
+    // and social previews) carries a "Currently vX.Y.Z" phrase.
+    // Iter 135 caught this surface stale at v0.1.3 while the page
+    // body had been bumped to v0.1.4.
+    const source = readFileSync(CHANGELOG_PATH, 'utf8');
+    expect(
+      source,
+      `expected "Currently v${canonicalVersion}" in changelog/index.html meta tags`
+    ).toContain(`Currently v${canonicalVersion}`);
+  });
+
+  it('README.md status section claims the current version', () => {
+    // README opens with a "## Status" section whose first paragraph
+    // is "vX.Y.Z. The full content + interactive surface shipped...".
+    // The trailing period after the version is part of the prose,
+    // so the test asserts the literal "vX.Y.Z." appears.
+    const source = readFileSync(README_PATH, 'utf8');
+    expect(
+      source,
+      `expected "v${canonicalVersion}." in README.md`
+    ).toContain(`v${canonicalVersion}.`);
   });
 });

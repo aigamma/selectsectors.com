@@ -9,7 +9,7 @@ Developer tier per visitor.
 
 ## Status
 
-v0.1.3. The full content + interactive surface shipped over a multi-iteration
+v0.1.4. The full content + interactive surface shipped over a multi-iteration
 build session ending 2026-05-18. The site is functionally complete:
 
 - 6-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
@@ -41,7 +41,13 @@ build session ending 2026-05-18. The site is functionally complete:
 - Reference pages: `/disclaimer/`, `/changelog/`, `/glossary/`
   (alphabetical reference of every quant-finance + Rust term used
   across the site).
-- 279 unit tests (44 Rust, 235 TypeScript across 19 test files).
+- Substantial unit-test surface across the Rust crate and the
+  TypeScript layer, spanning module-level math + content-source
+  parity. The post-v0.1.4 source-of-truth iterations have continued
+  to add parity tests as new drift surfaces are identified; the
+  exact counts move with each commit and are intentionally not
+  fixed in this README to avoid the same drift the parity tests
+  are designed to catch.
   Module-level tests: rate-limit window math, canonical-json,
   strategy translation, HTML-escape helpers, time-until-reset
   formatting, dispatch.ts (POST + 3-shape response + polling).
