@@ -63,16 +63,22 @@ export const ANCHORS: string[] = [
 /**
  * The 22 equity/ETF symbols held in the daily_eod Supabase table.
  * Excludes SPX (which is index-only and lives in
- * daily_volatility_stats) and includes SPY (the broad-market ETF
- * proxy for SPX execution). The scan-background dispatcher uses this
- * for its single IN-clause Supabase query.
+ * daily_volatility_stats). Does NOT include SPY: SPY exists in the
+ * upstream table but is intentionally not part of the public-site
+ * universe because its returns are near-identical to SPX (both
+ * track the S&P 500) and a SPY row in /api/scan would be a
+ * visually-redundant near-duplicate of the SPX row.
+ *
+ * scan-background uses this for its single IN-clause Supabase query.
  */
-export const ALL_EQUITY_SYMBOLS: string[] = [...SECTORS, ...ANCHORS, 'SPY'];
+export const ALL_EQUITY_SYMBOLS: string[] = [...SECTORS, ...ANCHORS];
 
 /**
  * The full 23-symbol universe including SPX, in the canonical order
- * the homepage form's optgroups render: SPX first, then SPY, then
- * sectors, then anchors. Useful for any caller that wants to iterate
- * the full universe in display order.
+ * the homepage form's optgroups render: SPX first, then sectors,
+ * then anchors. Useful for any caller that wants to iterate the
+ * full universe in display order. Twenty-three symbols total,
+ * matching the site's marketing copy and the homepage form's
+ * pickable-options count.
  */
-export const ALL_SYMBOLS: string[] = ['SPX', 'SPY', ...SECTORS, ...ANCHORS];
+export const ALL_SYMBOLS: string[] = ['SPX', ...SECTORS, ...ANCHORS];

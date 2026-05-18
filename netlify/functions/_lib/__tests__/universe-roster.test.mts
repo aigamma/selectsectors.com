@@ -12,23 +12,23 @@ import { CHAT_SYSTEM_PROMPT } from '../chat-system-prompt.mts';
 // the rest of the codebase relies on:
 //
 //   1. The cardinality is exactly 11 SPDR sectors + 11 anchor single
-//      names. ALL_EQUITY_SYMBOLS is sectors + anchors + SPY = 23
-//      (what's in the daily_eod Supabase table). ALL_SYMBOLS is the
-//      full universe including SPX from daily_volatility_stats = 24.
-//      Note the user-facing site copy describes "23 symbols" by
-//      category (SPX + 11 sectors + 11 anchors, without SPY); SPY
-//      is internally tracked as the broad-market execution proxy
-//      and shows up in /api/scan results as a 24th row but is not
-//      a pickable symbol on the homepage form. The two views
-//      coexist; if you want to land them on the same number, drop
-//      SPY from ALL_EQUITY_SYMBOLS (and accept that scan loses the
-//      SPY benchmark row) or add SPY to the homepage form (and
-//      update copy to 24 symbols).
+//      names + SPX = 23 symbols. ALL_EQUITY_SYMBOLS is sectors +
+//      anchors = 22 (what's in the daily_eod Supabase table; the
+//      table also stores SPY but we deliberately exclude it from
+//      the public-site universe). ALL_SYMBOLS is the full universe
+//      including SPX from daily_volatility_stats = 23. The 23-count
+//      matches the site's marketing copy and the homepage form's
+//      pickable-options count exactly; an earlier iteration had SPY
+//      in ALL_EQUITY_SYMBOLS which made /api/scan return 24 rows
+//      against a 23-symbol public claim, resolved 2026-05-18 by
+//      dropping SPY since its returns are near-identical to SPX
+//      (both track the S&P 500) and a SPY scan row would have been
+//      a visually-redundant near-duplicate.
 //
 //   2. The four derived sets compose correctly: ALL_EQUITY_SYMBOLS
-//      is sectors + anchors + SPY (no SPX); ALL_SYMBOLS is the full
-//      universe including SPX. The composition is what scan-
-//      background walks to fetch bars.
+//      is sectors + anchors (no SPX, no SPY); ALL_SYMBOLS adds SPX
+//      at the front. The composition is what scan-background walks
+//      to fetch bars.
 //
 //   3. The chat system prompt actually interpolates the anchor list
 //      from this module rather than carrying its own stale copy.
@@ -44,18 +44,18 @@ describe('universe roster', () => {
     expect(ANCHORS).toHaveLength(11);
   });
 
-  it('ALL_EQUITY_SYMBOLS is sectors + anchors + SPY (23 symbols)', () => {
-    expect(ALL_EQUITY_SYMBOLS).toHaveLength(23);
-    expect(ALL_EQUITY_SYMBOLS).toContain('SPY');
+  it('ALL_EQUITY_SYMBOLS is sectors + anchors (22 symbols, no SPX, no SPY)', () => {
+    expect(ALL_EQUITY_SYMBOLS).toHaveLength(22);
     expect(ALL_EQUITY_SYMBOLS).not.toContain('SPX');
+    expect(ALL_EQUITY_SYMBOLS).not.toContain('SPY');
     for (const s of SECTORS) expect(ALL_EQUITY_SYMBOLS).toContain(s);
     for (const a of ANCHORS) expect(ALL_EQUITY_SYMBOLS).toContain(a);
   });
 
-  it('ALL_SYMBOLS is the full universe including SPX (24 symbols)', () => {
-    expect(ALL_SYMBOLS).toHaveLength(24);
+  it('ALL_SYMBOLS is the full 23-symbol universe including SPX', () => {
+    expect(ALL_SYMBOLS).toHaveLength(23);
     expect(ALL_SYMBOLS).toContain('SPX');
-    expect(ALL_SYMBOLS).toContain('SPY');
+    expect(ALL_SYMBOLS).not.toContain('SPY');
   });
 
   it('has no duplicate symbols across sectors and anchors', () => {

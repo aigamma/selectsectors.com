@@ -133,7 +133,7 @@ export default async (req: Request, _context: Context): Promise<Response> => {
 
   const results: Array<{
     symbol: string;
-    category: 'index' | 'broad' | 'sector' | 'anchor';
+    category: 'index' | 'sector' | 'anchor';
     result?: WasmResult;
     error?: string;
   }> = [];
@@ -220,9 +220,8 @@ export default async (req: Request, _context: Context): Promise<Response> => {
   return new Response(null);
 };
 
-function categorize(symbol: string): 'index' | 'broad' | 'sector' | 'anchor' {
+function categorize(symbol: string): 'index' | 'sector' | 'anchor' {
   if (symbol === 'SPX') return 'index';
-  if (symbol === 'SPY') return 'broad';
   if (SECTORS.includes(symbol)) return 'sector';
   return 'anchor';
 }
