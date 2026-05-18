@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Lookahead bias: using information in your signal that wouldn't have been known at the time. How this site's engine enforces the no-lookahead guarantee structurally."
+    />
+    <title>Lookahead bias &middot; Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/philosophy/">&larr; Philosophy</a></p>
+        <h1>Lookahead bias.</h1>
+        <p class="lesson-lede">
+          Using a value in your signal calculation that wouldn't have
+          been known at the time you needed it. The bug is easy to
+          write, hard to spot, and produces backtests that look
+          spectacular until you go live.
+        </p>
+
+        <h2>The canonical version</h2>
+        <p>
+          You write a backtest that does:
+        </p>
+        <pre><code>for i in 0..bars.len() {
+  let signal = compute_signal(&bars[..=i]);
+  let return_for_today = (bars[i].close - bars[i-1].close) / bars[i-1].close;
+  pnl[i] = signal * return_for_today;
+}</code></pre>
+        <p>
+          Notice the bug: the signal at bar <code>i</code> is computed
+          using bars up to and including <code>i</code>'s close, but
+          the return at bar <code>i</code> is the price change from
+          <code>i-1</code> to <code>i</code>. The signal is using
+          <code>close[i]</code>, which is the same close that
+          generated the return you're trying to predict. In live
+          trading you would only learn close[i] at the end of bar i;
+          you cannot have already taken the position at the start of
+          bar i based on close[i].
+        </p>
+        <p>
+          A backtest with this bug shows wildly inflated Sharpe
+          because the signal is correlated with the realized return
+          by construction. The strategy "predicts" a bar that is
+          part of its input.
+        </p>
+
+        <h2>How this site solves it</h2>
+        <p>
+          The fix is to lag the position by one bar: the position at
+          the close of bar <code>i</code> determines the exposure
+          during bar <code>i+1</code>. The Rust engine enforces this
+          in <code>apply_positions_to_bars</code>:
+        </p>
+        <pre><code>for i in 1..bars.len() {
+  let bar_return = (bars[i].close - bars[i-1].close) / bars[i-1].close;
+  let exposure = positions[i - 1];  // <-- lagged one bar
+  returns.push(exposure * bar_return);
+}</code></pre>
+        <p>
+          The lag is the centralized place where the no-lookahead
+          guarantee lives. Strategies in this crate produce a
+          position vector; they never compute realized returns
+          themselves. So even if a strategy author accidentally used
+          <code>close[i]</code> to set <code>positions[i]</code>
+          (which is legal because the close is realized at the end
+          of bar i and we're setting the position for the start of
+          bar i+1), the math comes out right.
+        </p>
+
+        <h2>The subtler version</h2>
+        <p>
+          Backtesting frameworks that compute "yesterday's signal,
+          today's fill at yesterday's close" are usually safe.
+          Frameworks that compute "signal at bar i, fill at bar i's
+          open or close" are usually buggy. The line between "the
+          bar's close is realized at the end of the bar" and "the
+          close is the only price you can use as your fill" is
+          subtle; a well-designed engine forces the right answer by
+          construction, as ours does.
+        </p>
+        <p>
+          Other places lookahead bias hides:
+        </p>
+        <ul>
+          <li>
+            <strong>Restated economic data.</strong> If your signal
+            uses GDP or earnings data, are you using the value as
+            originally reported or the post-restatement value? Real
+            time only has the original report.
+          </li>
+          <li>
+            <strong>Survivor-adjusted prices.</strong> Some price
+            series back-adjust for splits, dividends, or spin-offs.
+            If the adjustment uses information that wouldn't have
+            been known at the time, the series itself has
+            lookahead.
+          </li>
+          <li>
+            <strong>Universe membership.</strong> Backtesting "the
+            S&amp;P 500 as of today" includes companies that weren't
+            in the index five years ago. The point-in-time universe
+            is what a real trader would have held.
+          </li>
+        </ul>
+
+        <div class="lesson-callout">
+          <strong>The structural rule.</strong> Build your backtest
+          so that the only way to make it produce a result is to use
+          information that would have been available at the time.
+          Make it easy to do the right thing and impossible to do
+          the wrong thing. This site's
+          <code>apply_positions_to_bars</code> is one example of
+          that principle.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/philosophy/survivorship-bias/">&larr; Survivorship bias</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next essay
+            <a href="/philosophy/backtest-vs-live/">Backtest vs live trading &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-lookahead-bias.ts"></script>
+  </body>
+</html>

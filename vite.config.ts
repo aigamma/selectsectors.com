@@ -55,6 +55,23 @@ export default defineConfig({
           'strategies/rsi-mean-reversion/index.html'
         ),
         strategyBreakout: resolve(__dirname, 'strategies/breakout/index.html'),
+        philosophy: resolve(__dirname, 'philosophy/index.html'),
+        philosophyOverfitting: resolve(
+          __dirname,
+          'philosophy/overfitting/index.html'
+        ),
+        philosophySurvivorshipBias: resolve(
+          __dirname,
+          'philosophy/survivorship-bias/index.html'
+        ),
+        philosophyLookaheadBias: resolve(
+          __dirname,
+          'philosophy/lookahead-bias/index.html'
+        ),
+        philosophyBacktestVsLive: resolve(
+          __dirname,
+          'philosophy/backtest-vs-live/index.html'
+        ),
         notFound: resolve(__dirname, '404.html'),
       },
     },

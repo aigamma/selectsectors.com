@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Survivorship bias. Backtesting on today's universe ignores the names that rotated out. The universe selection is as important as the strategy itself."
+    />
+    <title>Survivorship bias &middot; Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/philosophy/">&larr; Philosophy</a></p>
+        <h1>Survivorship bias.</h1>
+        <p class="lesson-lede">
+          Backtesting on today's universe of names misses the names
+          that have rotated out. The names you can backtest today are
+          the ones still around to backtest; the ones that delisted,
+          got acquired, or fell off the relevant ranking are silently
+          excluded. The universe selection is as important as the
+          strategy itself.
+        </p>
+
+        <h2>The most famous example</h2>
+        <p>
+          Back-test "buy the top eleven by options volume" using the
+          2026 list (NVDA, TSLA, AAPL, AMD, AMZN, META, MSFT, GOOGL,
+          PLTR, COIN, SMCI) on data from 2018. You'll get a
+          phenomenal result, because those eleven names are the ones
+          that survived to be the top-by-options-volume in 2026. The
+          equivalent 2018 list would have included names like GE,
+          Bank of America, and a different mix entirely. Many of
+          those have rerated lower since.
+        </p>
+        <p>
+          This is the same trap as picking the top eleven mutual
+          funds of 2026 and back-testing their pre-2026 performance.
+          The selection is post-hoc; the result is misleading.
+        </p>
+
+        <h2>How to think about it</h2>
+        <p>
+          A backtest is only honest if the universe at each historical
+          point in time matches the universe you would have actually
+          held at that point. Two ways to satisfy this:
+        </p>
+        <ol>
+          <li>
+            Hold a fixed universe across the test window. (SPY is
+            SPY; SPX is SPX. The index composition changes underneath
+            but the ticker itself stays constant.)
+          </li>
+          <li>
+            Use a point-in-time universe: at each rebalance date, use
+            the universe that would have been visible at that date,
+            not the current one. This requires a historical-universe
+            data source, which is expensive and rare.
+          </li>
+        </ol>
+        <p>
+          This site's universe is the eleven SPDR sector ETFs, the
+          eleven anchor single names, plus SPX and SPY. The sector
+          ETFs and SPX/SPY are stable; the eleven anchor names are
+          where survivorship bias creeps in if you forget to think
+          about it. The anchor list rotates as new names dominate
+          options volume; the current list reflects 2026 rankings.
+        </p>
+
+        <h2>What the symptom looks like</h2>
+        <p>
+          A strategy that looks great on today's top-N names and
+          poor on yesterday's top-N names. The gap between the two
+          backtests is roughly the survivorship-bias-adjusted true
+          expected return: the rest is the universe-selection alpha
+          you would not have captured in real time.
+        </p>
+        <p>
+          Index funds dodge this because the index itself does the
+          rebalancing for you, with the names that drop out
+          accounted for in the index methodology. Single-stock
+          strategies that pick "top names" by any current metric do
+          not get this for free.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>Practical rule.</strong> If your backtest uses a
+          universe you selected with knowledge of recent
+          performance, the result is overstated by an amount you
+          can't easily quantify. Either test on a fixed
+          universe-by-ticker (SPY, sector ETFs) or be honest about
+          the bias when you cite the result.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/philosophy/overfitting/">&larr; Overfitting</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next essay
+            <a href="/philosophy/lookahead-bias/">Lookahead bias &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-survivorship-bias.ts"></script>
+  </body>
+</html>

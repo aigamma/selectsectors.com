@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Backtest vs live trading. Even a perfect backtest is an upper bound on live performance. Slippage, commissions, partial fills, market hours, taxes, and your own size moving the market."
+    />
+    <title>Backtest vs live trading &middot; Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/philosophy/">&larr; Philosophy</a></p>
+        <h1>Backtest vs live trading.</h1>
+        <p class="lesson-lede">
+          A backtest assumes you got the prices in the bars at the
+          prices in the bars. Real fills include slippage,
+          commissions, partial fills, market hours, taxes, and the
+          fact that your size moves the market on illiquid names.
+          Even a perfect backtest is an upper bound on what live
+          trading will produce.
+        </p>
+
+        <h2>The six things a backtest gets wrong</h2>
+
+        <h3>1. Slippage</h3>
+        <p>
+          The "fill price" in a backtest is usually the close of the
+          bar you decided to trade on. In live trading the actual
+          fill is some distance from the close: a market order
+          crosses the spread (immediate cost), a limit order may not
+          fill at all (opportunity cost). On the universe this site
+          backtests, slippage is small but not zero; on less liquid
+          names it can swamp the strategy's edge entirely.
+        </p>
+
+        <h3>2. Commissions</h3>
+        <p>
+          Most retail brokers in 2026 charge $0 per equity trade,
+          but options commissions, market-data fees, and the regulatory
+          fees baked into every transaction still apply. For a
+          strategy with thousands of trades per year these add up to
+          meaningful drag.
+        </p>
+
+        <h3>3. Partial fills and order book friction</h3>
+        <p>
+          A backtest assumes you executed your full intended size.
+          Live trading on names with thin liquidity often fills
+          partially or at progressively worse prices as the order
+          works through the book. The 100-share retail trader rarely
+          notices; the 10,000-share institutional trader plans
+          around it.
+        </p>
+
+        <h3>4. Market hours and gaps</h3>
+        <p>
+          Daily-bar backtests assume you can execute at the close.
+          What if the strategy fires a signal at Friday's close and
+          the market gaps 5% over the weekend? The backtest sees
+          the gap as a free move; live trading sees it as a forced
+          choice between holding the gap risk and exiting at
+          whatever Monday's open offers.
+        </p>
+
+        <h3>5. Taxes</h3>
+        <p>
+          A backtest reports pre-tax returns. A strategy that
+          generates many short-term gains pays the higher short-term
+          tax rate; the same strategy holding longer gets the
+          long-term rate. The after-tax Sharpe of a high-turnover
+          strategy can be substantially worse than its before-tax
+          Sharpe.
+        </p>
+
+        <h3>6. Your size moves the market</h3>
+        <p>
+          The biggest backtest-vs-live gap for institutional
+          strategies, and the least relevant for retail. If your
+          strategy says "buy 10% of XLE's daily volume", you cannot
+          actually buy that without moving the price against
+          yourself. Backtests usually ignore market impact; the
+          strategies that look best in backtest are often the ones
+          most vulnerable to it.
+        </p>
+
+        <h2>What honest backtest reporting looks like</h2>
+        <p>
+          Cite the strategy's Sharpe alongside its turnover (trades
+          per year) and an estimate of slippage per trade. A 1.5
+          Sharpe at 50 trades per year is more robust than a 2.5
+          Sharpe at 500 trades per year because the latter is closer
+          to the slippage-eats-the-edge regime. Where possible,
+          back-test against realistic fill assumptions: don't use
+          close-to-close; use close-to-next-open or close-plus-half-
+          spread.
+        </p>
+        <p>
+          This site's backtests use close-to-close because the
+          strategies are daily-bar and the universe is liquid; the
+          slippage assumption is implicit and small but real.
+          Production deployment of any of these strategies should
+          add an explicit slippage model and re-evaluate the Sharpe
+          under it.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>The mental adjustment.</strong> Discount any
+          backtest's Sharpe by 30-50% in your head as a default
+          before assuming the strategy is live-tradable. The actual
+          discount is strategy-specific, but the bias is always in
+          one direction and is always meaningful.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/philosophy/lookahead-bias/">&larr; Lookahead bias</a>
+          </div>
+          <div class="lesson-nav-next">
+            Back to
+            <a href="/philosophy/">Philosophy index &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-backtest-vs-live.ts"></script>
+  </body>
+</html>

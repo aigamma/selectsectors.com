@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Overfitting is the default. If you tune a strategy's params to maximize Sharpe on a historical window, out-of-sample results will almost certainly be worse. Two defenses."
+    />
+    <title>Overfitting is the default &middot; Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/philosophy/">&larr; Philosophy</a></p>
+        <h1>Overfitting is the default.</h1>
+        <p class="lesson-lede">
+          The single biggest hazard in backtesting. If you tune a
+          strategy's parameters to maximize Sharpe on a historical
+          window, the live result will almost certainly be worse
+          than the backtest suggested. Two defenses actually work;
+          most others do not.
+        </p>
+
+        <h2>What the failure looks like</h2>
+        <p>
+          You design a strategy. You give it three parameters. You
+          run a grid search across plausible values for each.
+          Hundreds of combinations later, you find one that produces
+          a Sharpe of 3.2 over the last five years. You ship it.
+          Six months later it's down 8%.
+        </p>
+        <p>
+          This is not bad luck. It is the default outcome. With
+          enough parameter combinations on any fixed historical
+          window, you will find a combination that "works" by chance.
+          The selected combination is the one whose specific noise
+          aligned with the specific past most favorably, and that
+          alignment is not predictive of the future.
+        </p>
+
+        <h2>Why this happens, mathematically</h2>
+        <p>
+          Each parameter setting is a test against the same data. If
+          you run N tests, the probability that the best one looks
+          good by chance scales with N. The classic example: flip
+          1000 coins, the best one came up heads 56 times out of 100.
+          That looks like skill but it's just the maximum order
+          statistic of the binomial distribution. Strategy parameter
+          sweeps are the same thing with extra dimensions.
+        </p>
+        <p>
+          The cleaner you tune to a window, the worse the
+          out-of-sample result tends to be. This is the bias-variance
+          trade-off applied to strategy design.
+        </p>
+
+        <h2>Defense 1: out-of-sample holdout</h2>
+        <p>
+          Split your data into two windows. Tune your strategy on
+          the first window (the in-sample data). Evaluate it on the
+          second window (the out-of-sample data) without further
+          tuning. Report the out-of-sample result, not the in-sample
+          one. If the strategy degrades materially out-of-sample, it
+          was overfit.
+        </p>
+        <p>
+          The honest version of this is to make the out-of-sample
+          split before you start tuning, write it down somewhere
+          inaccessible during tuning, and report the result whether
+          it confirms your hypothesis or not. The dishonest version
+          (keep "re-evaluating" on the out-of-sample data, picking
+          the version that worked best there too) is overfitting to
+          the out-of-sample data and gives you no real signal.
+        </p>
+
+        <h2>Defense 2: parameter-neighborhood stability</h2>
+        <p>
+          The other defense is to look at the strategy's Sharpe
+          across a neighborhood of parameter settings, not just the
+          single best one. If the best SMA(20, 50) has Sharpe 1.5
+          and SMA(15, 50), SMA(25, 50), SMA(20, 40), SMA(20, 60) all
+          have Sharpes in 1.2-1.7, the strategy is robust. If those
+          neighbors have Sharpes of -0.3, 0.4, 0.1, 0.6, you found
+          a Sharpe-1.5 spike in noise.
+        </p>
+        <p>
+          The most honest single-number summary of a strategy is
+          something like "median Sharpe across reasonable parameter
+          variations on out-of-sample data" rather than "best Sharpe
+          on in-sample data." The first one will usually be lower.
+          That's the price of honesty.
+        </p>
+
+        <div class="lesson-callout">
+          <strong>This site, specifically.</strong> The backtester
+          here lets you run one strategy at one parameter setting at
+          a time. That's a feature, not a limitation: it nudges you
+          toward iterating thoughtfully on a few candidate settings
+          rather than grid-searching to a peak. If you do want to
+          sweep, do it deliberately, hold out a chunk of recent data,
+          and don't let yourself peek at the out-of-sample result
+          until you're done tuning.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/philosophy/">&larr; Philosophy index</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next essay
+            <a href="/philosophy/survivorship-bias/">Survivorship bias &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-overfitting.ts"></script>
+  </body>
+</html>

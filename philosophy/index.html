@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Philosophy of backtesting. Why a high Sharpe in a backtest is the start of a question rather than the end of one. Four essays: overfitting, survivorship bias, lookahead bias, backtest vs live."
+    />
+    <title>Philosophy &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <section class="hero">
+        <h1>The philosophy of backtesting.</h1>
+        <p class="lede">
+          A backtest is a hypothesis test against historical data,
+          not a prediction. These essays cover the four most common
+          ways backtests lie and how to tell whether the strategy
+          you're looking at is the start of something real or the
+          best of a thousand overfit candidates.
+        </p>
+      </section>
+
+      <section class="curriculum">
+        <h2>Essays</h2>
+        <ol class="curriculum-list">
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/philosophy/overfitting/">
+              <span class="curriculum-num">01</span>
+              <span class="curriculum-title">Overfitting is the default</span>
+              <span class="curriculum-blurb">
+                If you tune a strategy's params to maximize Sharpe on
+                a historical window, the out-of-sample result is
+                almost certainly worse than the backtest suggests.
+                Two defenses that actually work.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/philosophy/survivorship-bias/">
+              <span class="curriculum-num">02</span>
+              <span class="curriculum-title">Survivorship bias</span>
+              <span class="curriculum-blurb">
+                Backtesting on today's universe ignores the names
+                that rotated out. NVDA today, GME or AMC five years
+                ago. The universe selection is as important as the
+                strategy.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/philosophy/lookahead-bias/">
+              <span class="curriculum-num">03</span>
+              <span class="curriculum-title">Lookahead bias</span>
+              <span class="curriculum-blurb">
+                Using a value in your signal that wouldn't have been
+                known at the time. The most common version is using
+                <code>close[i]</code> to set <code>position[i]</code>.
+                How this site's engine enforces the no-lookahead
+                guarantee structurally.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/philosophy/backtest-vs-live/">
+              <span class="curriculum-num">04</span>
+              <span class="curriculum-title">Backtest vs live trading</span>
+              <span class="curriculum-blurb">
+                Even a perfect backtest is an upper bound on live
+                performance. Slippage, commissions, partial fills,
+                market hours, taxes, and your own size moving the
+                market on illiquid names.
+              </span>
+            </a>
+          </li>
+        </ol>
+      </section>
+
+      <section class="learn-callout">
+        <h2>The right question</h2>
+        <p>
+          "What Sharpe does this strategy show in a backtest?" is the
+          wrong question. The right question is: "what is the
+          distribution of Sharpe across reasonable parameter settings
+          on out-of-sample data, and how does it compare to buy and
+          hold on the same universe?" If a strategy beats buy and
+          hold meaningfully across reasonable variations on out-of-
+          sample data, it might be real. If it only beats buy and
+          hold at one specific tuning on in-sample data, it almost
+          certainly isn't.
+        </p>
+      </section>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/philosophy-landing.ts"></script>
+  </body>
+</html>
