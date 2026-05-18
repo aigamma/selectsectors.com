@@ -72,16 +72,30 @@ describe('version parity across package.json, health.mts, layout.ts, and changel
     expect(source).toContain(`currently v${canonicalVersion}`);
   });
 
-  it('changelog meta description claims the current version', () => {
-    // Meta description tag on /changelog/ (used for search results
-    // and social previews) carries a "Currently vX.Y.Z" phrase.
-    // Iter 135 caught this surface stale at v0.1.3 while the page
-    // body had been bumped to v0.1.4.
+  it('changelog meta tags claim the current version on every surface', () => {
+    // The changelog page has TWO meta tags that mention "Currently
+    // vX.Y.Z": meta name="description" (line 8) and meta
+    // property="og:description" (line 14). Both must bump in
+    // lockstep on a version release. The prior version of this
+    // test used String.includes which passes if just one of the
+    // two has the bumped version; the iter-151 strengthening
+    // counts the occurrences and asserts that every "Currently v"
+    // mention uses the canonical version. If a future iter bumps
+    // package.json and updates the meta description but forgets
+    // og:description, the test fails with the divergent surface
+    // pinpointed.
     const source = readFileSync(CHANGELOG_PATH, 'utf8');
+    const allMentions = [...source.matchAll(/Currently v(\d+\.\d+\.\d+)/g)];
     expect(
-      source,
-      `expected "Currently v${canonicalVersion}" in changelog/index.html meta tags`
-    ).toContain(`Currently v${canonicalVersion}`);
+      allMentions.length,
+      `expected at least 2 "Currently vX.Y.Z" mentions in changelog/index.html (meta description + og:description) but found ${allMentions.length}`
+    ).toBeGreaterThanOrEqual(2);
+    for (const m of allMentions) {
+      expect(
+        m[1],
+        `changelog/index.html mention "Currently v${m[1]}" disagrees with package.json version "${canonicalVersion}". All meta surfaces must bump together.`
+      ).toBe(canonicalVersion);
+    }
   });
 
   it('README.md status section claims the current version', () => {
