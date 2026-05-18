@@ -373,9 +373,14 @@ function applyQueryParamPrefill(): void {
   // /strategies/{name}/ and /scan/ link back to / with `?strategy=<name>`
   // (and optional &symbol=<sym>) so the user can run a backtest on the
   // strategy they were just reading about without retyping anything.
+  // The result panel's Share button additionally encodes start/end/
+  // p_<key>=<value> for each strategy param so a shared link
+  // reproduces the exact backtest.
   const params = new URLSearchParams(window.location.search);
   const strategy = params.get('strategy');
   const symbol = params.get('symbol');
+  const start = params.get('start');
+  const end = params.get('end');
 
   if (strategy) {
     const select = document.getElementById('strategy') as HTMLSelectElement | null;
@@ -383,7 +388,29 @@ function applyQueryParamPrefill(): void {
       select.value = strategy;
       // Fire a synthetic change event so the params container re-renders.
       select.dispatchEvent(new Event('change'));
+      // After the strategy-params inputs are rendered, copy any
+      // p_<key>=<value> URL params into them. The change-event fires
+      // synchronously so the inputs exist by the next microtask.
+      queueMicrotask(() => {
+        for (const [key, value] of params) {
+          if (!key.startsWith('p_')) continue;
+          const paramKey = key.slice(2);
+          const input = document.querySelector<HTMLInputElement>(
+            `input[data-param-key="${paramKey}"]`
+          );
+          if (input) input.value = value;
+        }
+      });
     }
+  }
+
+  if (start) {
+    const startEl = document.getElementById('start-date') as HTMLInputElement | null;
+    if (startEl) startEl.value = start;
+  }
+  if (end) {
+    const endEl = document.getElementById('end-date') as HTMLInputElement | null;
+    if (endEl) endEl.value = end;
   }
 
   if (symbol) {
@@ -471,6 +498,14 @@ async function handleShareClick(): Promise<void> {
   url.searchParams.set('symbol', symbolEl.value);
   url.searchParams.set('start', startEl.value);
   url.searchParams.set('end', endEl.value);
+
+  // Per-strategy params get serialized under p_<key>=<value> so the
+  // applyQueryParamPrefill loop on the recipient's side can read
+  // them back. The keys match the data-param-key attribute on the
+  // strategy-params inputs.
+  for (const [key, value] of Object.entries(readStrategyParams())) {
+    url.searchParams.set(`p_${key}`, String(value));
+  }
 
   try {
     await navigator.clipboard.writeText(url.toString());
