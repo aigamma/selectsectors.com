@@ -442,6 +442,54 @@ async function init(): Promise<void> {
       });
     });
   }
+
+  const shareBtn = document.getElementById('share-button');
+  shareBtn?.addEventListener('click', () => {
+    handleShareClick().catch((err) => {
+      console.warn('share failed', err);
+      setShareFeedback('clipboard unavailable', 'error');
+    });
+  });
+}
+
+async function handleShareClick(): Promise<void> {
+  // Build a URL that, when opened, pre-fills the homepage form with
+  // the current input values. The recipient hits Run to reproduce
+  // the same backtest; cache-hit returns instantly without consuming
+  // a rate-limit slot for them.
+  const symbolEl = document.getElementById('symbol') as HTMLSelectElement | null;
+  const strategyEl = document.getElementById('strategy') as HTMLSelectElement | null;
+  const startEl = document.getElementById('start-date') as HTMLInputElement | null;
+  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
+  if (!symbolEl?.value || !strategyEl?.value || !startEl?.value || !endEl?.value) {
+    setShareFeedback('fill in the form first', 'error');
+    return;
+  }
+
+  const url = new URL(window.location.origin);
+  url.searchParams.set('strategy', strategyEl.value);
+  url.searchParams.set('symbol', symbolEl.value);
+  url.searchParams.set('start', startEl.value);
+  url.searchParams.set('end', endEl.value);
+
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    setShareFeedback('copied', 'ok');
+  } catch {
+    setShareFeedback(url.toString(), 'error');
+  }
+}
+
+function setShareFeedback(message: string, kind: 'ok' | 'error'): void {
+  const el = document.getElementById('share-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle('error', kind === 'error');
+  if (kind === 'ok') {
+    setTimeout(() => {
+      if (el.textContent === message) el.textContent = '';
+    }, 2000);
+  }
 }
 
 init();

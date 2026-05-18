@@ -1066,6 +1066,43 @@ a:hover {
   line-height: 1.55;
 }
 
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.share-button {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 3px;
+  padding: 0.4rem 0.85rem;
+  font-family: var(--font-base);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.share-button:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.share-feedback {
+  font-size: 0.78rem;
+  color: var(--accent-green);
+  font-style: italic;
+}
+
+.share-feedback.error {
+  color: var(--accent-coral);
+  font-style: normal;
+}
+
 /* Make hover-tooltipped labels feel discoverable (subtle dotted
    underline) without being intrusive. The browser-native tooltip
    from `title` does most of the work; this is the visual hint that
