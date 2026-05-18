@@ -50,3 +50,41 @@ describe('strategy-specs ↔ strategy-defaults parity', () => {
     expect(frontendKeys).toEqual(backendKeys);
   });
 });
+
+describe('strategy default-value parity (frontend defaultValue ↔ backend wire payload)', () => {
+  // Iter 93's parity test ensures the SETS of strategies match.
+  // This describe block extends to the VALUES of the per-strategy
+  // defaults: STRATEGY_SPECS[name].params[].defaultValue should equal
+  // the corresponding field value in STRATEGY_DEFAULTS[name][name].
+  // If they diverge (someone changed an SMA fast default from 20 to
+  // 30 in one place but not the other), /api/compare would dispatch
+  // SMA with fast=20 while the homepage form would show fast=30,
+  // producing different results for what should be the same "default
+  // SMA on this symbol" intent. Subtle and easy to miss in review.
+  const parameterizedStrategies = Object.keys(STRATEGY_SPECS).filter(
+    (name) => STRATEGY_SPECS[name].params.length > 0
+  );
+
+  it.each(parameterizedStrategies)(
+    'strategy %s defaults match between STRATEGY_SPECS and STRATEGY_DEFAULTS wire payload',
+    (name) => {
+      // STRATEGY_DEFAULTS shape for parameterized strategies is
+      // { name: { name: { ...params } } }. Extract the inner params
+      // object via two lookups.
+      const backendWire = STRATEGY_DEFAULTS[name as keyof typeof STRATEGY_DEFAULTS] as
+        | Record<string, Record<string, number>>
+        | string;
+      // Skip the unit-variant case (buy_and_hold) defensively even
+      // though the filter above excludes it.
+      if (typeof backendWire === 'string') return;
+      const backendParams = backendWire[name];
+      const frontendDefaults = Object.fromEntries(
+        STRATEGY_SPECS[name].params.map((p) => [p.key, p.defaultValue])
+      );
+      expect(
+        frontendDefaults,
+        `strategy "${name}" defaults differ: frontend=${JSON.stringify(frontendDefaults)} backend=${JSON.stringify(backendParams)}`
+      ).toEqual(backendParams);
+    }
+  );
+});
