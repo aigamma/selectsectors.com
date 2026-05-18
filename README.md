@@ -34,13 +34,18 @@ Pre-1.0 scaffold. The repo is greenfield as of 2026-05-17.
   the heavy math (vectorized P&L, Sharpe ratios, drawdown curves, return
   distributions). Rust gives us native-speed scans across the 23-symbol
   daily-bar histories without paying a JS interpretation tax.
-- **Data layer.** Independent Supabase project (separate from
-  aigamma.com's). EOD daily bars for the 23-symbol universe + computed
-  daily metrics tables (rolling SMAs, regime labels). Massive Indices
-  Starter + Massive Stocks Starter are sufficient for the index and
-  equity rows; options-chain data is out of scope for the public site
-  initially (it lives only in the desktop backtester behind the user's
-  own Massive Options Developer key).
+- **Data layer.** Reads from the existing aigamma.com Supabase
+  project (`tbxhvpoyyyhbvoyefggu`), which already maintains the
+  daily EOD universe this site needs. `daily_eod` carries the eleven
+  SPDR sectors plus the eleven anchor single names, populated by
+  Massive Stocks Starter every weekday at 21:30 UTC.
+  `daily_volatility_stats` carries SPX close (derived from the
+  intraday `snapshots` table), and `spx_intraday_bars` has 30-minute
+  SPX aggregates from Massive Indices Starter. No dedicated refresh
+  job for this site; the aigamma.com EOD pipeline is the upstream.
+  Options-chain data is out of scope for the public site (it lives
+  only in the desktop backtester behind the user's own Massive
+  Options Developer key).
 - **Rate limiting.** Per-IP per-minute counter in Netlify Blobs, same
   shape as the aigamma.com `check_rate_limit()` RPC but blob-backed
   rather than Postgres-backed since the limit traffic doesn't need
@@ -91,8 +96,7 @@ shared library), but diverge on the data plane and the agent loop.
 │       ├── health.mts
 │       ├── universe.mts
 │       ├── result.mts
-│       ├── backtest-background.mts
-│       └── refresh-data-background.mts
+│       └── backtest-background.mts
 ├── crates/
 │   └── backtest-core/         Rust → WASM
 │       ├── Cargo.toml

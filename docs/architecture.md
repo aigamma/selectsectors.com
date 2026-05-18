@@ -20,22 +20,27 @@
                |
                | HTTPS, /api/*
                v
-+---------------------------+        +-------------------+
-|    Netlify (this repo)    | <----- | Netlify scheduler |
-|                           |        | 21:30 UTC, Mon-Fri |
-| - Serverless functions    |        +-------------------+
++---------------------------+
+|    Netlify (this repo)    |
+|                           |
+| - Serverless functions    |
 | - Background functions    |
 | - Edge static asset CDN   |
-| - Netlify Blobs           |        +-------------------+
-+--------------+------------+ <----- |   Massive API     |
-               |                     | grouped/stocks    |
-               | reads/writes        | grouped/indices   |
-               v                     +-------------------+
-+---------------------------+
-|   Supabase (own project)  |
-|                           |
-| - daily_bars              |
-| - rate_limit (TBD)        |
+| - Netlify Blobs           |
++--------------+------------+
+               |
+               | read-only via anon key
+               v
++---------------------------+        +-------------------+
+|  aigamma.com Supabase     | <----- |  aigamma.com EOD  |
+|  (tbxhvpoyyyhbvoyefggu)   |        |  pipeline writes  |
+|                           |        |  21:30 UTC Mon-Fri |
+| - daily_eod (sectors      |        | (separate repo;   |
+|   + anchor single names)  |        |  not this site)   |
+| - daily_volatility_stats  |        +-------------------+
+|   (SPX close)             |
+| - spx_intraday_bars       |
+|   (30-min SPX aggregates) |
 +---------------------------+
 ```
 
@@ -73,19 +78,26 @@
 
 ### Daily data refresh
 
-1. Netlify scheduled function `refresh-tick.mts` fires at 21:30 UTC
-   weekdays. The schedule was picked to align with the aigamma.com
-   `eod-downsample-background.mjs` cadence so both pipelines see the
-   same "trading day complete" snapshot from Massive's grouped
-   endpoints.
-2. `refresh-tick` makes a fire-and-forget POST to
-   `/.netlify/functions/refresh-data-background` and returns inside
-   the 30-second scheduled-function budget.
-3. `refresh-data-background` pulls the most recent grouped-bars
-   payload for stocks and indices from Massive, filters to the
-   23-symbol universe, and upserts into Supabase's `daily_bars`
-   table. The full pull is expected to take well under a minute even
-   on a slow link.
+selectsectors.com does not run its own data refresh. The aigamma.com
+EOD pipeline (a separate Netlify project backed by
+`github.com/aigamma/aigamma.com`) pulls daily grouped bars from
+Massive at 21:30 UTC weekdays and upserts into the shared Supabase
+tables this site reads. Concretely:
+
+- `eod-downsample-background.mjs` (in the aigamma.com repo) writes
+  the eleven SPDR sectors and the eleven anchor single names into
+  `daily_eod` from Massive Stocks Starter.
+- `daily_volatility_stats` (SPX close) is derived from a downsample
+  of the intraday `snapshots` table that the aigamma.com
+  `ingest-background.mjs` populates every five minutes during market
+  hours.
+- `spx_intraday_bars` (30-minute SPX aggregates) is pulled from
+  Massive Indices Starter by the same aigamma.com EOD job.
+
+This site reads those tables read-only via the Supabase anon key.
+The trade-off is a hard dependency on the aigamma.com Supabase being
+healthy; the upside is one Massive subscription powering both
+surfaces with no duplicated pipeline cost.
 
 ## Why Rust → WASM for the backtest engine
 
