@@ -1057,6 +1057,45 @@ a:hover {
   font-style: italic;
 }
 
+/* Glossary list (used on /glossary/). dl/dt/dd with stronger
+   visual hierarchy than the browser default: definition terms in
+   accent-blue bold, definitions indented with a subtle left border. */
+
+.glossary-list {
+  margin: 0 0 2rem;
+  padding: 0;
+}
+
+.glossary-list dt {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin: 1.1rem 0 0.3rem;
+}
+
+.glossary-list dd {
+  margin: 0 0 0.5rem 1rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--bg-card-border);
+  color: var(--text-primary);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.glossary-list dd em {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.glossary-list dd code {
+  background: rgba(74, 158, 255, 0.1);
+  color: var(--accent-blue);
+  padding: 0.07rem 0.32rem;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.86em;
+}
+
 .result-help {
   margin-top: 0.85rem;
   padding-top: 0.85rem;

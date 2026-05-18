@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Glossary of every quant-finance, Rust, and WebAssembly term used across selectsectors.com. One alphabetical reference for the vocabulary the site assumes."
+    />
+    <title>Glossary &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Glossary" />
+    <meta property="og:description" content="Glossary of every quant-finance, Rust, and WebAssembly term used across selectsectors.com. One alphabetical reference for the vocabulary the site assumes." />
+    <meta property="og:url" content="https://selectsectors.com/glossary/" />
+    <meta property="og:image" content="https://selectsectors.com/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Glossary" />
+    <meta name="twitter:description" content="Glossary of every quant-finance, Rust, and WebAssembly term used across selectsectors.com." />
+    <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Glossary</span>
+        <h1>Glossary.</h1>
+        <p class="lesson-lede">
+          Alphabetical reference for every domain-specific term used
+          across the site. Quant-finance terms first, then Rust + WASM
+          terms. If a term you need isn't here, ask SelectBot (bottom
+          right) and we'll add it on the next deploy.
+        </p>
+
+        <h2>Quant finance</h2>
+        <dl class="glossary-list">
+          <dt>Annualized Sharpe</dt>
+          <dd>
+            The Sharpe ratio computed on daily-bar returns and scaled
+            by sqrt(252) to express it on an annual basis. The 252
+            comes from US trading days per year. See
+            <a href="/quiz/quant-finance/">/quiz/quant-finance/</a>.
+          </dd>
+
+          <dt>Bar</dt>
+          <dd>
+            One row of OHLC + volume data for one symbol on one
+            trading day. The smallest unit of input to a backtest.
+          </dd>
+
+          <dt>Benchmark</dt>
+          <dd>
+            A reference performance series against which a strategy
+            is compared. This site uses buy and hold as the universal
+            benchmark, overlaid on every backtest's equity chart.
+          </dd>
+
+          <dt>CAGR</dt>
+          <dd>
+            Compound Annual Growth Rate. (1 + total_return)^(1/years)
+            − 1. The honest way to talk about multi-year returns
+            because it accounts for compounding.
+          </dd>
+
+          <dt>Daily bar</dt>
+          <dd>
+            A bar covering one trading day's open, high, low, close,
+            and volume. The smallest time-granularity this site
+            supports.
+          </dd>
+
+          <dt>Drawdown</dt>
+          <dd>
+            The decline from a running peak in an equity curve.
+            <em>Max drawdown</em> is the worst such decline expressed
+            as a positive fraction. See
+            <a href="/philosophy/">/philosophy/</a>.
+          </dd>
+
+          <dt>EOD</dt>
+          <dd>
+            End-of-day. As in "EOD bar": the OHLC + volume snapshot
+            of one trading day, finalized after the market close.
+            This site is EOD-only.
+          </dd>
+
+          <dt>Equity curve</dt>
+          <dd>
+            The cumulative product of (1 + r_t) over a return series,
+            normalized to start at 1.0. The chart on a backtest result
+            panel is the equity curve.
+          </dd>
+
+          <dt>Hit rate</dt>
+          <dd>
+            Fraction of daily realized returns that are strictly
+            positive. Differs in shape between trend-following
+            strategies (lower hit rate, larger winners) and
+            mean-reversion (higher hit rate, smaller winners).
+          </dd>
+
+          <dt>Lookahead bias</dt>
+          <dd>
+            Using a value in a signal computation that wouldn't have
+            been known at the time. The most common version is using
+            close[i] to set position[i]. This site enforces no-
+            lookahead at the engine layer via
+            apply_positions_to_bars. See
+            <a href="/philosophy/lookahead-bias/">/philosophy/lookahead-bias/</a>.
+          </dd>
+
+          <dt>Mean reversion</dt>
+          <dd>
+            The tendency of prices to return toward a longer-term
+            average. Strategies that exploit this fade extreme moves
+            (RSI mean reversion, Bollinger Bands).
+          </dd>
+
+          <dt>Momentum</dt>
+          <dd>
+            The tendency of recent winners to keep winning (and
+            losers to keep losing). Strategies that exploit this go
+            long when prices are above their N-bar lookback.
+          </dd>
+
+          <dt>OHLC</dt>
+          <dd>
+            Open, High, Low, Close. The four price fields on a daily
+            bar. SPX rows have open == high == low == close in this
+            site's database because the upstream table is close-only;
+            equity and ETF rows carry full OHLC.
+          </dd>
+
+          <dt>Overfitting</dt>
+          <dd>
+            Tuning a strategy's parameters to maximize backtest
+            performance on a specific historical window. The result
+            generalizes poorly out-of-sample. See
+            <a href="/philosophy/overfitting/">/philosophy/overfitting/</a>.
+          </dd>
+
+          <dt>Regime</dt>
+          <dd>
+            A stretch of market behavior with stable statistical
+            character (trending vs sideways, high-vol vs low-vol,
+            etc). Strategy performance is regime-dependent. See
+            <a href="/philosophy/regimes/">/philosophy/regimes/</a>.
+          </dd>
+
+          <dt>RSI (Relative Strength Index)</dt>
+          <dd>
+            A 0-100 oscillator computed from the rolling balance of
+            up-day vs down-day gains. Wilder's recurrence is the
+            convention. Below 30 = oversold; above 70 = overbought.
+          </dd>
+
+          <dt>Sharpe ratio</dt>
+          <dd>
+            Mean return divided by standard deviation of returns.
+            Scale-invariant (multiplying every return by k leaves
+            Sharpe unchanged). Annualized by multiplying by sqrt(252)
+            for daily bars.
+          </dd>
+
+          <dt>SMA (Simple Moving Average)</dt>
+          <dd>
+            The arithmetic mean of the last N bars' closes. Often
+            paired with a faster SMA to form an SMA crossover signal.
+          </dd>
+
+          <dt>Survivorship bias</dt>
+          <dd>
+            Backtesting on the universe of names that survive to
+            the present, ignoring the names that were once in the
+            list but rotated out. See
+            <a href="/philosophy/survivorship-bias/">/philosophy/survivorship-bias/</a>.
+          </dd>
+
+          <dt>Total return</dt>
+          <dd>
+            Cumulative percent return from first bar to last bar of
+            the strategy's equity curve. Less useful than CAGR for
+            multi-year comparisons.
+          </dd>
+
+          <dt>Trend following</dt>
+          <dd>
+            Strategies that bet prices will continue in the direction
+            they're moving. Examples in this site's library: SMA
+            crossover, momentum, Donchian breakout.
+          </dd>
+
+          <dt>Volatility</dt>
+          <dd>
+            Standard deviation of returns over a window, often
+            annualized by sqrt(252). High vol = stressful conditions
+            (typically &gt;25% annualized); low vol = calm
+            (typically &lt;12%).
+          </dd>
+        </dl>
+
+        <h2>Rust and WebAssembly</h2>
+        <dl class="glossary-list">
+          <dt>Borrow</dt>
+          <dd>
+            A reference to a value that does not transfer ownership.
+            `&amp;T` is a shared (immutable) borrow; `&amp;mut T` is
+            a unique (mutable) borrow. The borrow checker enforces
+            that no value has both kinds of borrow simultaneously.
+          </dd>
+
+          <dt>Cargo</dt>
+          <dd>
+            Rust's package manager and build tool. `cargo test`,
+            `cargo build`, `cargo install` are the commands you'll
+            use most often.
+          </dd>
+
+          <dt>Crate</dt>
+          <dd>
+            The unit of compilation in Rust. A library crate produces
+            an .rlib; a binary crate produces an executable. This
+            site's `crates/backtest-core/` is a library crate
+            compiled to WASM.
+          </dd>
+
+          <dt>Enum (tagged union)</dt>
+          <dd>
+            A Rust type that can be one of several variants, each
+            potentially with its own payload. Pattern matching on
+            an enum is exhaustive: the compiler enforces that every
+            variant is handled. See
+            <a href="/learn/enums-and-dispatch/">/learn/enums-and-dispatch/</a>.
+          </dd>
+
+          <dt>Lifetime</dt>
+          <dd>
+            A compile-time annotation that tracks how long a
+            reference is valid. Usually inferred; explicit
+            annotations like `'a` show up when the compiler can't
+            tell from the signature alone.
+          </dd>
+
+          <dt>Module</dt>
+          <dd>
+            A unit of organization in Rust. `pub mod name;` declares
+            a module that lives in `name.rs` or `name/mod.rs`. See
+            <a href="/learn/this-sites-rust/">/learn/this-sites-rust/</a>.
+          </dd>
+
+          <dt>Move semantics</dt>
+          <dd>
+            Assigning a non-Copy value transfers ownership; the
+            original binding can no longer be used. The compiler
+            rejects use-after-move at compile time.
+          </dd>
+
+          <dt>Ownership</dt>
+          <dd>
+            Rust's core memory-safety system. Each value has a
+            single owner; when the owner goes out of scope, the
+            value is dropped. No garbage collector. See
+            <a href="/learn/ownership/">/learn/ownership/</a>.
+          </dd>
+
+          <dt>Result&lt;T, E&gt;</dt>
+          <dd>
+            Rust's error type. Either `Ok(T)` or `Err(E)`. The `?`
+            operator propagates an Err up the call stack; the
+            compiler enforces handling. See
+            <a href="/learn/error-handling/">/learn/error-handling/</a>.
+          </dd>
+
+          <dt>serde</dt>
+          <dd>
+            Rust's serialization framework. The `#[derive(Serialize,
+            Deserialize)]` macros generate the boilerplate for
+            converting Rust structs to/from JSON (or other formats).
+          </dd>
+
+          <dt>Trait</dt>
+          <dd>
+            Like an interface in other languages: a collection of
+            method signatures that types can implement. Generic
+            bounds like `T: Display` say "T must implement Display".
+          </dd>
+
+          <dt>WebAssembly (WASM)</dt>
+          <dd>
+            A portable binary format for code that runs in a sandbox
+            in browsers and Node.js. Rust compiles to WASM; the
+            resulting binary runs at near-native speed.
+          </dd>
+
+          <dt>wasm-bindgen</dt>
+          <dd>
+            The Rust crate that generates the JS-WASM glue: a Rust
+            trampoline that takes primitive arguments + a JS shim
+            that marshals JS values into those primitives. The
+            `#[wasm_bindgen]` attribute is the marker.
+          </dd>
+
+          <dt>wasm-pack</dt>
+          <dd>
+            The CLI tool that builds a Rust crate to WASM + emits
+            the JS glue + writes a package.json wrapper. Three
+            targets: nodejs, web, bundler.
+          </dd>
+        </dl>
+
+        <div class="lesson-callout">
+          <strong>Missing a term?</strong> Ask SelectBot at the
+          bottom-right; if it's a term the site uses but doesn't
+          define here, it'll get added in the next deploy. The
+          glossary is a living document, not a one-shot.
+        </div>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/glossary.ts"></script>
+  </body>
+</html>

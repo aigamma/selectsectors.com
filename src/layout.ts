@@ -95,6 +95,7 @@ function footerHtml(): string {
     <footer class="page-footer">
       <div class="page-footer-links">
         <a href="/disclaimer/" class="disclaimer-link">Disclaimer</a>
+        <a href="/glossary/" class="footer-link">Glossary</a>
         <a href="/changelog/" class="footer-link">Changelog</a>
         <a href="https://github.com/aigamma/selectsectors.com" class="footer-link">Source</a>
       </div>
