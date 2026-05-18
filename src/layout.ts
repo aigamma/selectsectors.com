@@ -157,6 +157,7 @@ function chatPanelHtml(): string {
             id="chat-input"
             class="chat-input"
             rows="2"
+            maxlength="4000"
             placeholder="Ask about Rust, this site, or quant finance... (Enter to send, Shift+Enter for newline)"
             required
           ></textarea>
