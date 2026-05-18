@@ -9,7 +9,7 @@ Developer tier per visitor.
 
 ## Status
 
-v0.1.2. The full content + interactive surface shipped over a multi-iteration
+v0.1.3. The full content + interactive surface shipped over a multi-iteration
 build session ending 2026-05-18. The site is functionally complete:
 
 - 6-strategy WASM backtester (buy and hold, SMA crossover, momentum, RSI
@@ -41,15 +41,19 @@ build session ending 2026-05-18. The site is functionally complete:
 - Reference pages: `/disclaimer/`, `/changelog/`, `/glossary/`
   (alphabetical reference of every quant-finance + Rust term used
   across the site).
-- 118 unit tests (44 Rust, 74 TypeScript across rate-limit,
-  canonical-json, strategy translation, HTML-escape helpers, sitemap
-  validity over 30 URLs, and internal-link checking), three-job GitHub
-  Actions CI workflow that runs cargo test, Vitest, and the production
-  build on every push.
+- 159 unit tests (44 Rust, 115 TypeScript across 10 test files:
+  rate-limit window math, canonical-json, strategy translation,
+  HTML-escape helpers, sitemap validity over 31 URLs, internal-
+  link checking, JSON-LD validity, Rust-TS strategy catalog
+  parity, universe-roster cardinality + chat-prompt
+  interpolation, and version-string parity). Three-job GitHub
+  Actions CI workflow runs cargo test, Vitest, and the
+  production build on every push.
 - SEO surface: structured data (WebSite, Organization, Course,
   FAQPage, Article/TechArticle, BreadcrumbList), OG + Twitter Card
-  meta tags on every page, SVG OG image, sitemap.xml with 30 URLs.
-- 30 production HTML pages total.
+  meta tags on every page, SVG OG image, sitemap.xml with 31 URLs.
+- 31 production HTML pages total (added /glossary/ + /api-docs/
+  in v0.1.3).
 
 Deployment dependencies: `ANTHROPIC_API_KEY` env var on the Netlify
 project for the chatbot (without it `/api/chat` returns 503). All other
