@@ -1,0 +1,103 @@
+{
+  "slug": "wasm-internals",
+  "title": "WebAssembly internals",
+  "description": "Linear memory, the JS-WASM call boundary, what wasm-bindgen actually does, why string passing isn't free. The substrate the Rust strategy library runs on top of.",
+  "questions": [
+    {
+      "id": "wi-1-memory-model",
+      "prompt": "What is WebAssembly's memory model?",
+      "options": [
+        "Each WASM function has its own private heap, allocated by the host.",
+        "Linear memory: one big contiguous byte array per module instance, addressable by 32-bit (or 64-bit with memory64) offsets. The host (JS) can read and write the same buffer.",
+        "Garbage-collected like the JS heap; same model, same GC.",
+        "There is no memory; WASM only has a register file."
+      ],
+      "correctIndex": 1,
+      "explanation": "A WASM module owns one Memory object: a byte buffer that grows in 64KB pages, addressable by integer offsets. JS and WASM both read and write the same buffer. The Rust allocator inside WASM (typically the wee_alloc or dlmalloc fork) manages this buffer as a heap; from outside it's just a Uint8Array. This shared-buffer model is what makes serde-wasm-bindgen work: it writes serialized bytes into the linear memory, then JS reads them out."
+    },
+    {
+      "id": "wi-2-wasm-types",
+      "prompt": "What native types can WebAssembly pass directly across the JS-WASM boundary?",
+      "options": [
+        "Every JS type: strings, objects, arrays, functions.",
+        "Just i32, i64, f32, f64. Everything else (strings, arrays, structs) is encoded into linear memory and passed by pointer.",
+        "Strings and integers; structs are not supported.",
+        "Only u8 arrays."
+      ],
+      "correctIndex": 1,
+      "explanation": "The WASM ABI is intentionally minimal: four numeric types pass directly. Strings, slices, structs, and JS values cross the boundary by writing bytes into linear memory and passing the pointer + length as i32 arguments. wasm-bindgen generates the glue: on the Rust side, an export that wraps the string with a pointer and length; on the JS side, code that reads the buffer back. The pointer-passing convention is the source of the JS-WASM bridge cost: every string crossing is a malloc + copy + free cycle."
+    },
+    {
+      "id": "wi-3-wasm-bindgen",
+      "prompt": "What does the `#[wasm_bindgen]` macro on a Rust function actually generate?",
+      "options": [
+        "Nothing at compile time; the attribute is just a marker for the wasm-pack runtime.",
+        "Two pieces: (a) a Rust trampoline function with a primitive-only signature that wasm-pack exports from the .wasm, and (b) a JavaScript shim that calls the trampoline, marshaling JS values into i32/f64 arguments and back out into JS values.",
+        "A C-style FFI declaration with `extern \"C\"`.",
+        "An automatic `serde::Serialize` impl for the function's arguments."
+      ],
+      "correctIndex": 1,
+      "explanation": "`#[wasm_bindgen]` is a procedural macro that generates a Rust trampoline (the actual WASM export) plus a JS shim (which lives in the wasm-pack output's .js file). The Rust trampoline takes only WASM-primitive arguments; if the user's function takes a `&str`, the trampoline takes pointer + length and reconstructs the &str from linear memory. The JS shim does the reverse: takes a JS string, allocates linear memory, writes UTF-8 bytes, then calls the trampoline with the pointer + length."
+    },
+    {
+      "id": "wi-4-serde-wasm-bindgen",
+      "prompt": "Why does this site's run_backtest signature use `JsValue` inputs/outputs plus serde-wasm-bindgen rather than typed parameters?",
+      "options": [
+        "Because wasm-bindgen doesn't support struct parameters.",
+        "Because shipping a complex input shape (nested objects with optional fields) as individual wasm-bindgen typed parameters becomes unwieldy. JsValue + serde-wasm-bindgen marshals an arbitrary object via the serde Serialize/Deserialize traits, letting us pass `{symbol, bars, strategy}` as a single argument.",
+        "Because serde-wasm-bindgen is faster than the typed-parameter path.",
+        "Because JsValue is the only legal return type for #[wasm_bindgen]."
+      ],
+      "correctIndex": 1,
+      "explanation": "wasm-bindgen does support struct parameters (with #[wasm_bindgen] on the struct), but only for `Copy`-able shapes; nested structs with strings get unwieldy. serde-wasm-bindgen is the general-purpose escape hatch: take a single JsValue argument, deserialize it into a Rust struct via serde, do work, serialize the result back to a JsValue. The cost is per-call: walking the object tree and converting on each invocation. For a once-per-request backtest call, this is negligible; for a tight inner loop it would be."
+    },
+    {
+      "id": "wi-5-targets",
+      "prompt": "What's the difference between `wasm-pack build --target nodejs` and `wasm-pack build --target web`?",
+      "options": [
+        "They are identical; the flag is a no-op.",
+        "`nodejs` emits CommonJS that uses fs.readFileSync at load time to load the .wasm; `web` emits ESM that fetches the .wasm via the Fetch API. The choice depends on whether your consumer is a Node runtime or a browser.",
+        "`web` is the modern target; `nodejs` is deprecated.",
+        "`web` emits TypeScript; `nodejs` emits JavaScript."
+      ],
+      "correctIndex": 1,
+      "explanation": "wasm-pack outputs different JS glue per target. nodejs uses synchronous fs.readFileSync to load the .wasm bytes at require time. web uses async fetch + WebAssembly.instantiateStreaming. bundler (a third target) outputs an unresolved 'import' that webpack/rollup/Vite resolves at bundle time. This site uses nodejs because the consumer is the Netlify function runtime (Node 22). A browser-side consumer would use web."
+    },
+    {
+      "id": "wi-6-size",
+      "prompt": "What's the single most-effective Rust-side knob for shrinking the .wasm binary?",
+      "options": [
+        "Adding #[no_mangle] to every function.",
+        "Building in release mode with `lto = true` + `codegen-units = 1` + `opt-level = \"s\"` + `panic = \"abort\"` + `strip = true` in [profile.release]. Together they eliminate dead code, inline aggressively, optimize for size, drop unwind tables, and strip debug symbols.",
+        "Using `#[wasm_bindgen]` on every type.",
+        "Compiling with the nightly toolchain."
+      ],
+      "correctIndex": 1,
+      "explanation": "WASM binary size is heavily compiler-tuned. lto = true enables link-time optimization across crates (significant deadcode elimination). codegen-units = 1 forces the compiler to consider the entire crate as one unit (better inlining vs. parallel codegen). opt-level = \"s\" prefers smaller code over faster code. panic = \"abort\" drops the entire unwind machinery (which is large). strip = true removes debug symbols. This site's Cargo.toml uses all five; the result is ~98 KB for the strategy library."
+    },
+    {
+      "id": "wi-7-wasm-opt",
+      "prompt": "Why does this site's Cargo.toml have `wasm-opt = false` in the [package.metadata.wasm-pack.profile.release] section?",
+      "options": [
+        "Because wasm-opt corrupts the output.",
+        "Because wasm-pack 0.13 bundles a binaryen old enough that wasm-opt fails on the bulk-memory ops and the i64.trunc_sat_f64_s op that rustc 1.95 emits by default. Disabling wasm-opt skips the optimizer pass entirely; the size cost is small because the [profile.release] settings already do most of the size work.",
+        "Because wasm-opt is closed-source.",
+        "Because wasm-opt is a Windows-only tool."
+      ],
+      "correctIndex": 1,
+      "explanation": "wasm-opt (part of the binaryen suite) is wasm-pack's post-build optimizer. When the bundled binaryen version pre-dates a WASM feature the rustc backend emits, it fails to parse and errors out. Newer Rust toolchains emit bulk-memory ops (memory.copy, memory.fill) and integer saturation ops (i64.trunc_sat_f64_s) by default; older binaryens reject these. Either upgrade the wasm-opt binary or disable the pass. This site disables it because the size win was negligible vs the toolchain-friction cost."
+    },
+    {
+      "id": "wi-8-included-files",
+      "prompt": "Netlify's bundler ships JS function code automatically. Why does netlify.toml have `included_files = [\"pkg/**\"]` for the backtest-background function?",
+      "options": [
+        "Because included_files is the only way to include any files in a Netlify function.",
+        "Because the wasm-pack JS glue uses `fs.readFileSync(${__dirname}/backtest_core_bg.wasm)` at module-load time — a runtime path the static-analysis bundler cannot trace. included_files tells the bundler to copy pkg/** into the function bundle regardless of static analysis.",
+        "Because the .wasm file is treated as a source-code file rather than a static asset.",
+        "Because Netlify caches .wasm files separately from .js files."
+      ],
+      "correctIndex": 1,
+      "explanation": "Netlify's function bundler (esbuild-based) traces static imports to figure out what to ship. The wasm-pack output uses `require('fs').readFileSync` with a path built from `__dirname` at runtime, which the bundler can't analyze ahead of time. Without included_files = [\"pkg/**\"], the bundler would ship the JS glue but not the .wasm sibling, and the readFileSync would 404 at runtime. The included_files entry guarantees the bytes are colocated with the JS at deploy time."
+    }
+  ]
+}
