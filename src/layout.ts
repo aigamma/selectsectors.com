@@ -116,7 +116,8 @@ function chatPanelHtml(): string {
         id="chat-toggle"
         class="chat-toggle"
         type="button"
-        aria-label="Open SelectBot chat"
+        aria-label="Open SelectBot chat (or press / anywhere on the page)"
+        title="Open SelectBot (or press / anywhere on the page)"
         aria-controls="chat-panel"
         aria-expanded="false"
       >
