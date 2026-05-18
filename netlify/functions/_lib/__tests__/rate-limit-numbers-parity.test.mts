@@ -29,6 +29,13 @@ import { backtestLimiter, chatLimiter } from '../rate-limit.mts';
 const ROOT = resolve(__dirname, '..', '..', '..', '..');
 const API_DOCS_PATH = resolve(ROOT, 'api-docs', 'index.html');
 const README_PATH = resolve(ROOT, 'README.md');
+const CHAT_SYSTEM_PROMPT_PATH = resolve(
+  ROOT,
+  'netlify',
+  'functions',
+  '_lib',
+  'chat-system-prompt.mts'
+);
 
 const liveBacktestHour = backtestLimiter.limits.hour;
 const liveBacktestDay = backtestLimiter.limits.day;
@@ -112,5 +119,29 @@ describe('rate-limit numbers parity', () => {
     if (!m) return;
     expect(parseInt(m[1], 10)).toBe(liveChatHour);
     expect(parseInt(m[2], 10)).toBe(liveChatDay);
+  });
+
+  it('chat-system-prompt.mts mentions the correct backtest + chat caps', () => {
+    // The system prompt instructs SelectBot to know the rate limits
+    // so it can answer "how many backtests do I have left?" without
+    // hitting the live API. Pattern at line ~62:
+    //   "2 backtests/hour and 5 backtests/day per IP for the
+    //    backtester; 30 chat messages/hour and 100/day per IP for
+    //    SelectBot."
+    // Both pairs of numbers are captured in one regex so the failure
+    // pinpoints which surface needs updating.
+    const prompt = readFileSync(CHAT_SYSTEM_PROMPT_PATH, 'utf8');
+    const re =
+      /(\d+)\s+backtests?\/hour\s+and\s+(\d+)\s+backtests?\/day.{0,80}?(\d+)\s+chat\s+messages?\/hour\s+and\s+(\d+)\/day/is;
+    const m = prompt.match(re);
+    expect(
+      m,
+      'expected chat-system-prompt.mts to contain "N backtests/hour and M backtests/day ... P chat messages/hour and Q/day"'
+    ).not.toBeNull();
+    if (!m) return;
+    expect(parseInt(m[1], 10)).toBe(liveBacktestHour);
+    expect(parseInt(m[2], 10)).toBe(liveBacktestDay);
+    expect(parseInt(m[3], 10)).toBe(liveChatHour);
+    expect(parseInt(m[4], 10)).toBe(liveChatDay);
   });
 });
