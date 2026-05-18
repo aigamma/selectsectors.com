@@ -156,27 +156,27 @@
           <h3>Result</h3>
           <div class="result-meta">
             <div class="result-meta-cell">
-              <div class="result-meta-label">Total return</div>
+              <div class="result-meta-label" title="Cumulative percent return from first bar to last bar of the strategy's equity curve.">Total return</div>
               <div class="result-meta-value" id="result-total-return">-</div>
             </div>
             <div class="result-meta-cell">
-              <div class="result-meta-label">CAGR</div>
+              <div class="result-meta-label" title="Compound annual growth rate. (1 + total return) ^ (1/years) − 1. The honest way to talk about a multi-year backtest's return.">CAGR</div>
               <div class="result-meta-value" id="result-cagr">-</div>
             </div>
             <div class="result-meta-cell">
-              <div class="result-meta-label">Sharpe (annualized)</div>
+              <div class="result-meta-label" title="Mean daily return divided by std dev of daily returns, annualized by multiplying by sqrt(252). No risk-free rate adjustment.">Sharpe (annualized)</div>
               <div class="result-meta-value" id="result-sharpe">-</div>
             </div>
             <div class="result-meta-cell">
-              <div class="result-meta-label">Max drawdown</div>
+              <div class="result-meta-label" title="Worst peak-to-trough decline in the equity curve, as a positive fraction. 0.20 = the curve fell 20% from its running peak at the worst point.">Max drawdown</div>
               <div class="result-meta-value" id="result-drawdown">-</div>
             </div>
             <div class="result-meta-cell">
-              <div class="result-meta-label">Hit rate</div>
+              <div class="result-meta-label" title="Fraction of daily realized returns that are strictly positive. Different shape for trend strategies (lower hit rate, larger winners) vs mean-reversion (higher hit rate, smaller winners).">Hit rate</div>
               <div class="result-meta-value" id="result-hit-rate">-</div>
             </div>
             <div class="result-meta-cell">
-              <div class="result-meta-label">Bars</div>
+              <div class="result-meta-label" title="Number of daily bars in the backtest window. Most strategies need at least their slowest window length of bars before they generate signals.">Bars</div>
               <div class="result-meta-value" id="result-bars">-</div>
             </div>
           </div>
@@ -189,6 +189,12 @@
             </div>
           </div>
           <div class="result-footnote" id="result-footnote"></div>
+          <div class="result-help">
+            Hover any metric label for a definition, or ask SelectBot
+            (bottom right) what any of them mean. The
+            <a href="/philosophy/">philosophy</a> essays explain how
+            to interpret backtest results honestly.
+          </div>
         </div>
       </section>
     </main>
