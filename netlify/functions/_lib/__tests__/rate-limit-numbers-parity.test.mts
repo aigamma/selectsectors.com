@@ -37,6 +37,7 @@ const CHAT_SYSTEM_PROMPT_PATH = resolve(
   'chat-system-prompt.mts'
 );
 const DISCLAIMER_PATH = resolve(ROOT, 'disclaimer', 'index.html');
+const ARCHITECTURE_MD_PATH = resolve(ROOT, 'docs', 'architecture.md');
 
 const NUMBER_TO_WORD: Record<number, string> = {
   1: 'one',
@@ -142,6 +143,49 @@ describe('rate-limit numbers parity', () => {
     if (!m) return;
     expect(parseInt(m[1], 10)).toBe(liveChatHour);
     expect(parseInt(m[2], 10)).toBe(liveChatDay);
+  });
+
+  it('docs/architecture.md mentions the correct backtest caps in its Rate-limit section', () => {
+    // The architecture doc has its own description of the rate-
+    // limit windows: "2 backtests in any 60-minute window" and
+    // "5 backtests in any 24-hour window" (digit form). This is
+    // the seventh documentation surface for the backtest caps;
+    // pinning it here prevents a future bump from leaving the
+    // architecture doc explanation stale.
+    const md = readFileSync(ARCHITECTURE_MD_PATH, 'utf8');
+    const reHour = new RegExp(
+      `${liveBacktestHour}\\s+backtests?\\s+in\\s+any\\s+60-minute\\s+window`,
+      'i'
+    );
+    const reDay = new RegExp(
+      `${liveBacktestDay}\\s+backtests?\\s+in\\s+any\\s+24-hour\\s+window`,
+      'i'
+    );
+    expect(
+      reHour.test(md),
+      `expected docs/architecture.md to contain "${liveBacktestHour} backtests in any 60-minute window" matching live hourLimit`
+    ).toBe(true);
+    expect(
+      reDay.test(md),
+      `expected docs/architecture.md to contain "${liveBacktestDay} backtests in any 24-hour window" matching live dayLimit`
+    ).toBe(true);
+  });
+
+  it('docs/architecture.md mentions the correct chat hourly cap in the namespace example', () => {
+    // Line 101 has a worked example: "(a user who has chatted N
+    // times still has their full M backtests/hour)" where N is
+    // liveChatHour and M is liveBacktestHour. This is the
+    // architecture doc's way of explaining that the two limiters
+    // are independent. Pinning both numbers in one regex.
+    const md = readFileSync(ARCHITECTURE_MD_PATH, 'utf8');
+    const re = new RegExp(
+      `chatted\\s+${liveChatHour}\\s+times\\s+still\\s+has\\s+their\\s+full\\s+${liveBacktestHour}\\s+backtests?\\/hour`,
+      'i'
+    );
+    expect(
+      re.test(md),
+      `expected docs/architecture.md namespace-independence example to read "(a user who has chatted ${liveChatHour} times still has their full ${liveBacktestHour} backtests/hour)"`
+    ).toBe(true);
   });
 
   it('disclaimer page mentions the correct backtest caps in word form', () => {
