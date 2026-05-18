@@ -249,7 +249,12 @@ function renderResult(result: BacktestResult): void {
     setText('result-cagr', '-');
   }
 
-  setText('result-sharpe', result.sharpe.toFixed(2));
+  // Sharpe gets sign coloring (positive = green, negative = coral)
+  // matching the treatment of total return and CAGR. A negative
+  // Sharpe means the strategy's mean return is below zero on the
+  // window; a positive Sharpe is the baseline expectation. Color
+  // makes the sign legible at a glance.
+  setTextWithSign('result-sharpe', result.sharpe.toFixed(2), result.sharpe);
   setText('result-drawdown', `${(result.maxDrawdown * 100).toFixed(2)}%`);
 
   if (result.hitRate !== undefined) {
