@@ -2,11 +2,13 @@ import './style.css';
 import { mountSiteShell } from './layout.ts';
 import { STRATEGY_SPECS } from './strategy-specs.ts';
 import {
+  copyShareLink,
   escapeHtml,
   loadRateStatus,
   renderRateBanner,
   setButtonDisabled,
   setDefaultDateRange,
+  setShareFeedback,
   setStatus as setStatusUtil,
   type RateLimitInfo,
 } from './page-utils.ts';
@@ -304,7 +306,7 @@ async function handleShareClick(): Promise<void> {
   ) as HTMLInputElement | null;
   const endEl = document.getElementById('end-date') as HTMLInputElement | null;
   if (!strategyEl?.value || !startEl?.value || !endEl?.value) {
-    setShareFeedback('fill in the form first', 'error');
+    setShareFeedback('share-feedback', 'fill in the form first', 'error');
     return;
   }
 
@@ -316,24 +318,7 @@ async function handleShareClick(): Promise<void> {
     url.searchParams.set(`p_${key}`, String(value));
   }
 
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    setShareFeedback('copied', 'ok');
-  } catch {
-    setShareFeedback(url.toString(), 'error');
-  }
-}
-
-function setShareFeedback(message: string, kind: 'ok' | 'error'): void {
-  const el = document.getElementById('share-feedback');
-  if (!el) return;
-  el.textContent = message;
-  el.classList.toggle('error', kind === 'error');
-  if (kind === 'ok') {
-    setTimeout(() => {
-      if (el.textContent === message) el.textContent = '';
-    }, 2000);
-  }
+  await copyShareLink(url.toString());
 }
 
 async function init(): Promise<void> {
@@ -366,7 +351,7 @@ async function init(): Promise<void> {
   shareBtn?.addEventListener('click', () => {
     handleShareClick().catch((err) => {
       console.error('handleShareClick threw', err);
-      setShareFeedback((err as Error).message, 'error');
+      setShareFeedback('share-feedback', (err as Error).message, 'error');
     });
   });
 }

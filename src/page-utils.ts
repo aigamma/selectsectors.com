@@ -135,3 +135,47 @@ export function populateSymbolGroup(elementId: string, items: string[]): void {
     .map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`)
     .join('');
 }
+
+/** Update the share-feedback span next to a Copy share link button.
+ *  Three call-sites (homepage main.ts, /compare/ compare.ts, /scan/
+ *  scan.ts) had byte-identical copies of this function before this
+ *  extraction; centralizing it means a future change to the fade
+ *  timing or the error-styling rule lives in one place.
+ *
+ *  On 'ok' the message shows in the default styling for 2 seconds,
+ *  then clears (only if no other message has replaced it in the
+ *  meantime, so a quick second click doesn't immediately blank the
+ *  span the user is reading). On 'error' the message stays and the
+ *  '.error' class flips so the span renders in coral. */
+export function setShareFeedback(
+  elementId: string,
+  message: string,
+  kind: 'ok' | 'error'
+): void {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle('error', kind === 'error');
+  if (kind === 'ok') {
+    setTimeout(() => {
+      if (el.textContent === message) el.textContent = '';
+    }, 2000);
+  }
+}
+
+/** Copy a URL to the clipboard and update the share-feedback span.
+ *  Three call-sites had the same try/catch shape: writeText into
+ *  clipboard with a fallback that displays the raw URL in the
+ *  feedback span when the Permissions Policy blocks clipboard
+ *  access. This helper folds those into one call. */
+export async function copyShareLink(
+  url: string,
+  feedbackElementId: string = 'share-feedback'
+): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(url);
+    setShareFeedback(feedbackElementId, 'copied', 'ok');
+  } catch {
+    setShareFeedback(feedbackElementId, url, 'error');
+  }
+}
