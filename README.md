@@ -81,7 +81,7 @@ build session ending 2026-05-18. The site is functionally complete:
 - SEO surface: structured data (WebSite, Organization, Course,
   FAQPage, Article/TechArticle, BreadcrumbList), OG + Twitter Card
   meta tags on every page, SVG OG image, sitemap.xml with 31 URLs.
-- 31 production HTML pages total (added /glossary/ + /api-docs/
+- 33 production HTML pages total (added /glossary/ + /api-docs/
   in v0.1.3).
 
 Deployment dependencies: `ANTHROPIC_API_KEY` env var on the Netlify
