@@ -157,9 +157,12 @@
         <h4>Response 429 (rate-limited)</h4>
         <pre><code>{
   "error":  "rate limit exceeded",
-  "reason": "hour-exceeded" | "day-exceeded",
+  "reason": "hour-exceeded",
   "rateLimits": { /* RateLimitInfo with current counters */ }
 }</code></pre>
+        <p><code>reason</code> is either <code>"hour-exceeded"</code>
+        or <code>"day-exceeded"</code> depending on which window
+        bit first.</p>
         <p>The <code>Retry-After</code> response header is set in
         seconds to the time until the relevant window resets.</p>
 
