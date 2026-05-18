@@ -63,6 +63,20 @@ function extractNavLabelForHref(layoutSource: string, hrefPrefix: string): strin
   return m ? m[1] : null;
 }
 
+function extractJsonLdBreadcrumbLeafName(pageHtml: string): string | null {
+  // The page's BreadcrumbList JSON-LD has three items; the last
+  // (position 3) carries the page's leaf name. Two formatting
+  // styles are used across the codebase: pretty-printed (each key
+  // on its own line, used by most strategy/learn pages) and
+  // compact one-line (used by strategies/bollinger-bands and a few
+  // philosophy/quiz pages). Both are valid JSON; the regex covers
+  // both by matching `"position": 3` then any whitespace then
+  // `"name": "<value>"` with flexible spacing.
+  const re = /"position"\s*:\s*3\s*,\s*"name"\s*:\s*"([^"]+)"/;
+  const m = pageHtml.match(re);
+  return m ? m[1] : null;
+}
+
 function extractBreadcrumbAncestor(pageHtml: string, hrefPrefix: string): string | null {
   // Match <li><a href="<hrefPrefix>">LABEL</a></li>. The breadcrumb
   // ancestor sits between the Home anchor and the leaf <li>; its
@@ -150,6 +164,30 @@ for (const section of SECTIONS) {
           ancestor,
           `breadcrumb ancestor for /${section.label}/${slug}/ is "${ancestor}" but NAV_LINKS in layout.ts uses "${navLabel}" for ${section.hrefPrefix}. The top-nav label is the source of truth; update one or the other.`
         ).toBe(navLabel);
+      }
+    );
+
+    it.each(slugs.map((s) => [s]))(
+      `/${section.label}/%s/ JSON-LD BreadcrumbList leaf name matches the visible breadcrumb leaf`,
+      (slug) => {
+        const catalogTitle = extractCatalogTitle(
+          catalogSource,
+          section.hrefPrefix,
+          slug
+        );
+        if (!catalogTitle) return; // covered by the leaf-vs-catalog test above
+        const pagePath = resolve(ROOT, section.dir, slug, 'index.html');
+        const pageHtml = readFileSync(pagePath, 'utf8');
+        const jsonLdName = extractJsonLdBreadcrumbLeafName(pageHtml);
+        expect(
+          jsonLdName,
+          `${section.dir}/${slug}/index.html has no BreadcrumbList JSON-LD item with position 3`
+        ).not.toBeNull();
+        if (!jsonLdName) return;
+        expect(
+          decodeEntities(jsonLdName),
+          `JSON-LD BreadcrumbList leaf name for /${section.label}/${slug}/ is "${jsonLdName}" but the catalog title is "${catalogTitle}". The JSON-LD name should match the visible breadcrumb leaf, which is pinned to the catalog title.`
+        ).toBe(catalogTitle);
       }
     );
 
