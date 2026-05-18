@@ -41,14 +41,23 @@ build session ending 2026-05-18. The site is functionally complete:
 - Reference pages: `/disclaimer/`, `/changelog/`, `/glossary/`
   (alphabetical reference of every quant-finance + Rust term used
   across the site).
-- 159 unit tests (44 Rust, 115 TypeScript across 10 test files:
-  rate-limit window math, canonical-json, strategy translation,
-  HTML-escape helpers, sitemap validity over 31 URLs, internal-
-  link checking, JSON-LD validity, Rust-TS strategy catalog
-  parity, universe-roster cardinality + chat-prompt
-  interpolation, and version-string parity). Three-job GitHub
-  Actions CI workflow runs cargo test, Vitest, and the
-  production build on every push.
+- 279 unit tests (44 Rust, 235 TypeScript across 19 test files).
+  Module-level tests: rate-limit window math, canonical-json,
+  strategy translation, HTML-escape helpers, time-until-reset
+  formatting, dispatch.ts (POST + 3-shape response + polling).
+  Source-of-truth regression tests: sitemap validity, internal-link
+  checking, JSON-LD validity, env-vars parity, version-string
+  parity, vite-config-vs-HTML-pages parity, HTML-script-entries
+  parity, Rust ↔ TS strategy catalog parity, Rust Params field
+  parity, frontend-vs-backend STRATEGY_SPECS parity, strategy-specs
+  ↔ explainer pages + catalog rows parity, quiz-catalog parity (4-
+  layer), philosophy + learn catalog-rows parity, universe-roster
+  cardinality + chat-prompt anchor + strategy interpolation. The
+  parity tests automatically extend as new content is added (a 7th
+  strategy, a 6th quiz, a new philosophy essay all surface in
+  parity assertions without test edits). Three-job GitHub Actions
+  CI workflow runs cargo test, Vitest, and the production build
+  on every push.
 - SEO surface: structured data (WebSite, Organization, Course,
   FAQPage, Article/TechArticle, BreadcrumbList), OG + Twitter Card
   meta tags on every page, SVG OG image, sitemap.xml with 31 URLs.
