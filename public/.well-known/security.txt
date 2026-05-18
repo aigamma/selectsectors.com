@@ -1,0 +1,10 @@
+# Security contact for selectsectors.com.
+# Follows RFC 9116. Place a finding via the GitHub issue tracker (preferred
+# for public disclosure) or email AI Gamma at the address below for
+# anything you'd rather not put in a public issue first.
+
+Contact: https://github.com/aigamma/selectsectors.com/issues
+Contact: mailto:security@aigamma.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://selectsectors.com/.well-known/security.txt

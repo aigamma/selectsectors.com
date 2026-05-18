@@ -1,5 +1,10 @@
-# Allow everything. The site is a public educational resource and
-# wants to be indexed.
+# Allow everything for every crawler. The site is a public
+# educational resource and wants to be indexed. This includes the
+# major AI crawlers (GPTBot, ClaudeBot, PerplexityBot, GoogleOther,
+# etc.) since the content is explicitly for human + AI learning.
+# A future change of mind would replace this with per-User-agent
+# rules; the conscious default for v0.1 is open access.
+
 User-agent: *
 Allow: /
 
