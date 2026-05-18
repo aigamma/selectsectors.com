@@ -279,6 +279,89 @@ function renderLegend(strategies: StrategyComparisonEntry[]): void {
     .join('');
 }
 
+function applyQueryParamPrefill(): void {
+  // Recipients of a shared /compare/ URL get the form pre-filled with
+  // the sender's symbol + date range. The symbol picker is populated
+  // asynchronously from /api/universe so the assign retries briefly
+  // until the option exists or we time out at ~2s.
+  const params = new URLSearchParams(window.location.search);
+  const symbol = params.get('symbol');
+  const start = params.get('start');
+  const end = params.get('end');
+
+  if (start) {
+    const startEl = document.getElementById(
+      'start-date'
+    ) as HTMLInputElement | null;
+    if (startEl) startEl.value = start;
+  }
+  if (end) {
+    const endEl = document.getElementById(
+      'end-date'
+    ) as HTMLInputElement | null;
+    if (endEl) endEl.value = end;
+  }
+  if (symbol) {
+    const symbolSelect = document.getElementById(
+      'symbol'
+    ) as HTMLSelectElement | null;
+    if (symbolSelect) {
+      let tries = 0;
+      const tryAssign = () => {
+        const opt = Array.from(symbolSelect.options).find(
+          (o) => o.value.toUpperCase() === symbol.toUpperCase()
+        );
+        if (opt) {
+          symbolSelect.value = opt.value;
+        } else if (tries++ < 20) {
+          setTimeout(tryAssign, 100);
+        }
+      };
+      tryAssign();
+    }
+  }
+}
+
+async function handleShareClick(): Promise<void> {
+  // Build a /compare/?symbol=...&start=...&end=... URL that recipients
+  // can open to pre-fill the form. The /compare/ surface only needs
+  // these three fields since the strategy set is fixed (all six run
+  // by definition).
+  const symbolEl = document.getElementById('symbol') as HTMLSelectElement | null;
+  const startEl = document.getElementById(
+    'start-date'
+  ) as HTMLInputElement | null;
+  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
+  if (!symbolEl?.value || !startEl?.value || !endEl?.value) {
+    setShareFeedback('fill in the form first', 'error');
+    return;
+  }
+
+  const url = new URL('/compare/', window.location.origin);
+  url.searchParams.set('symbol', symbolEl.value);
+  url.searchParams.set('start', startEl.value);
+  url.searchParams.set('end', endEl.value);
+
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    setShareFeedback('copied', 'ok');
+  } catch {
+    setShareFeedback(url.toString(), 'error');
+  }
+}
+
+function setShareFeedback(message: string, kind: 'ok' | 'error'): void {
+  const el = document.getElementById('share-feedback');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.toggle('error', kind === 'error');
+  if (kind === 'ok') {
+    setTimeout(() => {
+      if (el.textContent === message) el.textContent = '';
+    }, 2000);
+  }
+}
+
 async function init(): Promise<void> {
   mountSiteShell('compare');
   setDefaultDateRange();
@@ -294,12 +377,22 @@ async function init(): Promise<void> {
   }
   if (rateStatus) showRateBanner(rateStatus);
 
+  applyQueryParamPrefill();
+
   const form = document.getElementById('compare-form');
   form?.addEventListener('submit', (ev) => {
     handleSubmit(ev as SubmitEvent).catch((err) => {
       console.error('handleSubmit threw', err);
       setStatus(`unexpected error: ${(err as Error).message}`, 'error');
       setRunDisabled(false);
+    });
+  });
+
+  const shareBtn = document.getElementById('share-button');
+  shareBtn?.addEventListener('click', () => {
+    handleShareClick().catch((err) => {
+      console.error('handleShareClick threw', err);
+      setShareFeedback((err as Error).message, 'error');
     });
   });
 }
