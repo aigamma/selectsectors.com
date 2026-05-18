@@ -78,9 +78,25 @@ interface ClaimCheck {
 
 const CHECKS: ClaimCheck[] = [
   {
-    label: 'universe symbol count ("23-symbol" / "Twenty-three symbols")',
+    label: 'universe symbol count ("23-symbol")',
     liveCount: ALL_SYMBOLS.length,
     pattern: (_word, num) => new RegExp(`\\b${num}-symbol\\b`),
+  },
+  {
+    label: 'universe symbol total ("Twenty-three symbols total")',
+    liveCount: ALL_SYMBOLS.length,
+    pattern: (word) => {
+      // Word-form with the first letter title-cased. NUMBER_TO_WORD
+      // returns lowercase ("twenty-three"); the prompt prose uses
+      // "Twenty-three" with leading capital. Case-insensitive match.
+      return new RegExp(`\\b${word}\\s+symbols\\s+total\\b`, 'i');
+    },
+  },
+  {
+    label: 'scan-all-symbols phrase ("all 23 symbols")',
+    liveCount: ALL_SYMBOLS.length,
+    pattern: (_word, num) =>
+      new RegExp(`\\ball\\s+${num}\\s+symbols\\b`),
   },
   {
     label: 'SPDR sector count ("eleven SPDR sector ETFs")',
