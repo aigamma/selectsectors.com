@@ -1,0 +1,103 @@
+{
+  "slug": "rust-intermediate",
+  "title": "Rust intermediate",
+  "description": "Lifetimes, traits, generics, closures, smart pointers, async. The harder questions that come up once you've internalized the basics and start writing larger Rust programs.",
+  "questions": [
+    {
+      "id": "ri-1-lifetimes",
+      "prompt": "Why does Rust's borrow checker need lifetimes at all? In other languages, references just work.",
+      "options": [
+        "Because references in Rust are checked at runtime and lifetimes tell the runtime how long to keep them alive.",
+        "Because the compiler must prove at compile time that no reference outlives the data it points to. Lifetimes are the proof system that lets the compiler do this check without runtime overhead.",
+        "Because lifetimes are how Rust handles garbage collection.",
+        "Because lifetimes let you customize how long an object stays in memory."
+      ],
+      "correctIndex": 1,
+      "explanation": "Lifetimes are not runtime concepts at all; they're compile-time annotations the borrow checker uses to verify that no reference outlives the data it points to. The annotation system lets the compiler prove memory safety without runtime cost (no GC, no refcount). In most cases lifetimes are inferred and you never write them explicitly; in complex cases (multiple input references with output reference) the compiler asks you to annotate."
+    },
+    {
+      "id": "ri-2-trait-object-vs-generic",
+      "prompt": "You have a function that needs to accept any type implementing the `Display` trait. Which is preferred?",
+      "options": [
+        "`fn print(value: Box<dyn Display>)` — trait object on the heap.",
+        "`fn print<T: Display>(value: T)` — generic with trait bound. Monomorphized at compile time, no indirection cost.",
+        "`fn print(value: &str)` — strings are universal.",
+        "It doesn't matter; the compiler turns them into the same code."
+      ],
+      "correctIndex": 1,
+      "explanation": "Generic bounds (`<T: Display>`) are monomorphized: the compiler emits one copy of the function per concrete T that's used. No indirection, no allocation, no vtable lookup. Trait objects (`dyn Display`) are useful when you need a heterogeneous collection (`Vec<Box<dyn Display>>`) or when the trait method count is large enough that monomorphization bloats the binary, but the default for a simple single-arg function is the generic."
+    },
+    {
+      "id": "ri-3-closures",
+      "prompt": "What's the difference between `Fn`, `FnMut`, and `FnOnce`?",
+      "options": [
+        "`Fn` is for pure functions, `FnMut` for mutating, `FnOnce` for async.",
+        "`Fn` can be called multiple times without consuming itself or mutating captures. `FnMut` can be called multiple times but mutates captures. `FnOnce` consumes itself on call (moves out of captures).",
+        "They are exactly equivalent; only the name differs.",
+        "`Fn` is for functions, `FnMut` for methods, `FnOnce` for constructors."
+      ],
+      "correctIndex": 1,
+      "explanation": "All three are traits in std::ops representing different call shapes for closures. A `Fn` closure captures by reference (shared); `FnMut` captures by mutable reference; `FnOnce` captures by value and consumes itself. The compiler infers the most permissive trait the closure could implement; you only annotate when storing closures in a struct or returning them from functions."
+    },
+    {
+      "id": "ri-4-box-rc-refcell",
+      "prompt": "When would you use `Rc<RefCell<T>>` instead of `Box<T>`?",
+      "options": [
+        "Always; `Rc<RefCell<T>>` is the modern way to allocate.",
+        "When you need shared ownership of a single value plus the ability to mutate through that shared owner. Common in linked-list-like structures or graphs.",
+        "Only in async code.",
+        "Only when the type implements Copy."
+      ],
+      "correctIndex": 1,
+      "explanation": "`Box<T>` is single-owner heap allocation. `Rc<T>` is reference-counted shared ownership (single-threaded). `RefCell<T>` provides interior mutability checked at runtime (panics on borrow violation). Combining them gives you shared owned mutable state. Use `Box` first; reach for `Rc<RefCell<T>>` only when shared mutation is required and the borrow checker can't see the constraint at compile time."
+    },
+    {
+      "id": "ri-5-iterators-lazy",
+      "prompt": "What happens when you call `vec.iter().map(|x| x * 2).filter(|x| x > &10)` without collecting?",
+      "options": [
+        "The map and filter execute eagerly; you get back a Vec.",
+        "The map executes; the filter is lazy. You get a half-eager iterator.",
+        "Nothing executes. Iterator adaptors are lazy; the chain only runs when you call a terminal operation like collect(), sum(), or for-loop iteration.",
+        "It panics because you didn't call collect()."
+      ],
+      "correctIndex": 2,
+      "explanation": "Rust's iterator adaptors (map, filter, take, skip, etc.) are lazy: they construct a new iterator type without doing the work. The work happens only when you consume the iterator with a terminal operation (collect, fold, sum, for-loop, etc.). This is what lets `(1..).map(|x| x*x).take(10)` work without computing all squares of all integers."
+    },
+    {
+      "id": "ri-6-send-sync",
+      "prompt": "What does `Send` mean? What does `Sync` mean? When do you care?",
+      "options": [
+        "`Send` is for network types; `Sync` is for clock types.",
+        "`Send` types can be transferred across thread boundaries. `Sync` types can be referenced from multiple threads simultaneously. The compiler enforces both via marker traits. You care when writing concurrent code or storing types in thread-safe containers.",
+        "Both are equivalent; pick whichever the API requires.",
+        "They're only meaningful in async code."
+      ],
+      "correctIndex": 1,
+      "explanation": "Send and Sync are auto-traits that the compiler implements automatically based on a type's contents. A type is Send if it's safe to move to another thread (i.e., no thread-local pointers like Rc); it's Sync if &T is safe to share across threads. Most std types are both; the exceptions are notable: Rc is neither, RefCell is Send-but-not-Sync, Mutex<T> is Send+Sync if T: Send. The compiler enforces these at the type level, so a concurrent bug becomes a compile error."
+    },
+    {
+      "id": "ri-7-async-await",
+      "prompt": "What is `async fn foo() -> Result<T, E>` actually returning?",
+      "options": [
+        "A Result<T, E> wrapped in a Future.",
+        "A Future that, when polled to completion, produces a Result<T, E>.",
+        "A Promise<T, E>.",
+        "A Generator that yields Result<T, E>."
+      ],
+      "correctIndex": 1,
+      "explanation": "`async fn foo() -> X` desugars to `fn foo() -> impl Future<Output = X>`. The async block constructs a state-machine that implements Future; calling the function returns the future without running anything. To execute, you `.await` it (inside another async context) or pass it to a runtime's `block_on`. The Result is the eventual Output type of the future, not a wrapper around the future."
+    },
+    {
+      "id": "ri-8-pattern-guards",
+      "prompt": "What does this match arm do? `Some(x) if x > 10 => ...`",
+      "options": [
+        "Matches any Some and ignores the guard.",
+        "Pattern matches Some(x), then evaluates the guard `x > 10`. The arm runs only if both the pattern matches AND the guard is true.",
+        "It's a syntax error; guards aren't a Rust feature.",
+        "Matches `Some(x)` only when x is exactly 10 or 11."
+      ],
+      "correctIndex": 1,
+      "explanation": "Match guards (`if EXPR` after a pattern) are filter conditions on the matched value. The pattern binds (here, `x` binds to the inner i32 of Some). The guard then evaluates with `x` in scope. If the guard is false, this arm doesn't match and the compiler tries subsequent arms. Useful for distinctions the pattern syntax alone can't express (numeric comparisons, multi-field conditions on a destructured struct)."
+    }
+  ]
+}
