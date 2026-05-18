@@ -200,7 +200,7 @@ only at v1 and the desktop app is the surface for chain-level work.
 - **Curriculum.** Six Rust lessons (`/learn/`) and five philosophy
   primers (`/philosophy/`), each with breadcrumb navigation, Article/
   TechArticle JSON-LD, and OG + Twitter Card meta tags.
-- **Quiz engine.** Five categories (`/quiz/`) with 36 multiple-choice
+- **Quiz engine.** Five categories (`/quiz/`) with 37 multiple-choice
   questions, scored with localStorage progress persistence and a
   Course schema.org entry.
 - **Reference pages.** `/disclaimer/`, `/changelog/`, `/glossary/`

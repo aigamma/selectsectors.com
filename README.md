@@ -25,7 +25,7 @@ build session ending 2026-05-18. The site is functionally complete:
   actual `crates/backtest-core/` source via Vite's `?raw` import (the
   curriculum cannot drift from the code): why-rust, this-sites-rust,
   ownership, enums-and-dispatch, error-handling, wasm.
-- 5 quiz categories with 36 multiple-choice questions under `/quiz/`,
+- 5 quiz categories with 37 multiple-choice questions under `/quiz/`,
   with localStorage progress persistence: rust-basics, this-sites-rust,
   quant-finance, rust-intermediate, wasm-internals.
 - 6 per-strategy explainer pages under `/strategies/{name}/`, each
