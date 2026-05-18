@@ -773,3 +773,109 @@ and a more complete reference surface (a developer-facing API
 docs page and a glossary for the vocabulary the site assumes).
 
 ---
+
+## 2026-05-18 (still same day) - v0.1.4 release
+
+**What landed in iterations 62 through 100** (after v0.1.3). The
+release is one real bug fix, a slate of error-path UX
+improvements, and roughly a doubling of the regression-test
+surface (159 -> 279 tests across 19 files). One central
+architectural property emerged: the new parity tests are
+discovery-based (readdirSync, Object.keys) rather than enumerated,
+so adding a strategy/quiz/essay auto-extends test coverage.
+
+**One real bug.** STRATEGY_SPECS in src/strategy-specs.ts was
+missing the bollinger_bands entry that landed in v0.1.1. Users
+picking Bollinger Bands from the homepage or /scan/ saw an empty
+param form and submit failed server-side with a serde
+"missing field" error. Caught in iter 93; a parity test
+(STRATEGY_SPECS <-> STRATEGY_DEFAULTS) added in the same
+iteration prevents future occurrences.
+
+**Error-path UX improvements.**
+
+- Iter 74-75. /api/universe and /api/rate-status load-failure
+  rendering. Previously both fetches falling produced an
+  indefinite "loading..." state; now show explicit warnings.
+- Iter 78-79. Rate-limit reset times displayed inline in error
+  messages ("resets in 23 min", "in 5 hr 12 min", "in 2 days")
+  via a new formatTimeUntilReset cascade helper. Used by the
+  rate-banner exhausted state, the chat panel hint, and the 429
+  error message on dispatch.
+- Iter 81-83. Unknown-strategy / unknown-symbol URL warnings on
+  the homepage and /compare/ and /scan/. Stale bookmark links
+  now surface a clear explanation instead of silently no-opping.
+- Iter 85, 91. Chat panel preemptively disables send + input
+  when ANTHROPIC_API_KEY is unset OR when the chat rate limit is
+  exhausted. The rate-limit disable schedules a setTimeout to
+  re-enable when the window resets. dataset.rateLimitDisabled
+  marker discriminates which disable to clear.
+- Iter 84. Chat 429 error message now names the actual reset
+  time, matching the backtest dispatcher's UX from iter 78.
+
+**Regression test classes added (iter 72, 76-77, 86-87, 91-98).**
+Test count went from 159 to 279, with 9 new parity-test classes:
+
+1. env-vars parity (.env.example <-> Netlify.env.get() calls).
+2. vite-config-vs-HTML-pages parity (vite.config.ts inputs <->
+   HTML files).
+3. HTML-script-entries parity (<script src> in HTML <-> existing
+   TS entry files).
+4. STRATEGY_SPECS <-> STRATEGY_DEFAULTS parity (frontend <->
+   backend strategy catalog).
+5. strategy-specs <-> explainer pages parity (each strategy has
+   /strategies/<kebab>/index.html + a catalog row).
+6. quiz catalog parity (JSON <-> TS entry <-> HTML page <->
+   catalog row + JSON.slug self-consistency).
+7. content-catalogs parity (philosophy + learn subdirectory
+   pages <-> catalog rows).
+8. Rust Params field-name parity (Rust struct fields <->
+   toStrategyKind wire format).
+9. chat-prompt strategy parity (STRATEGY_DEFAULTS names appear
+   in CHAT_SYSTEM_PROMPT).
+
+Plus dispatch.ts test coverage (iter 76-77, 7 paths through the
+POST + 3-shape response + polling logic), formatTimeUntilReset
+unit tests (iter 78), and a v0.1.4 changelog entry that
+enumerates everything above for the public release notes.
+
+**Polish.**
+
+- Iter 63-64. /learn/wasm/ + /philosophy/regimes/ "What's next"
+  exits, matching the pattern of /learn/ catalog's existing
+  outro.
+- Iter 73. Quiz summary "What's next" section after the recap.
+- Iter 88-90. Strategy explainer fact-checks (Bollinger
+  Wilder/Bollinger author attribution, Turtle Trader System 1 +
+  System 2, Jegadeesh-Titman 1993 momentum attribution).
+- Iter 92. Architecture docs sync to dual-store rate-limit
+  layout (rate-limit-backtest + rate-limit-chat).
+- Iter 99. README test-count + test-surface description sync to
+  reflect the actual 279/19 state with the discovery-based
+  parity-test design point called out.
+
+**v0.1.4 state at end of iteration 100.**
+
+- 31 production HTML pages (same as v0.1.3).
+- 6-strategy WASM backtester unchanged.
+- 5 quiz categories / 36 questions unchanged.
+- 5 philosophy essays unchanged.
+- 6 curriculum lessons unchanged.
+- 279 tests (44 Rust + 235 TypeScript) across 19 test files
+  covering 16+ source-of-truth drift classes.
+- All version-carrying surfaces in lockstep at v0.1.4 (package.json
+  + health.mts + layout.ts footer + changelog lede), enforced by
+  the iter 61 version-parity test.
+
+**Closing for v0.1.4.** The release is a stabilization pass on
+top of the feature-complete v0.1.3 site. Future iterations beyond
+v0.1.4 will hit increasingly marginal value; the site's source-of-
+truth posture is now mature enough that most drift gets caught at
+commit time rather than discovered in production. Substantive
+work remaining would be either new features (parameter sweep,
+regime conditioning, custom-strategy editor) or operational
+(custom domain attach, ANTHROPIC_API_KEY set on Netlify, optional
+backfill of daily_eod from 2022-01-03), all of which are gated on
+Eric's authorization.
+
+---
