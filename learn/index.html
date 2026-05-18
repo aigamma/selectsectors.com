@@ -20,6 +20,37 @@
     <meta name="twitter:title" content="Learn Rust" />
     <meta name="twitter:description" content="Learn Rust through the lens of a working backtesting engine. The same crate that powers selectsectors.com is the teaching surface: modules, enums, traits, errors, iterators, WASM." />
     <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      "name": "Learn Rust by reading a real backtesting engine",
+      "description": "Six-lesson Rust curriculum anchored against the WASM-backed strategy library that powers selectsectors.com. Covers ownership, enums, error handling, traits, modules, and the Rust-to-WebAssembly bridge.",
+      "url": "https://selectsectors.com/learn/",
+      "provider": {
+        "@type": "Organization",
+        "name": "AI Gamma",
+        "url": "https://aigamma.com"
+      },
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT2H"
+      },
+      "about": ["Rust", "WebAssembly", "Backtesting", "Quant Finance"],
+      "teaches": [
+        "When to reach for Rust over Python or TypeScript",
+        "Ownership and borrowing in numerical code",
+        "Tagged enums for compile-time-checked dispatch",
+        "Custom error types without thiserror",
+        "Sliding-window numerical algorithms",
+        "Compiling Rust to WebAssembly via wasm-pack"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="site-header-mount"></div>

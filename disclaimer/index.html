@@ -20,6 +20,55 @@
     <meta name="twitter:title" content="Disclaimer" />
     <meta name="twitter:description" content="Disclaimer for selectsectors.com. What the site is, what it isn't, what the backtest results actually mean, and the limits of any conclusion drawn from them." />
     <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is this investment advice?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Everything on selectsectors.com is educational: the backtests, the metrics, the chatbot, the strategy explainers, the curriculum. The purpose is learning Rust and learning quant finance, not picking stocks or sizing positions. Talk to a licensed financial professional if you are making real investment decisions."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What do the backtest results actually show?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A backtest is a hypothesis test against historical data. It takes a strategy spec, applies it to past daily bar data, and reports the metrics that fall out (total return, CAGR, Sharpe, drawdown, hit rate). The math is honest, but the result is not predictive of any future trading outcome. Slippage, commissions, partial fills, taxes, regime changes, and survivorship bias all separate a backtest from live trading."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is SelectBot?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "SelectBot is a focused educational chatbot scoped to four topics: Rust as this site uses it, the site itself, quant finance basics, and the philosophy of backtesting. It refuses to give investment advice or predict stock prices. Treat its answers as starting points for further reading, not as authoritative conclusions."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where does the bar data come from?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The bar data lives in a Supabase project shared with aigamma.com and is updated weekdays after the US market close. The eleven anchor single names start 2024-04-25 in the shared database; SPX goes back to 2022-01-03; the SPDR sectors are in between. Bar accuracy is whatever the upstream Massive Stocks Starter and Indices Starter feeds provide."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the rate limits?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Backtester, strategy comparison, and universe scan all share: two runs per hour, five per day per IP. SelectBot has its own limit: thirty messages per hour, one hundred per day per IP. The site is free; the limits exist so a single user cannot exhaust the AI Gamma Anthropic spending pool on this public surface."
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="site-header-mount"></div>
