@@ -1,4 +1,6 @@
-// Frontend entry. Five concerns mounted at page load:
+import { initChat } from './chat.ts';
+
+// Frontend entry. Six concerns mounted at page load:
 //
 //   1. Universe roster — fetched from /api/universe and rendered into
 //      the sector + anchor lists in the universe panel AND into the
@@ -21,6 +23,7 @@
 //   5. Result panel — six metric cells (total return, CAGR, sharpe,
 //      max drawdown, hit rate, bars) plus an inline SVG equity curve
 //      colored by sign of final equity.
+//   6. SelectBot — floating chat panel (see src/chat.ts).
 
 interface UniverseResponse {
   sectors: string[];
@@ -544,6 +547,8 @@ async function init(): Promise<void> {
       });
     });
   }
+
+  initChat();
 }
 
 init();

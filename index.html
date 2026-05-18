@@ -140,6 +140,64 @@
       <span class="footer-meta">AI Gamma · Select Sectors · v0.1.0</span>
     </footer>
 
+    <div id="chat-root" class="chat-root">
+      <button
+        id="chat-toggle"
+        class="chat-toggle"
+        type="button"
+        aria-label="Open SelectBot chat"
+        aria-controls="chat-panel"
+        aria-expanded="false"
+      >
+        <span class="chat-toggle-dot" aria-hidden="true"></span>
+        SelectBot
+      </button>
+      <section
+        id="chat-panel"
+        class="chat-panel"
+        hidden
+        aria-labelledby="chat-title"
+      >
+        <header class="chat-header">
+          <div class="chat-header-titles">
+            <h2 id="chat-title">SelectBot</h2>
+            <div id="chat-rate-hint" class="chat-rate-hint"></div>
+          </div>
+          <button
+            id="chat-close"
+            class="chat-close"
+            type="button"
+            aria-label="Close SelectBot"
+          >
+            &times;
+          </button>
+        </header>
+        <div
+          id="chat-conversation"
+          class="chat-conversation"
+          role="log"
+          aria-live="polite"
+        ></div>
+        <div id="chat-status" class="chat-status" aria-live="polite"></div>
+        <form id="chat-form" class="chat-form">
+          <label for="chat-input" class="visually-hidden">Your message</label>
+          <textarea
+            id="chat-input"
+            class="chat-input"
+            rows="2"
+            placeholder="Ask about Rust, this site, or quant finance..."
+            required
+          ></textarea>
+          <div class="chat-form-actions">
+            <button type="button" id="chat-clear" class="chat-clear">
+              Clear chat
+            </button>
+            <button type="submit" id="chat-send" class="chat-send">Send</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
