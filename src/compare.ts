@@ -93,6 +93,12 @@ interface CompareRequest {
 
 let running = false;
 
+// Snapshot of inputs that produced the currently-rendered result.
+// Used by handleShareClick so the share-link describes the actual
+// rendered comparison rather than the form's possibly-edited state.
+// See main.ts iter-107 commit for full rationale.
+let lastRenderedInputs: CompareRequest | null = null;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
   // Concurrency guard; see main.ts handleSubmit for rationale.
@@ -117,6 +123,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   setRunDisabled(true);
   setStatus('dispatching comparison...');
   hideResultPanel();
+  lastRenderedInputs = null;
 
   await dispatchAndPoll<CompareResult>({
     endpoint: '/api/compare',
@@ -124,7 +131,10 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     pollTimeoutMs: 90_000,
     onRateLimits: showRateBanner,
     onStatus: setStatus,
-    onResult: (result) => renderResult(result),
+    onResult: (result) => {
+      lastRenderedInputs = body;
+      renderResult(result);
+    },
     onRateExceeded: (reason, info) => {
       const which = reason === 'hour-exceeded' ? 'hour' : 'day';
       const reset = info ? `; resets ${formatTimeUntilReset(info, which)}` : '';
@@ -342,23 +352,18 @@ function applyQueryParamPrefill(): void {
 
 async function handleShareClick(): Promise<void> {
   // Build a /compare/?symbol=...&start=...&end=... URL that recipients
-  // can open to pre-fill the form. The /compare/ surface only needs
-  // these three fields since the strategy set is fixed (all six run
-  // by definition).
-  const symbolEl = document.getElementById('symbol') as HTMLSelectElement | null;
-  const startEl = document.getElementById(
-    'start-date'
-  ) as HTMLInputElement | null;
-  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
-  if (!symbolEl?.value || !startEl?.value || !endEl?.value) {
-    setShareFeedback('share-feedback', 'fill in the form first', 'error');
+  // can open to pre-fill the form. Reads from the lastRenderedInputs
+  // snapshot so the URL matches the rendered comparison even if the
+  // user has edited the form between submit and click-share.
+  if (!lastRenderedInputs) {
+    setShareFeedback('share-feedback', 'run a comparison first', 'error');
     return;
   }
 
   const url = new URL('/compare/', window.location.origin);
-  url.searchParams.set('symbol', symbolEl.value);
-  url.searchParams.set('start', startEl.value);
-  url.searchParams.set('end', endEl.value);
+  url.searchParams.set('symbol', lastRenderedInputs.symbol);
+  url.searchParams.set('start', lastRenderedInputs.dateRange.start);
+  url.searchParams.set('end', lastRenderedInputs.dateRange.end);
 
   await copyShareLink(url.toString());
 }

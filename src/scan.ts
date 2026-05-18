@@ -117,6 +117,12 @@ interface ScanRequest {
 
 let running = false;
 
+// Snapshot of inputs that produced the currently-rendered scan
+// result. Used by handleShareClick so the share-link describes the
+// actual rendered scan rather than the form's possibly-edited state.
+// See main.ts iter-107 commit for full rationale.
+let lastRenderedInputs: ScanRequest | null = null;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
   // Concurrency guard; see main.ts handleSubmit for rationale.
@@ -144,6 +150,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   setRunDisabled(true);
   setStatus('dispatching scan across the universe...');
   hideResultPanel();
+  lastRenderedInputs = null;
 
   await dispatchAndPoll<ScanResult>({
     endpoint: '/api/scan',
@@ -151,7 +158,10 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     pollTimeoutMs: 120_000,
     onRateLimits: showRateBanner,
     onStatus: setStatus,
-    onResult: (result) => renderResult(result),
+    onResult: (result) => {
+      lastRenderedInputs = body;
+      renderResult(result);
+    },
     onRateExceeded: (reason, info) => {
       const which = reason === 'hour-exceeded' ? 'hour' : 'day';
       const reset = info ? `; resets ${formatTimeUntilReset(info, which)}` : '';
@@ -314,26 +324,20 @@ function applyQueryParamPrefill(): void {
 
 async function handleShareClick(): Promise<void> {
   // Build a /scan/?strategy=...&start=...&end=...&p_<key>=<value>...
-  // URL that recipients can open to pre-fill the form. The scan
-  // surface needs strategy + params + dateRange (no symbol since
-  // /scan/ runs across all 23 symbols by definition).
-  const strategyEl = document.getElementById(
-    'strategy'
-  ) as HTMLSelectElement | null;
-  const startEl = document.getElementById(
-    'start-date'
-  ) as HTMLInputElement | null;
-  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
-  if (!strategyEl?.value || !startEl?.value || !endEl?.value) {
-    setShareFeedback('share-feedback', 'fill in the form first', 'error');
+  // URL that recipients can open to pre-fill the form. Reads from the
+  // lastRenderedInputs snapshot so the URL matches the rendered scan
+  // even if the user has edited the form between submit and
+  // click-share.
+  if (!lastRenderedInputs) {
+    setShareFeedback('share-feedback', 'run a scan first', 'error');
     return;
   }
 
   const url = new URL('/scan/', window.location.origin);
-  url.searchParams.set('strategy', strategyEl.value);
-  url.searchParams.set('start', startEl.value);
-  url.searchParams.set('end', endEl.value);
-  for (const [key, value] of Object.entries(readStrategyParams())) {
+  url.searchParams.set('strategy', lastRenderedInputs.strategy.name);
+  url.searchParams.set('start', lastRenderedInputs.dateRange.start);
+  url.searchParams.set('end', lastRenderedInputs.dateRange.end);
+  for (const [key, value] of Object.entries(lastRenderedInputs.strategy.params)) {
     url.searchParams.set(`p_${key}`, String(value));
   }
 
