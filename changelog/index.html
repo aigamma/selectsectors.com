@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Changelog for selectsectors.com. What landed in each release, in reverse-chronological order. v0.1.0 shipped 2026-05-18 with the five-strategy WASM backtester, SelectBot chat, six Rust curriculum lessons, three quiz categories, four philosophy primers, cross-axis exploration via /compare/ and /scan/, and a 76-test CI workflow."
+      content="Changelog for selectsectors.com. What landed in each release, in reverse-chronological order. Currently v0.1.3 with 31 production pages, 6 strategies, 5 quiz categories, 5 philosophy essays, /glossary/ + /api-docs/ reference pages, and 154 unit tests across the Rust crate + TS function layer."
     />
     <title>Changelog &middot; Select Sectors</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Changelog" />
-    <meta property="og:description" content="Changelog for selectsectors.com. v0.1.0 ships the five-strategy WASM backtester, SelectBot chat, Rust curriculum, quizzes, philosophy primers, /compare/, /scan/." />
+    <meta property="og:description" content="Changelog for selectsectors.com. Six strategies, five quiz categories, five philosophy essays, glossary, API reference, 154 unit tests. Currently v0.1.3." />
     <meta property="og:url" content="https://selectsectors.com/changelog/" />
     <meta property="og:image" content="https://selectsectors.com/og-image.svg" />
     <meta property="og:image:width" content="1200" />
@@ -30,10 +30,90 @@
         <h1>What's new.</h1>
         <p class="lesson-lede">
           Reverse-chronological log of what shipped on each release.
-          Versions follow semver; the site is currently v0.1.0 (a
-          stable initial release, not a stable API since most of the
-          API is internal).
+          Versions follow semver; the site is currently v0.1.3 (a
+          stable release, not a stable API since most of the API is
+          internal).
         </p>
+
+        <h2 id="v0-1-3">v0.1.3 &middot; 2026-05-18 (later same day)</h2>
+        <p>
+          Post-v0.1.2 polish pass focused on source-of-truth
+          consolidation, automated drift detection, and the two
+          reference pages that were missing for users who want to
+          look up vocabulary or integrate against the API directly.
+        </p>
+        <ul>
+          <li>
+            New <a href="/glossary/">/glossary/</a> page: alphabetical
+            reference of every quant-finance term (annualized Sharpe,
+            CAGR, drawdown, hit rate, lookahead bias, mean reversion,
+            momentum, regime, RSI, Sharpe, SMA, survivorship bias,
+            volatility) and every Rust term (borrow, cargo, crate,
+            enum, lifetime, module, ownership, Result, serde, trait,
+            WebAssembly, wasm-bindgen, wasm-pack) used across the
+            site. 35 entries total, cross-linked back into the
+            curriculum and philosophy pages where the term first
+            appears in context.
+          </li>
+          <li>
+            New <a href="/api-docs/">/api-docs/</a> page: developer-
+            facing HTTP reference for the nine endpoints under /api/.
+            Documents method + request body shape + response shapes
+            for all status codes + rate-limit treatment for each
+            endpoint. Includes the result-blob shape for single-
+            backtest + /api/compare + /api/scan, the RateLimitInfo
+            shape, and the strategy-catalog cheat sheet with default
+            parameter values.
+          </li>
+          <li>
+            Centralized the 22-name universe roster (11 SPDR sectors
+            + 11 anchor single names) in
+            <code>netlify/functions/_lib/universe-roster.mts</code>.
+            Previously duplicated across three files (universe.mts,
+            scan-background.mts, chat-system-prompt.mts) and now
+            imported from one canonical source.
+          </li>
+          <li>
+            Resolved a long-standing 23-vs-24 universe-count
+            ambiguity: SPY is no longer included in scan results
+            (its returns are near-identical to SPX and the row was
+            visually redundant), so scan now operates on 23 symbols
+            exactly matching the homepage form's pickable-options
+            count.
+          </li>
+          <li>
+            Added a JSON-validity regression test that parses every
+            <code>&lt;script type="application/ld+json"&gt;</code>
+            structured-data block and every JSON example in
+            /api-docs/. 64 new test cases. Catches the source-of-
+            truth defects (trailing commas, mis-escaped quotes,
+            accidental TypeScript-union notation) that earlier
+            iterations had been fixing by hand.
+          </li>
+          <li>
+            Added a Rust-TS strategy parity test that parses the
+            <code>StrategyKind</code> enum from mod.rs at test time
+            and asserts the variants match STRATEGY_DEFAULTS in
+            strategy.mts. Catches the drift where a strategy lands
+            in Rust but the TS catalog doesn't know about it (or
+            vice versa).
+          </li>
+          <li>
+            Added a universe-roster parity test that asserts the
+            chat system prompt actually interpolates the ANCHORS
+            list rather than carrying a stale hardcoded copy.
+          </li>
+          <li>
+            "Built in Rust. Learn it here." callout on the homepage
+            surfaces /learn/ + /quiz/ + /glossary/ from the primary
+            entry point so the Rust-teaching identity is visible
+            without requiring users to discover it via the top-nav.
+          </li>
+          <li>
+            Test count grew from 117 (44 Rust + 73 TS) to 154 (44
+            Rust + 110 TS) over this release.
+          </li>
+        </ul>
 
         <h2 id="v0-1-2">v0.1.2 &middot; 2026-05-18 (later same day)</h2>
         <ul>

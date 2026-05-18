@@ -22,7 +22,7 @@ import { backtestLimiter, chatLimiter } from './_lib/rate-limit.mts';
 // here in lockstep; the redundancy is intentional so the function can
 // report the version without reading package.json at runtime (the
 // function-bundle path that would require esbuild to inline the file).
-const VERSION = '0.1.2';
+const VERSION = '0.1.3';
 
 export default async (_req: Request, _context: Context): Promise<Response> => {
   const commit = Netlify.env.get('COMMIT_REF') ?? 'unknown';
