@@ -75,8 +75,17 @@ function escapeHtml(s: string): string {
 
 function headerHtml(active: ActivePage): string {
   const navHtml = NAV_LINKS.map((link) => {
-    const cls = link.page === active ? 'active' : '';
-    return `<a class="${cls}" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`;
+    const isActive = link.page === active;
+    const cls = isActive ? 'active' : '';
+    // aria-current="page" lets assistive tech announce the current
+    // page distinctly. The .active class drives the visual treatment
+    // (color + underline in style.css); aria-current is the
+    // accessibility-tree equivalent. Both are needed: the class is
+    // not exposed to assistive tech, and aria-current is not
+    // styleable as the sole selector across all the breakpoints we
+    // already have wired to .active.
+    const ariaCurrent = isActive ? ' aria-current="page"' : '';
+    return `<a class="${cls}" href="${escapeHtml(link.href)}"${ariaCurrent}>${escapeHtml(link.label)}</a>`;
   }).join('');
   return `
     <a class="skip-to-main" href="#main-content">Skip to main content</a>
