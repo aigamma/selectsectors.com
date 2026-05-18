@@ -206,10 +206,21 @@ function renderResult(result: ScanResult): void {
     | { strategy?: { name?: string; params?: Record<string, number> } }
     | undefined;
   const strategyName = inputs?.strategy?.name ?? result.strategy;
+  const scanParams = inputs?.strategy?.params ?? {};
   const homeBaseUrl = (symbol: string): string => {
+    // Encode the scan's chosen params under p_<key>=<value> so the
+    // recipient lands on the homepage with the exact same param
+    // values the scan was run with, not the default values. Without
+    // this, a scan run with momentum lookback=120 produces row
+    // links that pre-fill the homepage form with the default
+    // lookback=60, giving the recipient a related-but-different
+    // backtest than what the scan row represents.
     const p = new URLSearchParams();
     p.set('strategy', strategyName);
     p.set('symbol', symbol);
+    for (const [key, value] of Object.entries(scanParams)) {
+      p.set(`p_${key}`, String(value));
+    }
     return `/?${p.toString()}`;
   };
 
