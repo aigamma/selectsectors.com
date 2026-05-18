@@ -179,6 +179,18 @@ interface BacktestRequest {
 
 let running = false;
 
+// Snapshot of the inputs (symbol, strategy + params, dateRange) that
+// produced the result currently displayed in the result panel. Used
+// by handleShareClick to build the share URL from the actual rendered
+// run rather than from whatever the form currently shows. Without
+// this snapshot, a user who runs a backtest, changes the form (say
+// switches strategy or symbol while reading the result), then clicks
+// Share would get a URL describing a different backtest than the
+// one they're looking at. Reset to null when the result panel is
+// hidden (on form re-submit) so an in-flight share never points at
+// a stale result.
+let lastRenderedInputs: BacktestRequest | null = null;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
   // Guard against concurrent submits. setRunDisabled(true) blocks
@@ -213,6 +225,11 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   setRunDisabled(true);
   setStatus('dispatching backtest...');
   hideResultPanel();
+  // Clear the last-rendered-inputs snapshot. If the new dispatch
+  // returns a result, the onResult callback will set it to the new
+  // body; if the dispatch errors out, we want the share button to
+  // refuse rather than fall back to a stale snapshot.
+  lastRenderedInputs = null;
 
   await dispatchAndPoll<BacktestResult>({
     endpoint: '/api/backtest',
@@ -220,7 +237,14 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     pollTimeoutMs: 60_000,
     onRateLimits: showRateBanner,
     onStatus: setStatus,
-    onResult: (result) => renderResult(result),
+    onResult: (result) => {
+      // Capture the just-dispatched inputs so the share-link
+      // builds from the rendered run, not from whatever the form
+      // currently shows (the user may have edited the form
+      // between submit and render).
+      lastRenderedInputs = body;
+      renderResult(result);
+    },
     onRateExceeded: (reason, info) => {
       const which = reason === 'hour-exceeded' ? 'hour' : 'day';
       const reset = info ? `; resets ${formatTimeUntilReset(info, which)}` : '';
@@ -543,29 +567,29 @@ async function init(): Promise<void> {
 
 async function handleShareClick(): Promise<void> {
   // Build a URL that, when opened, pre-fills the homepage form with
-  // the current input values. The recipient hits Run to reproduce
-  // the same backtest; cache-hit returns instantly without consuming
-  // a rate-limit slot for them.
-  const symbolEl = document.getElementById('symbol') as HTMLSelectElement | null;
-  const strategyEl = document.getElementById('strategy') as HTMLSelectElement | null;
-  const startEl = document.getElementById('start-date') as HTMLInputElement | null;
-  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
-  if (!symbolEl?.value || !strategyEl?.value || !startEl?.value || !endEl?.value) {
-    setShareFeedback('share-feedback', 'fill in the form first', 'error');
+  // the inputs that produced the result currently visible in the
+  // result panel. The recipient hits Run to reproduce the same
+  // backtest; cache-hit returns instantly without consuming a rate-
+  // limit slot for them. Reading from the lastRenderedInputs
+  // snapshot rather than the current form state means the share
+  // link always matches the rendered result even if the user has
+  // edited the form between submit and click-share.
+  if (!lastRenderedInputs) {
+    setShareFeedback('share-feedback', 'run a backtest first', 'error');
     return;
   }
 
   const url = new URL(window.location.origin);
-  url.searchParams.set('strategy', strategyEl.value);
-  url.searchParams.set('symbol', symbolEl.value);
-  url.searchParams.set('start', startEl.value);
-  url.searchParams.set('end', endEl.value);
+  url.searchParams.set('strategy', lastRenderedInputs.strategy.name);
+  url.searchParams.set('symbol', lastRenderedInputs.symbol);
+  url.searchParams.set('start', lastRenderedInputs.dateRange.start);
+  url.searchParams.set('end', lastRenderedInputs.dateRange.end);
 
   // Per-strategy params get serialized under p_<key>=<value> so the
   // applyQueryParamPrefill loop on the recipient's side can read
   // them back. The keys match the data-param-key attribute on the
   // strategy-params inputs.
-  for (const [key, value] of Object.entries(readStrategyParams())) {
+  for (const [key, value] of Object.entries(lastRenderedInputs.strategy.params)) {
     url.searchParams.set(`p_${key}`, String(value));
   }
 
