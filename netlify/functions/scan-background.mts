@@ -2,6 +2,7 @@ import type { Context } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sha256OfCanonical } from './_lib/canonical-json.mts';
+import { toStrategyKind } from './_lib/strategy.mts';
 // @ts-ignore — pkg/ is built by `npm run build:wasm`; resolved at deploy time.
 import { run_backtest } from '../../pkg/backtest_core.js';
 
@@ -247,45 +248,6 @@ export default async (req: Request, _context: Context): Promise<Response> => {
   await store.setJSON(hash, blob);
   return new Response(null);
 };
-
-function toStrategyKind(s: {
-  name: string;
-  params: Record<string, number>;
-}): unknown {
-  switch (s.name) {
-    case 'buy_and_hold':
-      return 'buy_and_hold';
-    case 'sma_crossover':
-      return {
-        sma_crossover: {
-          fast: requireNumber(s.params, 'fast'),
-          slow: requireNumber(s.params, 'slow'),
-        },
-      };
-    case 'rsi_mean_reversion':
-      return {
-        rsi_mean_reversion: {
-          period: requireNumber(s.params, 'period'),
-          oversold: requireNumber(s.params, 'oversold'),
-          overbought: requireNumber(s.params, 'overbought'),
-        },
-      };
-    case 'momentum':
-      return { momentum: { lookback: requireNumber(s.params, 'lookback') } };
-    case 'breakout':
-      return { breakout: { lookback: requireNumber(s.params, 'lookback') } };
-    default:
-      throw new Error(`unknown strategy name: \`${s.name}\``);
-  }
-}
-
-function requireNumber(params: Record<string, number>, key: string): number {
-  const v = params[key];
-  if (typeof v !== 'number' || !Number.isFinite(v)) {
-    throw new Error(`missing or non-finite parameter \`${key}\``);
-  }
-  return v;
-}
 
 function categorize(symbol: string): 'index' | 'broad' | 'sector' | 'anchor' {
   if (symbol === 'SPX') return 'index';

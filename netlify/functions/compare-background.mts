@@ -2,6 +2,7 @@ import type { Context } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sha256OfCanonical } from './_lib/canonical-json.mts';
+import { STRATEGY_DEFAULTS } from './_lib/strategy.mts';
 // @ts-ignore — pkg/ is built by `npm run build:wasm`; resolved at deploy time.
 import { run_backtest } from '../../pkg/backtest_core.js';
 
@@ -50,22 +51,6 @@ interface WasmResult {
   hit_rate: number;
   equity_curve: WasmEquityPoint[];
 }
-
-// Default-parameter catalog. The keys match the StrategyKind variants
-// in the Rust crate; the values are the canonical defaults the
-// homepage backtester also uses. Keeping these in sync with the
-// frontend's STRATEGY_SPECS is a manual responsibility documented in
-// CLAUDE.md (the central source of truth is the Rust crate's Params
-// types; both the JS-side defaults and these defaults should agree).
-const STRATEGY_DEFAULTS = {
-  buy_and_hold: 'buy_and_hold' as const,
-  sma_crossover: { sma_crossover: { fast: 20, slow: 50 } },
-  momentum: { momentum: { lookback: 60 } },
-  rsi_mean_reversion: {
-    rsi_mean_reversion: { period: 14, oversold: 30, overbought: 70 },
-  },
-  breakout: { breakout: { lookback: 20 } },
-};
 
 export default async (req: Request, _context: Context): Promise<Response> => {
   let body: CompareRequest;

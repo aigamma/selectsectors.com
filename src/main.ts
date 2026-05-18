@@ -1,4 +1,5 @@
 import { mountSiteShell } from './layout.ts';
+import { STRATEGY_SPECS } from './strategy-specs.ts';
 
 // Frontend entry. Six concerns mounted at page load:
 //
@@ -91,73 +92,6 @@ interface ResultPollResponse {
   hash: string;
   result?: BacktestResult;
 }
-
-// Strategy specs. The label, description, and parameter list are the
-// frontend's view of what the WASM crate accepts; the Rust crate is
-// the source of truth for actual parameter validation, but mirroring
-// the parameter list here lets us render usable defaults and saves a
-// round-trip on a malformed first request. The keys in `params` MUST
-// match the field names in the Rust `Params` struct for each strategy
-// (e.g. `fast`/`slow` for `sma_crossover::Params`).
-interface StrategyParamSpec {
-  key: string;
-  label: string;
-  defaultValue: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  hint?: string;
-}
-
-interface StrategySpec {
-  name: string;
-  description: string;
-  params: StrategyParamSpec[];
-}
-
-const STRATEGY_SPECS: Record<string, StrategySpec> = {
-  buy_and_hold: {
-    name: 'Buy and hold',
-    description:
-      'Buy on the first bar and hold to the last. The reference benchmark every other strategy is judged against.',
-    params: [],
-  },
-  sma_crossover: {
-    name: 'SMA crossover',
-    description:
-      'Long when the fast simple moving average is above the slow simple moving average; flat otherwise. The textbook trend-following signal.',
-    params: [
-      { key: 'fast', label: 'Fast window (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
-      { key: 'slow', label: 'Slow window (bars)', defaultValue: 50, min: 3, max: 250, step: 1 },
-    ],
-  },
-  momentum: {
-    name: 'Momentum',
-    description:
-      'Long when today\'s close exceeds the close `lookback` bars ago; flat otherwise. The oldest documented factor in modern finance.',
-    params: [
-      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 60, min: 2, max: 252, step: 1 },
-    ],
-  },
-  rsi_mean_reversion: {
-    name: 'RSI mean reversion',
-    description:
-      'Long when Wilder\'s RSI dips below the oversold threshold; exits to flat when RSI rises above overbought. A fade-the-dip strategy.',
-    params: [
-      { key: 'period', label: 'RSI period (bars)', defaultValue: 14, min: 2, max: 100, step: 1 },
-      { key: 'oversold', label: 'Oversold threshold', defaultValue: 30, min: 0, max: 50, step: 1 },
-      { key: 'overbought', label: 'Overbought threshold', defaultValue: 70, min: 50, max: 100, step: 1 },
-    ],
-  },
-  breakout: {
-    name: 'Donchian breakout',
-    description:
-      'Long when today\'s close is at or above the rolling high of the prior `lookback` bars. The Richard Donchian / Turtle Traders rule.',
-    params: [
-      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
-    ],
-  },
-};
 
 async function loadUniverse(): Promise<UniverseResponse | null> {
   try {

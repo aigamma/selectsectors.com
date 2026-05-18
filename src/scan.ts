@@ -1,5 +1,6 @@
 import './style.css';
 import { mountSiteShell } from './layout.ts';
+import { STRATEGY_SPECS } from './strategy-specs.ts';
 
 // Cross-symbol scan page. One strategy, one date range, 23 backtests
 // in a single rate-limit slot. Result is a ranked table only (no
@@ -68,65 +69,6 @@ interface ResultPollResponse {
   hash: string;
   result?: ScanResult;
 }
-
-interface StrategyParamSpec {
-  key: string;
-  label: string;
-  defaultValue: number;
-  min?: number;
-  max?: number;
-  step?: number;
-}
-
-interface StrategySpec {
-  name: string;
-  description: string;
-  params: StrategyParamSpec[];
-}
-
-const STRATEGY_SPECS: Record<string, StrategySpec> = {
-  buy_and_hold: {
-    name: 'Buy and hold',
-    description:
-      'Always long, no parameters. The reference benchmark every other strategy is judged against.',
-    params: [],
-  },
-  sma_crossover: {
-    name: 'SMA crossover',
-    description:
-      'Long when fast SMA is above slow SMA. The textbook trend-following signal.',
-    params: [
-      { key: 'fast', label: 'Fast window (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
-      { key: 'slow', label: 'Slow window (bars)', defaultValue: 50, min: 3, max: 250, step: 1 },
-    ],
-  },
-  momentum: {
-    name: 'Momentum',
-    description:
-      'Long when today\'s close exceeds the close `lookback` bars ago.',
-    params: [
-      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 60, min: 2, max: 252, step: 1 },
-    ],
-  },
-  rsi_mean_reversion: {
-    name: 'RSI mean reversion',
-    description:
-      'Long when Wilder\'s RSI dips below oversold; exit above overbought.',
-    params: [
-      { key: 'period', label: 'RSI period (bars)', defaultValue: 14, min: 2, max: 100, step: 1 },
-      { key: 'oversold', label: 'Oversold threshold', defaultValue: 30, min: 0, max: 50, step: 1 },
-      { key: 'overbought', label: 'Overbought threshold', defaultValue: 70, min: 50, max: 100, step: 1 },
-    ],
-  },
-  breakout: {
-    name: 'Donchian breakout',
-    description:
-      'Long when today\'s close meets or exceeds the rolling high of the prior `lookback` bars.',
-    params: [
-      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
-    ],
-  },
-};
 
 function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) => {
