@@ -103,6 +103,7 @@ export default defineConfig({
         disclaimer: resolve(__dirname, 'disclaimer/index.html'),
         changelog: resolve(__dirname, 'changelog/index.html'),
         glossary: resolve(__dirname, 'glossary/index.html'),
+        apiDocs: resolve(__dirname, 'api-docs/index.html'),
         notFound: resolve(__dirname, '404.html'),
       },
     },
