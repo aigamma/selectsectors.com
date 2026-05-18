@@ -63,18 +63,25 @@ function extractNavLabelForHref(layoutSource: string, hrefPrefix: string): strin
   return m ? m[1] : null;
 }
 
-function extractJsonLdBreadcrumbLeafName(pageHtml: string): string | null {
-  // The page's BreadcrumbList JSON-LD has three items; the last
-  // (position 3) carries the page's leaf name. Two formatting
-  // styles are used across the codebase: pretty-printed (each key
-  // on its own line, used by most strategy/learn pages) and
-  // compact one-line (used by strategies/bollinger-bands and a few
+function extractJsonLdBreadcrumbItemName(pageHtml: string, position: number): string | null {
+  // The page's BreadcrumbList JSON-LD has three items: position 1
+  // is "Home", position 2 is the section ancestor (e.g.,
+  // "Strategies"), position 3 is the leaf. Two formatting styles
+  // are used across the codebase: pretty-printed (each key on its
+  // own line, used by most strategy/learn pages) and compact one-
+  // line (used by strategies/bollinger-bands and a few
   // philosophy/quiz pages). Both are valid JSON; the regex covers
-  // both by matching `"position": 3` then any whitespace then
+  // both by matching `"position": N` then any whitespace then
   // `"name": "<value>"` with flexible spacing.
-  const re = /"position"\s*:\s*3\s*,\s*"name"\s*:\s*"([^"]+)"/;
+  const re = new RegExp(
+    `"position"\\s*:\\s*${position}\\s*,\\s*"name"\\s*:\\s*"([^"]+)"`
+  );
   const m = pageHtml.match(re);
   return m ? m[1] : null;
+}
+
+function extractJsonLdBreadcrumbLeafName(pageHtml: string): string | null {
+  return extractJsonLdBreadcrumbItemName(pageHtml, 3);
 }
 
 function extractBreadcrumbAncestor(pageHtml: string, hrefPrefix: string): string | null {
@@ -163,6 +170,25 @@ for (const section of SECTIONS) {
         expect(
           ancestor,
           `breadcrumb ancestor for /${section.label}/${slug}/ is "${ancestor}" but NAV_LINKS in layout.ts uses "${navLabel}" for ${section.hrefPrefix}. The top-nav label is the source of truth; update one or the other.`
+        ).toBe(navLabel);
+      }
+    );
+
+    it.each(slugs.map((s) => [s]))(
+      `/${section.label}/%s/ JSON-LD BreadcrumbList position-2 name matches NAV_LINKS label for ${section.hrefPrefix}`,
+      (slug) => {
+        if (!navLabel) return; // covered by the prior sanity test
+        const pagePath = resolve(ROOT, section.dir, slug, 'index.html');
+        const pageHtml = readFileSync(pagePath, 'utf8');
+        const ancestor = extractJsonLdBreadcrumbItemName(pageHtml, 2);
+        expect(
+          ancestor,
+          `${section.dir}/${slug}/index.html has no BreadcrumbList JSON-LD item with position 2`
+        ).not.toBeNull();
+        if (!ancestor) return;
+        expect(
+          ancestor,
+          `JSON-LD BreadcrumbList position-2 name for /${section.label}/${slug}/ is "${ancestor}" but NAV_LINKS uses "${navLabel}" for ${section.hrefPrefix}. The structured-data ancestor should match the visible breadcrumb ancestor, which is pinned to NAV_LINKS.`
         ).toBe(navLabel);
       }
     );
