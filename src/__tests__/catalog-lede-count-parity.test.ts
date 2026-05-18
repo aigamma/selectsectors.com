@@ -97,12 +97,66 @@ function findCountWordInLede(lede: string): { word: string; value: number } | nu
   return { word, value: WORD_TO_NUMBER[word] };
 }
 
+function extractMetaContent(html: string, kind: 'name' | 'property', key: string): string | null {
+  // Match <meta name="description" content="..."> across the
+  // optional line-broken-attribute style that prettier sometimes
+  // emits ("<meta\n  name=\"description\"\n  content=\"...\"\n />").
+  // The content value is captured as-is including HTML entities;
+  // the count-word search is plain regex over the value so entities
+  // like &amp; don't affect matching.
+  const re = new RegExp(
+    `<meta\\s+(?:[^>]*?\\s)?${kind}="${key}"(?:\\s[^>]*?)?\\s+content="([^"]*)"`,
+    'i'
+  );
+  const m = html.match(re);
+  if (m) return m[1];
+  // Also handle the attribute-order-reversed case: content first,
+  // name/property second. Both are valid HTML and one occasionally
+  // shows up after a refactor.
+  const reReversed = new RegExp(
+    `<meta\\s+(?:[^>]*?\\s)?content="([^"]*)"(?:\\s[^>]*?)?\\s+${kind}="${key}"`,
+    'i'
+  );
+  const mReversed = html.match(reReversed);
+  return mReversed ? mReversed[1] : null;
+}
+
+interface ContentSource {
+  /** Where in the document this content appears, for error messages. */
+  location: string;
+  /** The string content to scan for count-words. */
+  text: string;
+}
+
+function gatherCatalogContent(html: string, lede: string | null): ContentSource[] {
+  const sources: ContentSource[] = [];
+  if (lede !== null) sources.push({ location: '<p class="lede">', text: lede });
+
+  const metaDesc = extractMetaContent(html, 'name', 'description');
+  if (metaDesc !== null) {
+    sources.push({ location: '<meta name="description">', text: metaDesc });
+  }
+  const ogDesc = extractMetaContent(html, 'property', 'og:description');
+  if (ogDesc !== null) {
+    sources.push({ location: '<meta property="og:description">', text: ogDesc });
+  }
+  const twitterDesc = extractMetaContent(html, 'name', 'twitter:description');
+  if (twitterDesc !== null) {
+    sources.push({
+      location: '<meta name="twitter:description">',
+      text: twitterDesc,
+    });
+  }
+  return sources;
+}
+
 for (const catalog of CATALOGS) {
-  describe(`/${catalog.label}/ catalog lede count parity`, () => {
+  describe(`/${catalog.label}/ catalog lede + meta count parity`, () => {
     const catalogPath = resolve(ROOT, catalog.dir, 'index.html');
     const html = readFileSync(catalogPath, 'utf8');
     const lede = extractLede(html);
     const actualCount = countSubdirPages(catalog.dir);
+    const sources = gatherCatalogContent(html, lede);
 
     it(`catalog page has a <p class="lede"> element`, () => {
       expect(
@@ -111,18 +165,20 @@ for (const catalog of CATALOGS) {
       ).not.toBeNull();
     });
 
-    it(`lede count-word (if any) matches the actual subdirectory page count`, () => {
-      if (lede === null) return; // covered by previous test
-      const stated = findCountWordInLede(lede);
-      if (stated === null) {
-        // No count-word in lede. Drift-proof; pass silently.
-        return;
+    it.each(sources.map((s) => [s.location, s.text]))(
+      `%s count-word (if any) matches the actual subdirectory page count`,
+      (_loc, text) => {
+        const stated = findCountWordInLede(text);
+        if (stated === null) {
+          // No count-word in this source. Drift-proof; pass silently.
+          return;
+        }
+        expect(
+          stated.value,
+          `/${catalog.dir}/ has ${actualCount} subdirectory pages but ${_loc} says "${stated.word}" (${stated.value}). ` +
+            `Update ${catalog.dir}/index.html or add/remove pages to match.`
+        ).toBe(actualCount);
       }
-      expect(
-        stated.value,
-        `/${catalog.dir}/ has ${actualCount} subdirectory pages but the lede says "${stated.word}" (${stated.value}). ` +
-          `Update the lede in ${catalog.dir}/index.html or add/remove pages to match.`
-      ).toBe(actualCount);
-    });
+    );
   });
 }
