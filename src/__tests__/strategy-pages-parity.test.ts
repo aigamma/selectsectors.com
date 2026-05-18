@@ -60,6 +60,36 @@ describe('strategy-specs ↔ catalog rows parity', () => {
       ).toBe(true);
     }
   );
+
+  it.each(strategyNames)(
+    'strategy %s catalog curriculum-title matches STRATEGY_SPECS.name',
+    (name) => {
+      const kebab = snakeToKebab(name);
+      // Find the card for /strategies/<kebab>/ by its href, then
+      // look at the next <span class="curriculum-title"> to extract
+      // the displayed title. The card structure is consistent across
+      // all six cards: <a href="/strategies/<kebab>/"> ... <span
+      // class="curriculum-title">TITLE</span> ... </a>. The regex is
+      // permissive on whitespace and intermediate spans (<span
+      // class="curriculum-num">XX</span>) because they all follow the
+      // same indentation pattern across the catalog HTML.
+      const cardRe = new RegExp(
+        `href="/strategies/${kebab}/?"[\\s\\S]*?<span class="curriculum-title">([^<]+)<\\/span>`
+      );
+      const m = catalogSource.match(cardRe);
+      expect(
+        m,
+        `catalog has no <span class="curriculum-title"> for /strategies/${kebab}/`
+      ).not.toBeNull();
+      if (!m) return;
+      const displayed = m[1].trim();
+      const expected = STRATEGY_SPECS[name].name;
+      expect(
+        displayed,
+        `strategies/index.html shows curriculum-title "${displayed}" for /strategies/${kebab}/ but STRATEGY_SPECS["${name}"].name is "${expected}". Update one or the other so the catalog and the spec agree.`
+      ).toBe(expected);
+    }
+  );
 });
 
 describe('snakeToKebab helper', () => {
