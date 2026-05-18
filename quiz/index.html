@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Test what you've learned. Quizzes on Rust basics, this site's Rust crate, and quant finance, with explanations that link back to the relevant curriculum."
+    />
+    <title>Quiz &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <section class="hero">
+        <h1>Quiz yourself.</h1>
+        <p class="lede">
+          Three category quizzes &mdash; Rust basics, this site's Rust,
+          and quant finance basics. Multiple choice, one question at a
+          time, explanations after each answer with links back to the
+          curriculum. Progress and scores persist locally; you can
+          retake any quiz from scratch.
+        </p>
+      </section>
+
+      <section class="curriculum">
+        <h2>Categories</h2>
+        <ol class="curriculum-list">
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/quiz/rust-basics/">
+              <span class="curriculum-num">01</span>
+              <span class="curriculum-title">Rust basics</span>
+              <span class="curriculum-blurb">
+                Ownership, borrowing, modules, enums, the type system.
+                Every question maps onto a pattern this site's own
+                crate uses.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/quiz/this-sites-rust/">
+              <span class="curriculum-num">02</span>
+              <span class="curriculum-title">This site's Rust</span>
+              <span class="curriculum-blurb">
+                Specific to the code in
+                <code>crates/backtest-core/</code>. If you've read the
+                source, you'll recognize every answer.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/quiz/quant-finance/">
+              <span class="curriculum-num">03</span>
+              <span class="curriculum-title">Quant finance basics</span>
+              <span class="curriculum-blurb">
+                Sharpe, drawdown, hit rate, regimes, the no-lookahead
+                constraint. Things you'd want to know before reading
+                any backtest result.
+              </span>
+            </a>
+          </li>
+        </ol>
+      </section>
+
+      <section class="learn-callout">
+        <h2>How the quiz works</h2>
+        <p>
+          One question at a time. Click an option to lock in your
+          answer; an explanation appears with the correct choice
+          highlighted. Move to the next question with the button at
+          the bottom. After the last question you'll see a score and
+          a per-question recap. Your progress is stored in your
+          browser; clearing site data resets it.
+        </p>
+      </section>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/quiz-landing.ts"></script>
+  </body>
+</html>

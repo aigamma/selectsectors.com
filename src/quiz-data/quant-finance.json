@@ -1,0 +1,91 @@
+{
+  "slug": "quant-finance",
+  "title": "Quant finance basics",
+  "description": "Sharpe, drawdown, hit rate, regimes, the no-lookahead constraint. Every question is something you'd want to know before reading a backtest result.",
+  "questions": [
+    {
+      "id": "qf-1-sharpe",
+      "prompt": "A daily-bar strategy returns the same series of returns as another daily-bar strategy but with all returns multiplied by 2. What happens to its annualized Sharpe ratio?",
+      "options": [
+        "Sharpe doubles (it scales linearly with returns).",
+        "Sharpe is unchanged (it scales the mean and std by the same factor).",
+        "Sharpe quadruples (it scales with returns squared).",
+        "Sharpe becomes undefined (the std blows up)."
+      ],
+      "correctIndex": 1,
+      "explanation": "Sharpe = mean / std. If every return is multiplied by k, the mean becomes k*mean and the std becomes k*std (std scales linearly with the data). The ratio is unchanged. This is why Sharpe is a useful comparison across strategies of different magnitudes; it normalizes out the scale."
+    },
+    {
+      "id": "qf-2-drawdown",
+      "prompt": "An equity curve goes from 1.0 to 1.5 to 0.9 to 2.0. What's the maximum drawdown?",
+      "options": [
+        "0.1 (the curve fell from 1.0 to 0.9).",
+        "0.4 (the curve fell from 1.5 to 0.9).",
+        "0.5 (the curve gained 0.5 between extremes).",
+        "1.5 (the peak before the trough)."
+      ],
+      "correctIndex": 1,
+      "explanation": "Max drawdown is the worst peak-to-trough decline as a positive fraction. The running peak after bar 2 is 1.5; the trough that follows is 0.9; the drop is (1.5 - 0.9) / 1.5 = 0.4. The eventual recovery to 2.0 doesn't change the max drawdown; it only changes how long it took to recover."
+    },
+    {
+      "id": "qf-3-cagr-vs-total",
+      "prompt": "A backtest produces a 50% total return over 5 years. What's the CAGR?",
+      "options": [
+        "10% (50% / 5).",
+        "Approximately 8.45%.",
+        "Approximately 12.5% (50% compounded annually).",
+        "It depends on the drawdown."
+      ],
+      "correctIndex": 1,
+      "explanation": "CAGR = (1 + total_return)^(1/years) - 1. So (1.5)^(0.2) - 1 ~= 0.0845, or 8.45%. The naive 10% is the arithmetic answer; CAGR is the compound answer and is what you actually realize when reinvesting."
+    },
+    {
+      "id": "qf-4-hit-rate",
+      "prompt": "Strategy A has a 70% hit rate and a Sharpe of 0.5. Strategy B has a 35% hit rate and a Sharpe of 1.8. Which is the more dependable strategy?",
+      "options": [
+        "Strategy A (higher win frequency, less psychological pain).",
+        "Strategy B (higher risk-adjusted return; the wins are large enough to compensate for the losses).",
+        "They are equivalent (hit rate and Sharpe measure the same thing differently).",
+        "Cannot tell without the max drawdowns."
+      ],
+      "correctIndex": 1,
+      "explanation": "Sharpe is the better single-number quality metric because it accounts for both the magnitude and consistency of returns. A 35% hit rate with a 1.8 Sharpe means the winners are much larger than the losers (classic trend-following pattern). Hit rate alone is misleading: a strategy that wins $1 ninety-nine times and loses $200 once has a 99% hit rate and is unprofitable."
+    },
+    {
+      "id": "qf-5-trading-days",
+      "prompt": "Why does this site's `annualized_sharpe` multiply daily Sharpe by sqrt(252) rather than sqrt(365) or sqrt(260)?",
+      "options": [
+        "Because 252 is the number of S&P 500 stocks (rounded to a power of 2).",
+        "Because 252 is the conventional US trading-day count per year (after weekends and holidays).",
+        "Because sqrt(252) is computationally cheaper than sqrt(365).",
+        "Because the IRS defines a tax year as 252 working days."
+      ],
+      "correctIndex": 1,
+      "explanation": "252 is the standard count of US equity-market trading days in a calendar year (365 minus weekends minus federal holidays). The annualization factor for daily-bar series is sqrt(N) where N is the number of bars per year, and sqrt(252) is the convention every quant finance textbook uses."
+    },
+    {
+      "id": "qf-6-log-vs-simple",
+      "prompt": "When this site computes the equity curve, it uses simple returns (`equity *= 1 + r`) instead of log returns (`log_equity += log(1 + r)`). What's the practical difference?",
+      "options": [
+        "Simple returns lose precision; log returns are always more accurate.",
+        "Both produce the same final equity, but simple returns let you read off the running equity at each bar directly; log returns require a final exp().",
+        "Simple returns assume monthly compounding; log returns assume continuous compounding.",
+        "Log returns can't go below zero; simple returns can produce negative equity."
+      ],
+      "correctIndex": 1,
+      "explanation": "exp(sum(log(1+r))) equals product(1+r), so the final equity is the same either way. The difference is what you carry as you go: simple returns let you peek at the running equity at any bar, while log returns require an exp() at the end to convert back. For the frontend chart we want per-bar equity values, so simple returns are the more direct choice."
+    },
+    {
+      "id": "qf-7-regimes",
+      "prompt": "What does it mean to say a strategy 'works in trending regimes but fails in mean-reverting regimes'?",
+      "options": [
+        "The strategy is broken; a real strategy should work in all market conditions.",
+        "The strategy's returns depend on the dominant market behavior over the test window; it makes money when prices drift in one direction and loses when prices oscillate around a mean.",
+        "The strategy only runs during specific calendar months.",
+        "The strategy uses different parameters in different regimes."
+      ],
+      "correctIndex": 1,
+      "explanation": "Most strategies have a regime preference. Trend-following (momentum, breakout, SMA crossover) wins when prices drift sustainedly in one direction and loses to chop. Mean-reversion (RSI fade) wins when prices oscillate around a level and loses when a trend takes prices monotonically away. Knowing your strategy's regime profile is part of knowing your strategy."
+    }
+  ]
+}

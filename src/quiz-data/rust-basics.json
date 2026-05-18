@@ -1,0 +1,97 @@
+{
+  "slug": "rust-basics",
+  "title": "Rust basics",
+  "description": "Ownership, borrowing, modules, enums, the type system. Every question maps onto a pattern this site's own crate uses, with a follow-up link to the relevant lesson.",
+  "questions": [
+    {
+      "id": "rb-1-ownership",
+      "prompt": "In Rust, if you write `let v = vec![1, 2, 3]; let w = v;`, what happens to `v` after the second line?",
+      "options": [
+        "`v` is moved into `w`; using `v` after the assignment is a compile error.",
+        "`v` is copied into `w`; both variables now point to independent vectors.",
+        "`v` is shared with `w`; both variables refer to the same vector via shared ownership.",
+        "`v` is dropped immediately when `w` is bound."
+      ],
+      "correctIndex": 0,
+      "explanation": "Vec<T> does not implement Copy, so binding it to a new variable moves it. The compiler then refuses to let you use the old binding. Primitives like i32 and f64 do implement Copy, which is why `let x = 5; let y = x;` lets you keep using x.",
+      "linkTo": "/learn/this-sites-rust/"
+    },
+    {
+      "id": "rb-2-borrow-vs-own",
+      "prompt": "Why do all the strategy functions in this site's crate take `bars: &[DailyBar]` instead of `bars: Vec<DailyBar>`?",
+      "options": [
+        "Because Vec<DailyBar> would not compile in WASM.",
+        "Because borrowing avoids taking ownership of the bar series, letting the caller keep using it after the strategy returns.",
+        "Because slices are faster to iterate than Vec.",
+        "Because the WASM bridge cannot pass a Vec across the boundary."
+      ],
+      "correctIndex": 1,
+      "explanation": "The strategy doesn't need to own the bars; it just reads them. Borrowing with &[T] lets the caller keep the Vec alive and reuse it for other strategies in the same backtest session. Vec<DailyBar> would compile fine but the move would force a clone if the caller wanted to keep using the original.",
+      "linkTo": "/learn/ownership/"
+    },
+    {
+      "id": "rb-3-enum-dispatch",
+      "prompt": "`StrategyKind` is declared as `enum StrategyKind { BuyAndHold, SmaCrossover(Params), ... }`. What does the inner `Params` actually mean here?",
+      "options": [
+        "It's a base class that all strategy params inherit from.",
+        "It's a generic type parameter that gets monomorphized per variant.",
+        "It's a concrete struct, scoped to the strategy's module, that wraps that variant's parameters.",
+        "It's a serde attribute that controls JSON serialization."
+      ],
+      "correctIndex": 2,
+      "explanation": "Each strategy submodule defines its own `pub struct Params`. The enum variant wraps that strategy-specific struct as a tuple variant; the variant name plus the struct shape combine to make the dispatch unambiguous on both the Rust side and the JSON wire format.",
+      "linkTo": "/learn/this-sites-rust/"
+    },
+    {
+      "id": "rb-4-module-tree",
+      "prompt": "The crate declares `pub mod strategies;` in `lib.rs`. Where does the Rust compiler look for the contents of that module?",
+      "options": [
+        "Inside `lib.rs` itself, between matching curly braces.",
+        "At `src/strategies.rs` or `src/strategies/mod.rs`.",
+        "Inside `Cargo.toml`'s `[modules]` section.",
+        "At a path declared via the `#[path = \"...\"]` attribute (required for sub-modules)."
+      ],
+      "correctIndex": 1,
+      "explanation": "Rust's module system follows the filename convention. `pub mod strategies;` resolves to either `src/strategies.rs` (a single-file module) or `src/strategies/mod.rs` (a directory module with submodules). This site uses the directory form because the strategies submodule has its own submodules per strategy.",
+      "linkTo": "/learn/this-sites-rust/"
+    },
+    {
+      "id": "rb-5-result-vs-option",
+      "prompt": "`positions()` returns `Result<Vec<f64>, BacktestError>`. Why `Result` and not `Option<Vec<f64>>` or just `Vec<f64>`?",
+      "options": [
+        "Result is faster than Option in WASM.",
+        "Option can only wrap a single value; Vec needs Result.",
+        "Result carries the reason for failure (`BacktestError` describes WHY positions couldn't be computed), where Option would only say a value was absent.",
+        "Result is required for any function that allocates a Vec."
+      ],
+      "correctIndex": 2,
+      "explanation": "When a strategy can't compute positions, the caller needs to know whether it was bad parameters, too few bars, or something else. Option<Vec<f64>> would just say `None` with no detail. Result<T, E> carries the error type explicitly; here that's `BacktestError` which itself is an enum of specific failure shapes.",
+      "linkTo": "/learn/error-handling/"
+    },
+    {
+      "id": "rb-6-derives",
+      "prompt": "`DailyBar` is declared with `#[derive(Debug, Clone, Serialize, Deserialize)]`. What does the `Serialize` derive actually do at compile time?",
+      "options": [
+        "It writes a function to disk that serializes the struct.",
+        "It generates an `impl Serialize for DailyBar` block that walks the struct's fields and calls `serializer.serialize_*` for each one.",
+        "It marks the struct for runtime reflection so serde can introspect it.",
+        "Nothing at compile time; it tags the type for serialization at runtime."
+      ],
+      "correctIndex": 1,
+      "explanation": "Derive macros run at compile time and generate code that the compiler then compiles alongside your own code. Serialize generates the `serialize` method body by walking the struct definition; the output looks like hand-written code that calls serializer methods for each field. No runtime reflection involved.",
+      "linkTo": "/learn/this-sites-rust/"
+    },
+    {
+      "id": "rb-7-tests",
+      "prompt": "Where do the unit tests in `crates/backtest-core/src/metrics.rs` actually live in the file, and what attribute marks them?",
+      "options": [
+        "In a separate file `tests/metrics.rs`, marked with `#[test]` on each function.",
+        "Inline in metrics.rs inside a `mod tests` block annotated `#[cfg(test)]`, with `#[test]` on each test function.",
+        "Inside `target/test/` after `cargo test` generates them.",
+        "In `metrics.rs` but only inside `#[cfg(debug_assertions)]` blocks."
+      ],
+      "correctIndex": 1,
+      "explanation": "Rust's convention is per-module test submodules: a `mod tests` block inside each source file with `#[cfg(test)]` so it compiles only under `cargo test`. Each test function is marked `#[test]`. The integration-test variant in `tests/` exists too but is for testing the public API across multiple modules; per-module unit tests stay close to the code they exercise."
+    }
+  ]
+}

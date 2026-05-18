@@ -320,6 +320,312 @@ a:hover {
   text-align: right;
 }
 
+/* Quiz layout (used by /quiz/{category}/ pages). */
+
+.quiz-root {
+  margin-top: 1rem;
+}
+
+.quiz-progress {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.quiz-prompt {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.quiz-prompt code {
+  background: rgba(74, 158, 255, 0.1);
+  color: var(--accent-blue);
+  padding: 0.07rem 0.32rem;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.86em;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.quiz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  text-align: left;
+  background: var(--bg-page);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-base);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.quiz-option:not(:disabled):hover {
+  border-color: var(--accent-blue);
+}
+
+.quiz-option.selected {
+  border-color: var(--accent-blue);
+  background: rgba(74, 158, 255, 0.05);
+}
+
+.quiz-option.revealed {
+  cursor: default;
+}
+
+.quiz-option.correct {
+  border-color: var(--accent-green);
+  background: rgba(46, 204, 113, 0.06);
+}
+
+.quiz-option.incorrect {
+  border-color: var(--accent-coral);
+  background: rgba(216, 90, 48, 0.06);
+}
+
+.quiz-option-letter {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quiz-option.correct .quiz-option-letter {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: var(--bg-page);
+}
+
+.quiz-option.incorrect .quiz-option-letter {
+  background: var(--accent-coral);
+  border-color: var(--accent-coral);
+  color: var(--bg-page);
+}
+
+.quiz-option-text {
+  flex: 1 1 auto;
+  line-height: 1.5;
+}
+
+.quiz-option-text code {
+  background: rgba(74, 158, 255, 0.1);
+  color: var(--accent-blue);
+  padding: 0.05rem 0.28rem;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.86em;
+}
+
+.quiz-explanation {
+  padding: 1rem 1.1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  border-left: 3px solid var(--accent-blue);
+  background: var(--bg-page);
+}
+
+.quiz-explanation.correct {
+  border-left-color: var(--accent-green);
+}
+
+.quiz-explanation.incorrect {
+  border-left-color: var(--accent-coral);
+}
+
+.quiz-explanation-badge {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  color: var(--accent-blue);
+}
+
+.quiz-explanation.correct .quiz-explanation-badge {
+  color: var(--accent-green);
+}
+
+.quiz-explanation.incorrect .quiz-explanation-badge {
+  color: var(--accent-coral);
+}
+
+.quiz-explanation p {
+  margin: 0 0 0.6rem;
+  color: var(--text-primary);
+}
+
+.quiz-explanation p:last-child {
+  margin-bottom: 0;
+}
+
+.quiz-explanation-link {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.quiz-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.quiz-next {
+  background: transparent;
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue);
+  border-radius: 3px;
+  padding: 0.55rem 1.1rem;
+  font-family: var(--font-base);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.quiz-next:hover {
+  background: var(--accent-blue);
+  color: var(--bg-page);
+}
+
+.quiz-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.quiz-summary-score {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.quiz-summary-score-headline {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.quiz-summary-score-pct {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz-summary-blurb {
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.quiz-summary h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  margin: 0 0 0.85rem;
+}
+
+.quiz-recap {
+  padding-left: 1.4rem;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.quiz-recap-item {
+  padding: 0.7rem 0.85rem;
+  border-radius: 4px;
+  border-left: 2px solid var(--bg-card-border);
+  background: var(--bg-page);
+}
+
+.quiz-recap-item.correct {
+  border-left-color: var(--accent-green);
+}
+
+.quiz-recap-item.incorrect {
+  border-left-color: var(--accent-coral);
+}
+
+.quiz-recap-prompt {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.quiz-recap-answer {
+  font-size: 0.85rem;
+  color: var(--accent-green);
+}
+
+.quiz-recap-answer-wrong {
+  font-size: 0.85rem;
+  color: var(--accent-coral);
+  margin-bottom: 0.2rem;
+}
+
+.quiz-summary-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.quiz-restart {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 3px;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-base);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.quiz-restart:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
 .hero h1 {
   font-size: 2rem;
   line-height: 1.25;

@@ -1,0 +1,92 @@
+{
+  "slug": "this-sites-rust",
+  "title": "This site's Rust",
+  "description": "Specific to the code in crates/backtest-core/. If you've read the source, you'll recognize every answer.",
+  "questions": [
+    {
+      "id": "tsr-1-no-lookahead",
+      "prompt": "Where is the no-lookahead guarantee enforced in this site's backtest engine?",
+      "options": [
+        "Inside each individual strategy's `positions` function.",
+        "Inside `apply_positions_to_bars`, which lags the position vector by one bar before computing realized returns.",
+        "Inside the JS dispatcher, which validates the date range before calling the WASM.",
+        "Inside Supabase, via a row-level security policy on `daily_eod`."
+      ],
+      "correctIndex": 1,
+      "explanation": "The lag is centralized in apply_positions_to_bars: realized return at bar i uses positions[i-1] times (close[i]/close[i-1] - 1). Individual strategies never compute realized returns themselves, so they cannot accidentally use future information. This is the kind of invariant best enforced at the engine layer rather than asked of every caller.",
+      "linkTo": "/learn/this-sites-rust/"
+    },
+    {
+      "id": "tsr-2-wasm-opt",
+      "prompt": "Cargo.toml declares `[package.metadata.wasm-pack.profile.release] wasm-opt = false`. Why?",
+      "options": [
+        "Because wasm-opt is broken on macOS.",
+        "Because the optimizer would strip the serde derives needed for the WASM bridge.",
+        "Because wasm-pack 0.13 bundles a binaryen too old to handle the bulk-memory and i64.trunc_sat_f64_s ops rustc 1.95 emits.",
+        "Because Netlify charges per byte of WASM in the function bundle."
+      ],
+      "correctIndex": 2,
+      "explanation": "Newer rustc emits WASM ops that older binaryen versions don't understand. wasm-pack 0.13 bundles a fixed binaryen that pre-dates these ops, so wasm-opt fails. Disabling it skips the optimizer pass; the size cost is negligible because the [profile.release] lto + opt-level=s + strip already do most of the size work."
+    },
+    {
+      "id": "tsr-3-spx-projection",
+      "prompt": "When the backtest function fetches SPX bars, it projects the close into all four OHLC fields. Why?",
+      "options": [
+        "Because the WASM module rejects rows where high == low.",
+        "Because `daily_volatility_stats` only stores SPX close (no open/high/low) and the projection avoids special-casing SPX inside the strategy code.",
+        "Because SPX is computed as the mid-price of all 500 S&P constituents.",
+        "Because Supabase requires all four OHLC fields to be non-null."
+      ],
+      "correctIndex": 1,
+      "explanation": "daily_volatility_stats only carries `close` for SPX. Projecting close into open/high/low keeps the DailyBar struct uniform so strategies don't need to branch on the symbol. The trade-off: any strategy that depends on intraday range (like the breakout strategy's rolling-high) degrades to a close-only signal on SPX."
+    },
+    {
+      "id": "tsr-4-rate-limit",
+      "prompt": "The rate limiter uses a rolling window keyed off the first call rather than fixed clock boundaries. What attack does this prevent?",
+      "options": [
+        "Timing-side-channel exfiltration of the secret key.",
+        "Replay attacks where a captured response is sent back to the user.",
+        "Boundary-spike abuse where a caller bursts at :59 and again at :00 to double their hourly quota.",
+        "Cross-IP coordination where multiple IPs each pretend to be the same user."
+      ],
+      "correctIndex": 2,
+      "explanation": "A fixed-clock hourly limit (resets at the top of every hour) lets a caller make their full hour's allowance at :59 and immediately get a fresh allowance at :00. A rolling window starting on the first call inside it means the second call is in the same window until 60 minutes after the first call, regardless of clock position."
+    },
+    {
+      "id": "tsr-5-content-hash",
+      "prompt": "The dispatcher computes `sha256(canonical_json(inputs))` and uses it as the cache key. What does `canonical_json` add over `JSON.stringify(inputs)`?",
+      "options": [
+        "Pretty-printing for human readability.",
+        "Stable key ordering so semantically identical objects produce identical hashes.",
+        "Stripping of comments and whitespace.",
+        "Schema validation against a stored backtest-request type."
+      ],
+      "correctIndex": 1,
+      "explanation": "JSON.stringify preserves the key order from the input object, so `{a:1, b:2}` and `{b:2, a:1}` produce different strings. Canonical JSON sorts keys alphabetically before stringifying, so semantically identical objects produce bitwise-identical strings, which means identical sha256 hashes, which means the cache hits properly on re-runs."
+    },
+    {
+      "id": "tsr-6-included-files",
+      "prompt": "netlify.toml declares `included_files = [\"pkg/**\"]` for the backtest-background function. Why is this necessary?",
+      "options": [
+        "Because Netlify caches function bundles separately from static assets.",
+        "Because wasm-pack writes pkg/ to a path outside the function's directory.",
+        "Because the wasm-pack JS glue does a runtime `fs.readFileSync` on the sibling .wasm file, a runtime path the bundler cannot statically trace.",
+        "Because pkg/ contains TypeScript declarations the bundler would otherwise ignore."
+      ],
+      "correctIndex": 2,
+      "explanation": "Netlify's esbuild bundler traces static imports to figure out what to ship. The wasm-pack output uses `require('fs').readFileSync` at module-load time with a path built from `__dirname`; that's runtime code the bundler can't analyze. `included_files` explicitly tells the bundler to ship the .wasm alongside the .js so the readFileSync finds it at runtime."
+    },
+    {
+      "id": "tsr-7-rolling-mean",
+      "prompt": "`sma_crossover::rolling_mean` uses a sliding-window sum (`sum += new; if i >= n { sum -= old; }`) instead of recomputing the mean from scratch each step. What's the algorithmic improvement?",
+      "options": [
+        "O(n*w) drops to O(n) where w is the window size.",
+        "O(n^2) drops to O(n*log n).",
+        "O(n*w) drops to O(n*w/2) by sharing work between fast and slow windows.",
+        "There's no improvement; the sliding-window form is just stylistically preferred."
+      ],
+      "correctIndex": 0,
+      "explanation": "Recomputing the mean over w bars at each of n positions is O(n*w). Sliding the window does O(1) work per position (one add, one subtract), so the total is O(n). For a 50-bar SMA over 1000 bars, that's 50,000 ops vs 1,000 ops; the difference is what makes parameter-sweep backtests cheap to run."
+    }
+  ]
+}

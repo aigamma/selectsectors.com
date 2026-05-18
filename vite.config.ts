@@ -33,6 +33,13 @@ export default defineConfig({
           __dirname,
           'learn/this-sites-rust/index.html'
         ),
+        quiz: resolve(__dirname, 'quiz/index.html'),
+        quizRustBasics: resolve(__dirname, 'quiz/rust-basics/index.html'),
+        quizThisSitesRust: resolve(
+          __dirname,
+          'quiz/this-sites-rust/index.html'
+        ),
+        quizQuantFinance: resolve(__dirname, 'quiz/quant-finance/index.html'),
         notFound: resolve(__dirname, '404.html'),
       },
     },
