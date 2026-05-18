@@ -18,6 +18,24 @@
   box-sizing: border-box;
 }
 
+/* Smooth-scroll for in-page anchor navigation (skip-to-main-content
+   link, changelog #v0-1-X anchor links, future anchors). The
+   prefers-reduced-motion query opts out for users with vestibular
+   sensitivity; their links jump immediately rather than animate.
+   The iter-113 universe click-to-prefill and the form's
+   scrollIntoView({behavior: 'smooth'}) already do per-call smooth
+   scrolling for their specific events; this rule adds the same
+   smoothness to native anchor navigation. */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 html, body {
   margin: 0;
   padding: 0;
