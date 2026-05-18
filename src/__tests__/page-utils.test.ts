@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { escapeHtml } from '../page-utils.ts';
+import { escapeHtml, formatTimeUntilReset } from '../page-utils.ts';
+import type { RateLimitInfo } from '../page-utils.ts';
 
 // page-utils is mostly DOM-coupled (setStatus, renderRateBanner,
 // populateSymbolGroup all touch document). The escapeHtml function
@@ -38,5 +39,62 @@ describe('escapeHtml', () => {
 
   it('handles the empty string', () => {
     expect(escapeHtml('')).toBe('');
+  });
+});
+
+describe('formatTimeUntilReset', () => {
+  // The function reads Date.now() each call. Each test builds a
+  // RateLimitInfo whose resetAt is `Date.now() + offsetMs` so the
+  // offset is the meaningful quantity regardless of when the test
+  // happens to run.
+  function makeInfo(hourOffsetMs: number, dayOffsetMs: number): RateLimitInfo {
+    const now = Date.now();
+    return {
+      hourly: { limit: 2, used: 2, remaining: 0, resetAt: now + hourOffsetMs },
+      daily: { limit: 5, used: 5, remaining: 0, resetAt: now + dayOffsetMs },
+    };
+  }
+
+  it('formats sub-hour resets as minutes', () => {
+    // 23 minutes from now, hour window.
+    const info = makeInfo(23 * 60_000, 24 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'hour')).toBe('in 23 min');
+  });
+
+  it('rounds up partial minutes', () => {
+    // 12.5 minutes from now -> ceil to 13.
+    const info = makeInfo(12.5 * 60_000, 24 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'hour')).toBe('in 13 min');
+  });
+
+  it('returns "in 0 min" when the reset is already in the past', () => {
+    // Resets 5 minutes ago; the Math.max(0, ...) clamp produces 0.
+    const info = makeInfo(-5 * 60_000, 24 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'hour')).toBe('in 0 min');
+  });
+
+  it('formats whole-hour resets without the minutes suffix', () => {
+    // Exactly 3 hours from now, day window.
+    const info = makeInfo(60_000, 3 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'day')).toBe('in 3 hr');
+  });
+
+  it('formats hour+minute resets with both components', () => {
+    // 5 hours 12 minutes from now.
+    const info = makeInfo(60_000, (5 * 60 + 12) * 60_000);
+    expect(formatTimeUntilReset(info, 'day')).toBe('in 5 hr 12 min');
+  });
+
+  it('formats day-scale resets as "in N days"', () => {
+    // 2 days from now, day window.
+    const info = makeInfo(60_000, 2 * 24 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'day')).toBe('in 2 days');
+  });
+
+  it('uses singular "in 1 day" when exactly 24 hours', () => {
+    // Exactly 1 day; the function checks `days === 1` for the
+    // singular form.
+    const info = makeInfo(60_000, 24 * 60 * 60_000);
+    expect(formatTimeUntilReset(info, 'day')).toBe('in 1 day');
   });
 });

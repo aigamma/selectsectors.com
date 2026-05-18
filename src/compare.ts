@@ -3,6 +3,7 @@ import { mountSiteShell } from './layout.ts';
 import {
   copyShareLink,
   escapeHtml,
+  formatTimeUntilReset,
   loadRateStatus,
   populateSymbolGroup,
   renderRateBanner,
@@ -119,12 +120,10 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     onRateLimits: showRateBanner,
     onStatus: setStatus,
     onResult: (result) => renderResult(result),
-    onRateExceeded: (reason) => {
+    onRateExceeded: (reason, info) => {
       const which = reason === 'hour-exceeded' ? 'hour' : 'day';
-      setStatus(
-        `rate limit exceeded for this ${which}; retry after the banner resets`,
-        'error'
-      );
+      const reset = info ? `; resets ${formatTimeUntilReset(info, which)}` : '';
+      setStatus(`rate limit exceeded for this ${which}${reset}`, 'error');
     },
     onError: (message) => setStatus(`error: ${message}`, 'error'),
   });

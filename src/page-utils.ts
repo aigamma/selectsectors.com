@@ -141,6 +141,26 @@ export function renderRateBannerLoadError(elementId: string): void {
     'Rate counters unavailable; try a backtest and the response will show your current state.';
 }
 
+/** Format the time-until-reset as a human-readable string ("in 23
+ *  min", "in 5 hr 12 min", "in 2 days"). Used in the rate-limit
+ *  error message on backtest dispatches so the user sees the actual
+ *  retry-after time rather than just "retry later". The window
+ *  parameter selects which window's resetAt to use. */
+export function formatTimeUntilReset(
+  info: RateLimitInfo,
+  window: 'hour' | 'day'
+): string {
+  const resetAt = window === 'hour' ? info.hourly.resetAt : info.daily.resetAt;
+  const ms = Math.max(0, resetAt - Date.now());
+  const totalMin = Math.ceil(ms / 60_000);
+  if (totalMin < 60) return `in ${totalMin} min`;
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  if (hours < 24) return mins === 0 ? `in ${hours} hr` : `in ${hours} hr ${mins} min`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'in 1 day' : `in ${days} days`;
+}
+
 /** Populate an <optgroup> with one <option> per symbol. The element
  *  ID is for the optgroup itself (not its parent select). */
 export function populateSymbolGroup(elementId: string, items: string[]): void {
