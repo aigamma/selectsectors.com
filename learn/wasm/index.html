@@ -263,6 +263,53 @@ pub fn run_backtest(input: JsValue) -&gt; Result&lt;JsValue, JsValue&gt; {
           any other CommonJS module.
         </div>
 
+        <h2>What's next</h2>
+        <p>
+          You've walked through the Rust patterns this site uses,
+          from ownership through enums through error handling to
+          WASM. The natural next steps depend on what you want to
+          do with the material:
+        </p>
+        <ul>
+          <li>
+            <strong>Test what you learned.</strong> The
+            <a href="/quiz/rust-intermediate/">Rust intermediate</a>
+            and <a href="/quiz/wasm-internals/">WebAssembly
+            internals</a> quizzes build on this lesson directly.
+            Progress is saved in localStorage so you can come back
+            later.
+          </li>
+          <li>
+            <strong>See the patterns in action.</strong> The
+            <a href="/strategies/">strategy explainer pages</a>
+            each show the actual Rust source for one strategy
+            alongside the intuition and math. Bollinger Bands +
+            RSI mean reversion are the most code-heavy if you want
+            a longer read.
+          </li>
+          <li>
+            <strong>Step back to the larger context.</strong> The
+            <a href="/philosophy/">philosophy primers</a> cover
+            why backtest at all, what makes a result honest, and
+            how survivorship + lookahead + regime risk shape what
+            a backtest can and cannot tell you.
+          </li>
+          <li>
+            <strong>Run a backtest.</strong> The
+            <a href="/">homepage backtester</a> runs any of the
+            six strategies on any of the 23 symbols. Rate-limited
+            to two backtests per hour to keep the public cost
+            sustainable, but cache hits on identical re-runs are
+            free.
+          </li>
+          <li>
+            <strong>Read the source.</strong> The full Rust crate
+            is at
+            <a href="https://github.com/aigamma/selectsectors.com/tree/main/crates/backtest-core">github.com/aigamma/selectsectors.com</a>.
+            MIT-licensed. Pull requests welcome.
+          </li>
+        </ul>
+
         <nav class="lesson-nav">
           <div class="lesson-nav-prev">
             <a href="/learn/error-handling/">&larr; Error handling</a>
