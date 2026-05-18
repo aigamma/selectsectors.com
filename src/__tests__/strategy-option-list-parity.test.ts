@@ -42,9 +42,16 @@ const FORMS: FormSource[] = [
   { label: 'scan/index.html scan strategy <select>', file: 'scan/index.html', selectId: 'strategy' },
 ];
 
-function extractStrategyOptions(html: string, selectId: string): string[] {
+interface OptionPair {
+  value: string;
+  label: string;
+}
+
+function extractStrategyOptions(html: string, selectId: string): OptionPair[] {
   // Match <select id="<id>" ...> then capture everything until the
-  // closing </select>. Then extract every <option value="..."> within.
+  // closing </select>. Then extract every <option value="...">LABEL</option>
+  // within, returning the value/label pair so the test can pin
+  // both the wire-format value and the user-facing label.
   const selectRe = new RegExp(
     `<select\\s+id="${selectId}"[^>]*>([\\s\\S]*?)<\\/select>`,
     'i'
@@ -52,13 +59,13 @@ function extractStrategyOptions(html: string, selectId: string): string[] {
   const m = html.match(selectRe);
   if (!m) return [];
   const block = m[1];
-  const valueRe = /<option\s+value="([^"]+)"/gi;
-  const out: string[] = [];
+  const optionRe = /<option\s+value="([^"]+)"[^>]*>([^<]*)<\/option>/gi;
+  const out: OptionPair[] = [];
   let vm: RegExpExecArray | null;
-  while ((vm = valueRe.exec(block)) !== null) {
+  while ((vm = optionRe.exec(block)) !== null) {
     // Skip the placeholder option (value=""), if any.
     if (vm[1] === '') continue;
-    out.push(vm[1]);
+    out.push({ value: vm[1], label: vm[2].trim() });
   }
   return out;
 }
@@ -69,7 +76,7 @@ for (const form of FORMS) {
   describe(`${form.label} parity with STRATEGY_SPECS`, () => {
     const html = readFileSync(resolve(ROOT, form.file), 'utf8');
     const options = extractStrategyOptions(html, form.selectId);
-    const optionSet = new Set(options);
+    const optionByValue = new Map(options.map((o) => [o.value, o]));
 
     it(`form has at least 4 strategy <option> entries`, () => {
       expect(options.length).toBeGreaterThanOrEqual(4);
@@ -79,19 +86,32 @@ for (const form of FORMS) {
       'STRATEGY_SPECS key "%s" has a matching <option> in the form',
       (name) => {
         expect(
-          optionSet.has(name),
+          optionByValue.has(name),
           `STRATEGY_SPECS has "${name}" but ${form.file} has no <option value="${name}"> in its <select id="${form.selectId}">. Add the option so the strategy is selectable.`
         ).toBe(true);
       }
     );
 
-    it.each(options.map((o) => [o]))(
+    it.each(options.map((o) => [o.value]))(
       'form <option value="%s"> has a matching STRATEGY_SPECS entry',
-      (name) => {
+      (value) => {
         expect(
-          name in STRATEGY_SPECS,
-          `${form.file} has <option value="${name}"> but STRATEGY_SPECS has no entry for it. Remove the option or add the spec.`
+          value in STRATEGY_SPECS,
+          `${form.file} has <option value="${value}"> but STRATEGY_SPECS has no entry for it. Remove the option or add the spec.`
         ).toBe(true);
+      }
+    );
+
+    it.each(strategyNames)(
+      'form <option label for "%s" matches STRATEGY_SPECS.name',
+      (name) => {
+        const option = optionByValue.get(name);
+        if (!option) return; // covered by the forward-presence test above
+        const expectedLabel = STRATEGY_SPECS[name].name;
+        expect(
+          option.label,
+          `${form.file} has <option value="${name}">${option.label}</option> but STRATEGY_SPECS["${name}"].name is "${expectedLabel}". Update one or the other so the user sees the same name in the dropdown and on the explainer/catalog page.`
+        ).toBe(expectedLabel);
       }
     );
   });
