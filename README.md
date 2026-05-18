@@ -46,11 +46,33 @@ Pre-1.0 scaffold. The repo is greenfield as of 2026-05-17.
   Options-chain data is out of scope for the public site (it lives
   only in the desktop backtester behind the user's own Massive
   Options Developer key).
-- **Rate limiting.** Per-IP per-minute counter in Netlify Blobs, same
-  shape as the aigamma.com `check_rate_limit()` RPC but blob-backed
-  rather than Postgres-backed since the limit traffic doesn't need
-  durable persistence. Backtest endpoint capped at 3/min/IP; the
-  universe and health endpoints uncapped.
+- **Rate limiting.** Per-IP counter in Netlify Blobs. Two rolling
+  windows enforced together: 2 backtests/hour AND 5 backtests/day
+  (whichever bites first). Universe and health endpoints uncapped.
+  The synchronous dispatcher at `/api/backtest` checks both windows
+  atomically before firing the background function; the read-only
+  `/api/rate-status` endpoint lets the frontend render a "you have
+  N left" banner without consuming a slot.
+
+## EOD depth
+
+The site reads daily bars from the same Supabase tables the desktop
+`aigamma-backtester` uses, so the public-web history matches the
+local-desktop history one-for-one with one outstanding gap:
+
+| Series                           | Source                       | Range                        |
+| -------------------------------- | ---------------------------- | ---------------------------- |
+| SPX close                        | `daily_volatility_stats`     | 2022-01-03 to present        |
+| SPX 30-minute bars               | `spx_intraday_bars`          | 2022 onwards (intraday)      |
+| 11 SPDR sectors + 11 anchors EOD | `daily_eod`                  | 2024-04-25 to present        |
+
+The `daily_eod` table starts ~2 years back; the desktop app's
+`stocks_history.duckdb` runs from 2022-01-03. Closing that depth
+gap requires re-running `scripts/backfill/daily-eod.mjs` (in the
+aigamma.com repo) against Massive Stocks Starter from 2022-01-03
+to 2024-04-25 for the 22 stock/ETF symbols. That backfill is a
+separately authorized operation since it does cost real Massive
+API calls.
 
 ## Universe
 
@@ -93,10 +115,14 @@ shared library), but diverge on the data plane and the agent loop.
 │   └── style.css
 ├── netlify/
 │   └── functions/             TypeScript serverless + background functions
-│       ├── health.mts
-│       ├── universe.mts
-│       ├── result.mts
-│       └── backtest-background.mts
+│       ├── _lib/
+│       │   └── rate-limit.mts      Netlify Blobs rate-limit helper
+│       ├── health.mts              GET /api/health
+│       ├── universe.mts            GET /api/universe
+│       ├── rate-status.mts         GET /api/rate-status (read-only)
+│       ├── backtest.mts            POST /api/backtest (rate-limited dispatch)
+│       ├── result.mts              GET /api/result?hash=
+│       └── backtest-background.mts 15-minute wall-clock worker
 ├── crates/
 │   └── backtest-core/         Rust → WASM
 │       ├── Cargo.toml

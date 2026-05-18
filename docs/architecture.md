@@ -64,17 +64,45 @@
    frontend builds the JSON request body.
 2. Frontend POSTs to `/api/backtest`. That serverless function:
    - Validates the request shape.
-   - Checks the per-IP rate limit in Netlify Blobs (3 backtests/min/IP).
    - Computes `sha256(canonical_json(inputs))` as the cache key.
    - If a blob already exists at `backtest-results/{hash}`, returns
-     `{ status: 'ready', hash, result }` immediately.
-   - Otherwise, returns `{ status: 'queued', hash }` and fires the
-     `backtest-background` function with the request body.
+     `{ status: 'ready', hash, cached: true, result }` immediately.
+     Cache hits bypass the rate limit on the principle that a
+     deterministic re-run of an already-completed backtest costs
+     nothing on the backend.
+   - Otherwise, atomically consumes one slot from each rate-limit
+     window (2/hour and 5/day per IP). If either window is exhausted,
+     returns `429 Too Many Requests` with a `Retry-After` header
+     and the current counters in the body.
+   - Fires the `backtest-background` function with the request body
+     and returns `202 Accepted` with `{ status: 'queued', hash,
+     rateLimits }`.
 3. Frontend polls `/api/result?hash=...` every 1-2 seconds.
 4. When the background function finishes, it writes the result blob
    and the next poll returns `{ status: 'ready', hash, result }`.
 5. Frontend renders the result (P&L curve, Sharpe, drawdown, hit
    rate).
+
+### Rate limit
+
+Two rolling windows enforced together, both per-IP:
+
+- **Hourly.** 2 backtests in any 60-minute window. Window starts on
+  the first call and resets 60 minutes later, not at the top of the
+  clock hour. This prevents the boundary-spike attack where a caller
+  bursts at :59 and again at :00.
+- **Daily.** 5 backtests in any 24-hour window. Same rolling logic.
+
+Both apply simultaneously; whichever exhausts first wins. The
+counters live in the `rate-limit` Netlify Blob store keyed by IP.
+Reads and writes are atomic at the blob level, which is sufficient
+for the load profile (each backtest is expected to take seconds to
+minutes, so concurrent requests from a single IP are vanishingly
+rare in practice).
+
+The read-only `/api/rate-status` endpoint returns the current
+counters without consuming a slot, so the frontend can render a
+"you have 2 backtests left this hour" banner on page load.
 
 ### Daily data refresh
 
