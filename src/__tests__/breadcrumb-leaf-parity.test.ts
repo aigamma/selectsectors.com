@@ -63,6 +63,18 @@ function extractNavLabelForHref(layoutSource: string, hrefPrefix: string): strin
   return m ? m[1] : null;
 }
 
+function extractJsonLdBreadcrumbItemUrl(pageHtml: string, position: number): string | null {
+  // Match the `"item": "<url>"` field that appears alongside the
+  // given position in a ListItem. Tolerant of pretty-printed vs
+  // compact JSON; the `\s*` allows any whitespace and the regex
+  // looks for the structure "position": N, ..., "item": "URL".
+  const re = new RegExp(
+    `"position"\\s*:\\s*${position}\\s*,[\\s\\S]*?"item"\\s*:\\s*"([^"]+)"`
+  );
+  const m = pageHtml.match(re);
+  return m ? m[1] : null;
+}
+
 function extractJsonLdBreadcrumbItemName(pageHtml: string, position: number): string | null {
   // The page's BreadcrumbList JSON-LD has three items: position 1
   // is "Home", position 2 is the section ancestor (e.g.,
@@ -190,6 +202,62 @@ for (const section of SECTIONS) {
           ancestor,
           `JSON-LD BreadcrumbList position-2 name for /${section.label}/${slug}/ is "${ancestor}" but NAV_LINKS uses "${navLabel}" for ${section.hrefPrefix}. The structured-data ancestor should match the visible breadcrumb ancestor, which is pinned to NAV_LINKS.`
         ).toBe(navLabel);
+      }
+    );
+
+    it.each(slugs.map((s) => [s]))(
+      `/${section.label}/%s/ JSON-LD BreadcrumbList position-1 item URL is the site origin`,
+      (slug) => {
+        const pagePath = resolve(ROOT, section.dir, slug, 'index.html');
+        const pageHtml = readFileSync(pagePath, 'utf8');
+        const url = extractJsonLdBreadcrumbItemUrl(pageHtml, 1);
+        expect(
+          url,
+          `${section.dir}/${slug}/index.html has no BreadcrumbList JSON-LD item with position 1`
+        ).not.toBeNull();
+        if (!url) return;
+        expect(
+          url,
+          `JSON-LD BreadcrumbList position-1 URL for /${section.label}/${slug}/ is "${url}" but should be "https://selectsectors.com/" (the site origin root).`
+        ).toBe('https://selectsectors.com/');
+      }
+    );
+
+    it.each(slugs.map((s) => [s]))(
+      `/${section.label}/%s/ JSON-LD BreadcrumbList position-2 item URL is the section root`,
+      (slug) => {
+        const pagePath = resolve(ROOT, section.dir, slug, 'index.html');
+        const pageHtml = readFileSync(pagePath, 'utf8');
+        const url = extractJsonLdBreadcrumbItemUrl(pageHtml, 2);
+        expect(
+          url,
+          `${section.dir}/${slug}/index.html has no BreadcrumbList JSON-LD item with position 2`
+        ).not.toBeNull();
+        if (!url) return;
+        const expected = `https://selectsectors.com${section.hrefPrefix}`;
+        expect(
+          url,
+          `JSON-LD BreadcrumbList position-2 URL for /${section.label}/${slug}/ is "${url}" but should be "${expected}" (the section root).`
+        ).toBe(expected);
+      }
+    );
+
+    it.each(slugs.map((s) => [s]))(
+      `/${section.label}/%s/ JSON-LD BreadcrumbList position-3 item URL is the page canonical URL`,
+      (slug) => {
+        const pagePath = resolve(ROOT, section.dir, slug, 'index.html');
+        const pageHtml = readFileSync(pagePath, 'utf8');
+        const url = extractJsonLdBreadcrumbItemUrl(pageHtml, 3);
+        expect(
+          url,
+          `${section.dir}/${slug}/index.html has no BreadcrumbList JSON-LD item with position 3`
+        ).not.toBeNull();
+        if (!url) return;
+        const expected = `https://selectsectors.com${section.hrefPrefix}${slug}/`;
+        expect(
+          url,
+          `JSON-LD BreadcrumbList position-3 URL for /${section.label}/${slug}/ is "${url}" but should be "${expected}" (the page's canonical URL).`
+        ).toBe(expected);
       }
     );
 
