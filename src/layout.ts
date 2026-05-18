@@ -28,7 +28,14 @@
 
 import { initChat } from './chat.ts';
 
-type ActivePage = 'home' | 'learn' | 'quiz' | 'strategies' | 'philosophy' | 'none';
+type ActivePage =
+  | 'home'
+  | 'learn'
+  | 'quiz'
+  | 'strategies'
+  | 'compare'
+  | 'philosophy'
+  | 'none';
 
 interface NavLink {
   href: string;
@@ -38,9 +45,10 @@ interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   { href: '/', label: 'Backtest', page: 'home' },
+  { href: '/compare/', label: 'Compare', page: 'compare' },
+  { href: '/strategies/', label: 'Strategies', page: 'strategies' },
   { href: '/learn/', label: 'Learn Rust', page: 'learn' },
   { href: '/quiz/', label: 'Quiz', page: 'quiz' },
-  { href: '/strategies/', label: 'Strategies', page: 'strategies' },
   { href: '/philosophy/', label: 'Philosophy', page: 'philosophy' },
 ];
 
@@ -69,9 +77,10 @@ function headerHtml(active: ActivePage): string {
     return `<a class="${cls}" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`;
   }).join('');
   return `
+    <a class="skip-to-main" href="#main-content">Skip to main content</a>
     <header class="page-header">
       <a class="brand" href="/">Select Sectors</a>
-      <nav class="top-nav">
+      <nav class="top-nav" aria-label="Primary">
         ${navHtml}
         <a href="https://aigamma.com" class="external-nav">AI Gamma</a>
       </nav>

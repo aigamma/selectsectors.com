@@ -1074,6 +1074,33 @@ a:hover {
   border: 0;
 }
 
+/* Skip-to-content link. Hidden until focused; jumps the user past
+   the header and nav to the main content. Standard a11y pattern;
+   keyboard users hit Tab once on page load and see the link, then
+   Enter to skip.  */
+
+.skip-to-main {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  background: var(--accent-blue);
+  color: var(--bg-page);
+  padding: 0.55rem 0.95rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 200;
+  transition: top 0.12s ease;
+}
+
+.skip-to-main:focus {
+  top: 0.5rem;
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
 .chat-root {
   position: fixed;
   right: 1.25rem;

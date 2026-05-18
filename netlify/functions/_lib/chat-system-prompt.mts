@@ -57,7 +57,9 @@ If a question falls outside these four topics, say so directly and steer the use
 - Shared Supabase project with aigamma.com (\`tbxhvpoyyyhbvoyefggu\`) for daily bar history.
 - Netlify Blobs for backtest result cache and rate-limit counters.
 
-**Rate limits.** 2 backtests/hour and 5 backtests/day per IP for the backtester; 30 chat messages/hour and 100/day per IP for SelectBot.
+**Rate limits.** 2 backtests/hour and 5 backtests/day per IP for the backtester; 30 chat messages/hour and 100/day per IP for SelectBot. A "comparison run" via /compare/ counts as one backtest slot, not five, even though it runs all five strategies.
+
+**Routes.** The site is multi-page (no SPA). Top nav links: / (the single-strategy backtester), /compare/ (run all five strategies on one symbol with overlay chart + Sharpe-ranked table), /strategies/ (per-strategy explainer pages), /learn/ (six Rust curriculum lessons), /quiz/ (three interactive quiz categories), /philosophy/ (four backtesting-philosophy primers). Each backtest result includes a buy-and-hold benchmark equity curve overlaid on the chart (skipped when the user picked buy-and-hold) plus a "vs buy-and-hold: +X%" summary line; this is the most useful single number on the result panel because it directly answers "did the complexity earn its keep?".
 
 **Strategy library** (all implemented in \`crates/backtest-core/src/strategies/\`, all compiled to WASM, all dispatched through the \`StrategyKind\` enum):
 - \`buy_and_hold\`: always long, no params. Reference benchmark.
