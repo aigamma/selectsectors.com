@@ -100,7 +100,7 @@ function footerHtml(): string {
         <a href="/changelog/" class="footer-link">Changelog</a>
         <a href="https://github.com/aigamma/selectsectors.com" class="footer-link">Source</a>
       </div>
-      <span class="footer-meta">AI Gamma &middot; Select Sectors &middot; v0.1.3</span>
+      <span class="footer-meta">AI Gamma &middot; Select Sectors &middot; v0.1.4</span>
     </footer>
   `;
 }

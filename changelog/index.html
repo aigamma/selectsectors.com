@@ -30,10 +30,72 @@
         <h1>What's new.</h1>
         <p class="lesson-lede">
           Reverse-chronological log of what shipped on each release.
-          Versions follow semver; the site is currently v0.1.3 (a
+          Versions follow semver; the site is currently v0.1.4 (a
           stable release, not a stable API since most of the API is
           internal).
         </p>
+
+        <h2 id="v0-1-4">v0.1.4 &middot; 2026-05-18 (still same day)</h2>
+        <p>
+          Post-v0.1.3 stabilization pass with one real bug fix, a
+          slate of error-path UX improvements, and a doubling of the
+          regression-test surface.
+        </p>
+        <ul>
+          <li>
+            <strong>Bug fix.</strong> <code>STRATEGY_SPECS</code> in
+            <code>src/strategy-specs.ts</code> was missing the
+            <code>bollinger_bands</code> entry that landed in v0.1.1.
+            Users picking Bollinger Bands from the homepage or
+            <a href="/scan/">/scan/</a> select saw an empty param
+            form and submit failed server-side with a serde
+            "missing field" error. Now fixed; the per-strategy
+            parity test catches future occurrences.
+          </li>
+          <li>
+            <strong>Error-path UX.</strong> Graceful failure rendering
+            for failed <code>/api/universe</code> and
+            <code>/api/rate-status</code> page-load fetches
+            (previously stuck at "loading..." indefinitely).
+            Rate-limit error messages now name the actual reset time
+            ("resets in 23 min" or "in 5 hr 12 min") rather than
+            telling users to look at the banner. The chat panel
+            preemptively disables send + input when the chat rate
+            limit is exhausted OR when
+            <code>ANTHROPIC_API_KEY</code> is unset on the deploy.
+            Shared URLs with unknown <code>?strategy=</code> or
+            <code>?symbol=</code> values now show a non-blocking
+            warning instead of silently no-opping.
+          </li>
+          <li>
+            <strong>Source-of-truth regression tests.</strong> Test
+            count went 159 to 279 (+120). Nine new parity classes:
+            vite-config-vs-HTML-pages, HTML-script-entries, env-vars-
+            vs-.env.example, frontend STRATEGY_SPECS ↔ backend
+            STRATEGY_DEFAULTS, strategy-specs ↔ explainer pages +
+            catalog rows, quiz catalog (JSON ↔ entry ↔ page ↔ row +
+            self-slug), philosophy + learn catalog rows, Rust Params
+            field names ↔ <code>toStrategyKind</code> wire output,
+            and chat-prompt strategy parity. All tests are discovery-
+            based (<code>readdirSync</code>, <code>Object.keys</code>)
+            so adding a new strategy / quiz / essay auto-extends the
+            test suite without manual edits.
+          </li>
+          <li>
+            <strong>Polish.</strong> Curriculum + philosophy + quiz
+            exits with "What's next" sections at the final lesson +
+            final philosophy essay + every quiz completion. Time-
+            until-reset formatter (in min / hr / day cascading) used
+            site-wide. Hero copy + chat welcome prompts rebalanced.
+            Architecture docs synced to the dual-store rate-limit
+            layout. API docs 503 response shape fixed against the
+            actual chat function. Strategy explainer fact-checks for
+            Bollinger (Wilder/Bollinger author attribution), Turtle
+            Trader (System 1 + System 2 entry rules), and momentum
+            (Jegadeesh-Titman 1993 rather than "oldest documented
+            factor").
+          </li>
+        </ul>
 
         <h2 id="v0-1-3">v0.1.3 &middot; 2026-05-18 (later same day)</h2>
         <p>
