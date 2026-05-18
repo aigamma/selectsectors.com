@@ -230,9 +230,23 @@ function setStreamingButtonState(isStreaming: boolean): void {
   const sendBtn = document.getElementById('chat-send') as HTMLButtonElement | null;
   const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
   const clearBtn = document.getElementById('chat-clear') as HTMLButtonElement | null;
-  if (sendBtn) sendBtn.disabled = isStreaming;
-  if (input) input.disabled = isStreaming;
-  if (clearBtn) clearBtn.disabled = isStreaming;
+  if (isStreaming) {
+    if (sendBtn) sendBtn.disabled = true;
+    if (input) input.disabled = true;
+    if (clearBtn) clearBtn.disabled = true;
+    return;
+  }
+  // Streaming finished. Re-enable, except respect the iter-91
+  // rate-limit-exhausted disable which persists past the streaming
+  // boundary. The dataset.rateLimitDisabled marker tells us whether
+  // the rate-limit-aware code path set the disable, so we know to
+  // leave it in place. The ANTHROPIC_API_KEY case (iter 85) only
+  // fires at panel-open time and gates the user from ever
+  // submitting, so this exit path doesn't reach it.
+  const rateLimitStillActive = input?.dataset.rateLimitDisabled === 'true';
+  if (sendBtn) sendBtn.disabled = rateLimitStillActive;
+  if (input) input.disabled = rateLimitStillActive;
+  if (clearBtn) clearBtn.disabled = false;
 }
 
 function setChatStatus(message: string, kind: 'info' | 'error' = 'info'): void {
