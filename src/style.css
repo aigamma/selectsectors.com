@@ -738,10 +738,22 @@ a:hover {
   font-size: 0.95rem;
 }
 
-/* Other tools section (homepage discovery for /compare/, /scan/, /strategies/). */
+/* Other tools section (homepage discovery for /compare/, /scan/, /strategies/).
+   The .learn-callout section uses the same grid styling but with a
+   different framing headline + lede; both render via .other-tools-grid
+   below. */
 
-.other-tools {
+.other-tools,
+.learn-callout {
   margin: 2.5rem 0;
+}
+
+.learn-callout-lede {
+  margin: 0.5rem 0 1.2rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 60ch;
 }
 
 .other-tools h2 {
