@@ -63,8 +63,8 @@ const MAX_MESSAGE_CHARS = 4000;
 const WELCOME_PROMPTS = [
   'What does the Rust crate actually do?',
   'How does Sharpe ratio work?',
-  'Why daily bars only?',
   'What is the no-lookahead constraint?',
+  'How can a backtest mislead me?',
 ];
 
 let conversation: ChatMessage[] = [];
