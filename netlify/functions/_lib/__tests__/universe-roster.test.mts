@@ -7,6 +7,7 @@ import {
   ALL_SYMBOLS,
 } from '../universe-roster.mts';
 import { CHAT_SYSTEM_PROMPT } from '../chat-system-prompt.mts';
+import { STRATEGY_DEFAULTS } from '../strategy.mts';
 
 // Source-of-truth tests for the shared universe roster. Three claims
 // the rest of the codebase relies on:
@@ -78,5 +79,27 @@ describe('chat system prompt anchor interpolation', () => {
     // one ticker as a sanity check that the category name aligns
     // with the universe.
     expect(CHAT_SYSTEM_PROMPT).toMatch(/SPDR sector/);
+  });
+});
+
+describe('chat system prompt strategy parity', () => {
+  // The chat prompt's "Strategy library" section enumerates every
+  // strategy by its serde snake_case name (buy_and_hold, sma_crossover,
+  // etc) so SelectBot can answer "what strategies does this site have?"
+  // accurately. If a future iteration adds a strategy in Rust + TS
+  // (caught by the rust-ts-parity test) but forgets to update the
+  // chat prompt's grounding text, SelectBot answers from a stale list
+  // and tells users about a smaller catalog than actually exists.
+  //
+  // This test asserts every key in STRATEGY_DEFAULTS appears as a
+  // literal token in CHAT_SYSTEM_PROMPT. The list is small (6 entries
+  // as of v0.1.3) so the failure message naming the missing strategy
+  // is enough to act on.
+  it('mentions every strategy name from STRATEGY_DEFAULTS', () => {
+    const strategyNames = Object.keys(STRATEGY_DEFAULTS);
+    const missing = strategyNames.filter(
+      (name) => !CHAT_SYSTEM_PROMPT.includes(name)
+    );
+    expect(missing, `missing from prompt: ${missing.join(', ')}`).toEqual([]);
   });
 });
