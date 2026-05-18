@@ -29,6 +29,11 @@ interface ProseCheck {
 
 const CHECKS: ProseCheck[] = [
   {
+    slug: 'sma_crossover',
+    file: 'strategies/sma-crossover/index.html',
+    buildPattern: (d) => new RegExp(`Run\\s+SMA\\s+${d.fast}\\/${d.slow}`),
+  },
+  {
     slug: 'momentum',
     file: 'strategies/momentum/index.html',
     buildPattern: (d) => new RegExp(`Run\\s+${d.lookback}-bar\\s+momentum`),
@@ -72,6 +77,39 @@ describe('strategy "Try it" link prose parity with STRATEGY_SPECS defaults', () 
         re.test(html),
         `${check.file} does not contain a "Run ..." link matching ${re.toString()} (defaults: ${JSON.stringify(defaults)}). Update the prose to match the STRATEGY_SPECS defaults.`
       ).toBe(true);
+    }
+  );
+});
+
+describe('strategy "Try it" link ?strategy=<slug> param matches the page slug', () => {
+  // Every /strategies/<kebab>/ explainer's "Try it" link uses
+  // ?strategy=<snake_case_slug>; that slug must kebab-case to the
+  // directory name. The drift this catches: a copy-paste error
+  // where a new strategy's "Try it" link accidentally points at
+  // an old strategy's slug (e.g., the bollinger-bands page links
+  // to ?strategy=rsi_mean_reversion).
+  const strategyNames = Object.keys(STRATEGY_SPECS);
+
+  it.each(strategyNames)(
+    'strategy %s "Try it" link uses the right ?strategy=<slug> param',
+    (name) => {
+      const kebab = name.replace(/_/g, '-');
+      const file = `strategies/${kebab}/index.html`;
+      const html = readFileSync(resolve(ROOT, file), 'utf8');
+      // Capture every ?strategy=<snake> param in the page and
+      // assert all of them name the current page's strategy.
+      const re = /\?strategy=([a-z_]+)\b/g;
+      const matches = [...html.matchAll(re)];
+      expect(
+        matches.length,
+        `${file} has no ?strategy=<slug> link at all; expected at least one "Try it"-style link`
+      ).toBeGreaterThan(0);
+      for (const m of matches) {
+        expect(
+          m[1],
+          `${file} has ?strategy=${m[1]} but the page describes strategy "${name}". The link should reference the same strategy as the explainer.`
+        ).toBe(name);
+      }
     }
   );
 });
