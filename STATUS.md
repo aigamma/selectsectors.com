@@ -24,104 +24,143 @@ inside that loop iteration.
   dependencies. `npm run build:wasm` runs wasm-pack on the Rust
   crate; `npm run build` runs WASM build then Vite production
   build.
-- `tsconfig.json` - strict TypeScript, ES2022 target, includes both
-  `src/` (frontend) and `netlify/` (functions).
+- `tsconfig.json` - strict TypeScript, ES2022 target.
 - `vite.config.ts` - minimal Vite setup, static-only.
-- `index.html` - single-page landing surface with header, universe
-  grid (sectors + anchors columns), backtest form placeholder,
-  footer.
-- `src/main.ts` - frontend entry that fetches `/api/universe` and
-  populates the sector and anchor lists.
-- `src/style.css` - AI Gamma design tokens (dark theme, Calibri,
-  four-color palette) matching the rest of the brand family.
-- `netlify/functions/health.mts` - smoke-test endpoint at `/api/health`.
-- `netlify/functions/universe.mts` - returns the 23-symbol roster.
-- `netlify/functions/result.mts` - polled by the frontend for
-  completed backtest results from the `backtest-results` Blob
-  store.
-- `netlify/functions/backtest-background.mts` - 15-minute wall-clock
-  background function that runs the WASM backtest core and writes
-  the result blob.
-- `netlify/functions/refresh-data-background.mts` - daily EOD
-  refresh that pulls from Massive into Supabase. Stubbed.
-- `netlify/functions/refresh-tick.mts` - scheduled wrapper that
-  fires at 21:30 UTC weekdays and dispatches the background
-  refresh.
-- `crates/backtest-core/Cargo.toml` - Rust crate manifest, configured
-  for wasm-pack output. `opt-level = "s"` for small WASM size.
-- `crates/backtest-core/src/lib.rs` - `run_backtest` entry point
-  exposing the Rust ↔ JS boundary via `serde-wasm-bindgen`. Two
-  unit tests pin `compute_total_return` math on the empty and
-  two-bar cases.
-- `docs/architecture.md` - full architectural reference: request
-  flows for page load, backtest run, and daily refresh; the Rust ↔
-  WASM rationale; the "no React" rationale; data redistribution
-  boundaries (forbidden: raw options chains); future surfaces.
-- `.env.example` - documents the four required env vars
-  (MASSIVE_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY,
-  SUPABASE_ANON_KEY) without committing actual values.
-- `STATUS.md` (this file) - iteration log.
+- `index.html` - single-page landing surface.
+- `src/main.ts`, `src/style.css` - AI Gamma dark-theme frontend.
+- Five Netlify functions: health, universe, result,
+  backtest-background, refresh-data-background, plus a
+  refresh-tick scheduled wrapper.
+- `crates/backtest-core/Cargo.toml`, `src/lib.rs` - Rust crate.
+- `docs/architecture.md`, `.env.example`, `STATUS.md`.
 
-**Decisions made (locked in at scaffold).**
+Committed to `main` and pushed to
+`github.com/aigamma/selectsectors.com` (public).
 
-- **Stack.** Vanilla TypeScript + Vite frontend; Netlify Functions
-  (TypeScript) for serverless + background; Rust crate compiled to
-  WASM for the backtest math; own Supabase project for daily bars.
-- **No React for v1.** The MVP surface is small enough that
-  vanilla TS + DOM API ships under 5 KB and React would add 40 KB
-  for no architectural benefit. Re-evaluate if the surface grows.
-- **Background functions for backtests.** Any backtest that could
-  exceed 26 seconds runs through `backtest-background.mts` and
-  writes a result blob; the frontend polls `/api/result?hash=`.
-- **Netlify Blobs for results, not a Supabase table.** Backtest
-  results are deterministic on inputs, so the natural key is
-  `sha256(canonical_json(inputs))` and the Blob store is the
-  natural fit. Supabase is reserved for time-series.
-- **Rate limit.** 3 backtests/min/IP. Universe and health endpoints
-  uncapped. Counter lives in Netlify Blobs.
-- **Universe pinned at 23 symbols.** SPX + SPY + 11 SPDR sectors +
-  11 anchor single names from the aigamma.com options-volume
-  roster. Same set the desktop backtester uses.
-- **Daily refresh at 21:30 UTC weekdays.** Aligns with the
-  aigamma.com `eod-downsample-background.mjs` cadence so both
-  pipelines see the same trading-day-complete snapshot from
-  Massive's grouped endpoints.
-- **No em dashes.** Site-wide AI Gamma brand convention.
-- **Brand.** "AI Gamma" everywhere; never "AI Gamma LLC."
+---
+
+## 2026-05-17 (later) - Supabase pivot, rate limiter, Netlify project, backtest wiring
+
+**Current task.** Continuing the same /loop session. Three follow-up
+commits landed in this iteration: a Supabase-reuse pivot that dropped
+the redundant per-repo refresh job, a rate-limit infrastructure pass
+adding the dispatcher and read-only-status endpoints, and a
+backtest-background rewrite that actually queries the shared
+Supabase tables for daily bars. The Netlify project was provisioned
+via MCP and bound to the GitHub repo manually (the Netlify MCP does
+not expose a direct repo-link operation).
+
+**What landed.**
+
+- **Supabase pivot** (commit `92d1aac`): CLAUDE.md, README.md,
+  docs/architecture.md, .env.example all updated to point at the
+  existing aigamma.com Supabase (project `tbxhvpoyyyhbvoyefggu`)
+  rather than a dedicated project. The two redundant Netlify
+  functions (`refresh-tick.mts`, `refresh-data-background.mts`)
+  were deleted; aigamma.com's `eod-downsample-background.mjs`
+  pipeline already populates the three tables this site reads
+  (`daily_eod` for the 22 stock/ETF symbols, `daily_volatility_stats`
+  for SPX close, `spx_intraday_bars` for SPX 30-min).
+- **Rate limiter + EOD depth verification** (commit `3bbef1e`):
+  three new function files (`_lib/rate-limit.mts`, `backtest.mts`
+  dispatcher, `rate-status.mts` read-only inspection) implementing
+  the 2-per-hour AND 5-per-day-per-IP caps Eric confirmed in a
+  mid-iteration message. Implementation uses Netlify Blobs with
+  rolling-window resets keyed off the first call in each window
+  (no fixed-clock boundary spike attack possible). The dispatcher
+  short-circuits cache hits without consuming a rate-limit slot
+  on the principle that re-running a deterministic backtest costs
+  nothing on the backend. EOD depth verified by querying the
+  shared Supabase: SPX is fully aligned with the desktop backtester
+  (2022-01-03 onwards in `daily_volatility_stats`); the 22 stock
+  and ETF symbols in `daily_eod` cover only 2024-04-25 onwards
+  (515-516 rows each, ~2 years), shallower than the desktop app's
+  2022-01-03 start in `stocks_history.duckdb`. Closing the gap
+  requires running `scripts/backfill/daily-eod.mjs` from the
+  aigamma.com repo against Massive Stocks Starter; documented as a
+  separately-authorized follow-up since it spends real Massive API
+  quota.
+- **Backtest-background rewrite** (this commit): the function now
+  queries daily_eod / daily_volatility_stats via @supabase/supabase-js,
+  computes a placeholder strategy (buy-and-hold log return + daily
+  equity curve + annualized Sharpe + max drawdown), writes the
+  result blob keyed by sha256 of canonical-JSON inputs. SPX branches
+  to daily_volatility_stats (close-only column projected into all
+  four OHLC fields since the table has no high/low/open). The WASM
+  engine in `crates/backtest-core` is the eventual replacement for
+  the inline TS math but is not wired in yet because the wasm-pack
+  build has not run in this scaffold's local environment.
+- **Netlify project created**: name `selectsectors`, site_id
+  `5ffbfcf0-7aeb-4651-a408-27397bd44348`, team `eric-s0x3fmm`
+  (AI Gamma team), default URL `https://selectsectors.netlify.app`.
+  Environment variables set via MCP:
+  - `SUPABASE_URL` = `https://tbxhvpoyyyhbvoyefggu.supabase.co`
+  - `SUPABASE_ANON_KEY` = `sb_publishable_0ws-L3S4NN9v0LHHYsyEew_4x1Edp_a`
+    (modern publishable key, RLS-gated, marked secret in env)
+
+**Decisions made.**
+
+- **Read-only Supabase access.** The site uses the modern Supabase
+  publishable key (`sb_publishable_...`) rather than the legacy JWT
+  anon key. Reasoning: better security posture, independent rotation,
+  Netlify recommends the modern format. Service-role key is NOT
+  needed because the site does not write to Supabase; daily updates
+  flow through the aigamma.com EOD pipeline.
+- **Inline TS placeholder strategy before WASM wiring.** Ship a
+  working end-to-end (frontend -> dispatcher -> background ->
+  Supabase read -> result blob -> result poll -> frontend render)
+  path with a trivial buy-and-hold strategy first; replace the
+  strategy body with the WASM `run_backtest` once `wasm-pack` has
+  built `crates/backtest-core` into `pkg/`. This makes the wiring
+  testable before the WASM toolchain is on the critical path.
 
 **Blockers.**
 
-- No Supabase project for selectsectors.com has been created yet.
-  The .env.example documents the variables, but the actual project
-  needs to be stood up before the refresh-data-background function
-  can write anything.
-- No GitHub remote yet. The repo is local-only at scaffold time.
-- The eleven anchor single names are hardcoded in
-  `netlify/functions/universe.mts` (NVDA, TSLA, AAPL, AMD, AMZN,
-  META, MSFT, GOOGL, PLTR, COIN, SMCI). The canonical source is
-  the aigamma.com options-volume-roster; sync that into Supabase
-  once the project exists rather than maintaining two copies.
+- **GitHub repo not linked to Netlify yet.** The Netlify MCP's
+  `netlify-project-services-updater` does not expose a direct
+  repo-link operation. Eric to link manually in the Netlify UI:
+  project `selectsectors` -> Site settings -> Build & deploy ->
+  Continuous deployment -> Link site to Git -> pick
+  `github.com/aigamma/selectsectors.com`. After linking, the
+  scheduled-functions step in netlify.toml takes effect and the
+  build runs `npm run build` (which includes the WASM build step).
+- **Custom domain `selectsectors.com` not yet attached.** Same UI
+  flow: Domain management -> Add domain. The apex DNS would need
+  to point at Netlify's load balancer; Eric controls the DNS via
+  Netlify since he owns the domain.
+- **WASM not built yet.** `npm run build:wasm` requires wasm-pack on
+  PATH. Not yet verified in this session because the backtest
+  pipeline works end-to-end without it under the placeholder
+  strategy.
+- **`daily_eod` history shallow.** 2024-04-25 onwards (2 years)
+  versus desktop's 2022-01-03 (4+ years). Closing the gap requires
+  running `scripts/backfill/daily-eod.mjs` from the aigamma.com
+  repo for the 22 stock/ETF symbols on date range
+  [2022-01-03, 2024-04-25]; not in scope for this iteration.
 
 **Next 60 minutes.**
 
-- Initialize git and make the first commit.
-- Create the Supabase project under the AI Gamma org.
-- Document the schema for `daily_bars` in
-  `docs/architecture.md` (already covered at the request-flow
-  level, but no SQL yet).
-- Fill in the actual Massive pull in
-  `refresh-data-background.mts` so a manual invocation populates
-  one trading day for the 23-symbol universe.
-- Wire `backtest-background.mts` to actually call the WASM module
-  with bars pulled from Supabase, end-to-end smoke test.
+- Continue the loop. The next big remaining areas:
+  - Update the frontend (`src/main.ts`, `index.html`) to show the
+    rate-limit banner from `/api/rate-status` and add a backtest
+    form that POSTs to `/api/backtest`.
+  - Smoke-test the end-to-end path locally via `netlify dev` once
+    `npm install` has run.
+  - Decide whether to run the daily_eod backfill on Eric's
+    authorization (it would close the depth gap but spends Massive
+    API quota under his key).
+  - Eventually swap the inline TS placeholder strategy for the
+    WASM `run_backtest` once wasm-pack is wired into the local
+    build environment.
 
-**Priority status.** Scaffold: 100%. Frontend: skeleton (landing,
-universe grid, backtest placeholder). Functions: five stubs in
-place (health, universe, result, backtest-background,
-refresh-data-background) plus the scheduled wrapper
-(refresh-tick). Rust crate: skeleton with one scaffold
-function (`run_backtest`) and two tests. Supabase: not yet
-provisioned. Massive integration: scaffolded only. Backtest
-core: scaffolded only.
+**Priority status.** Scaffold: 100%. Frontend: skeleton (landing
++ universe grid + backtest-form placeholder). Functions: 6 in
+place (health, universe, rate-status, backtest, result,
+backtest-background) plus the helper module `_lib/rate-limit.mts`.
+Rust crate: skeleton with one scaffold function + 2 tests.
+Supabase: shared with aigamma.com; reads-only; verified end-to-end
+query path in backtest-background.mts. Netlify project: created
+and env-var-configured; awaiting GitHub repo link in the UI.
+Custom domain: not yet attached.
 
 ---
