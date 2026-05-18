@@ -28,8 +28,8 @@ build session ending 2026-05-18. The site is functionally complete:
   pairing intuition + math + the exact Rust source + a "Try it" link
   that pre-fills the backtester form via `?strategy=` and `?symbol=`
   query parameters.
-- 4 philosophy primers under `/philosophy/` (overfitting, survivorship
-  bias, lookahead bias, backtest vs live).
+- 5 philosophy primers under `/philosophy/` (overfitting, survivorship
+  bias, lookahead bias, backtest vs live, regimes).
 - 76 unit tests (39 Rust, 37 TypeScript across rate-limit,
   canonical-json, strategy translation, and HTML-escape helpers),
   three-job GitHub Actions CI workflow that runs cargo test, Vitest,
