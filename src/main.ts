@@ -177,8 +177,17 @@ interface BacktestRequest {
   dateRange: { start: string; end: string };
 }
 
+let running = false;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
+  // Guard against concurrent submits. setRunDisabled(true) blocks
+  // mouse double-clicks via button.disabled, but form-submit can
+  // fire from Enter-key presses on any form input regardless of
+  // button state, so a fast-typing user could otherwise consume
+  // two rate-limit slots for the same backtest. The running flag
+  // here is the canonical concurrency gate.
+  if (running) return;
   const form = ev.target as HTMLFormElement;
   const fd = new FormData(form);
   const symbol = String(fd.get('symbol') ?? '');
@@ -200,6 +209,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     dateRange: { start, end },
   };
 
+  running = true;
   setRunDisabled(true);
   setStatus('dispatching backtest...');
   hideResultPanel();
@@ -220,6 +230,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   });
 
   setRunDisabled(false);
+  running = false;
 }
 
 function hideResultPanel(): void {
@@ -516,6 +527,7 @@ async function init(): Promise<void> {
         console.error('handleSubmit threw', err);
         setStatus(`unexpected error: ${(err as Error).message}`, 'error');
         setRunDisabled(false);
+        running = false;
       });
     });
   }

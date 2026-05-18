@@ -91,8 +91,12 @@ interface CompareRequest {
   dateRange: { start: string; end: string };
 }
 
+let running = false;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
+  // Concurrency guard; see main.ts handleSubmit for rationale.
+  if (running) return;
   const form = ev.target as HTMLFormElement;
   const fd = new FormData(form);
   const symbol = String(fd.get('symbol') ?? '');
@@ -109,6 +113,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
 
   const body: CompareRequest = { symbol, dateRange: { start, end } };
 
+  running = true;
   setRunDisabled(true);
   setStatus('dispatching comparison...');
   hideResultPanel();
@@ -129,6 +134,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   });
 
   setRunDisabled(false);
+  running = false;
 }
 
 function hideResultPanel(): void {
@@ -394,6 +400,7 @@ async function init(): Promise<void> {
       console.error('handleSubmit threw', err);
       setStatus(`unexpected error: ${(err as Error).message}`, 'error');
       setRunDisabled(false);
+      running = false;
     });
   });
 

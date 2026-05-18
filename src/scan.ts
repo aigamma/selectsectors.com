@@ -115,8 +115,12 @@ interface ScanRequest {
   dateRange: { start: string; end: string };
 }
 
+let running = false;
+
 async function handleSubmit(ev: SubmitEvent): Promise<void> {
   ev.preventDefault();
+  // Concurrency guard; see main.ts handleSubmit for rationale.
+  if (running) return;
   const form = ev.target as HTMLFormElement;
   const fd = new FormData(form);
   const strategyName = String(fd.get('strategy') ?? 'buy_and_hold');
@@ -136,6 +140,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     dateRange: { start, end },
   };
 
+  running = true;
   setRunDisabled(true);
   setStatus('dispatching scan across the universe...');
   hideResultPanel();
@@ -156,6 +161,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   });
 
   setRunDisabled(false);
+  running = false;
 }
 
 function hideResultPanel(): void {
@@ -361,6 +367,7 @@ async function init(): Promise<void> {
       console.error('handleSubmit threw', err);
       setStatus(`unexpected error: ${(err as Error).message}`, 'error');
       setRunDisabled(false);
+      running = false;
     });
   });
 
