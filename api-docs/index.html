@@ -112,14 +112,16 @@
         first request inside it.</p>
 
         <h3>GET /api/chat-status</h3>
-        <p>Current chat rate-limit counters. Same shape as
-        rate-status but with the chat caps (30/hour, 100/day) and
-        the chat counter store. If <code>ANTHROPIC_API_KEY</code> is
-        unset on the Netlify project, this endpoint still returns
-        the counters; the failure mode shows up at <code>/api/chat</code>
-        send time as a 503.</p>
+        <p>Current chat rate-limit counters plus an
+        <code>available</code> flag indicating whether
+        <code>ANTHROPIC_API_KEY</code> is set on the deploy. The
+        frontend uses <code>available</code> to disable the chat
+        send button preemptively when it's false so users don't
+        write a message that can't be delivered. If a send happens
+        anyway, the chat function returns 503.</p>
         <pre><code>{
   "caps": { "hour": 30, "day": 100 },
+  "available": true,
   "hourly": { "limit": 30, "used": 0, "remaining": 30, "resetAt": &lt;ms&gt; },
   "daily":  { "limit": 100, "used": 0, "remaining": 100, "resetAt": &lt;ms&gt; }
 }</code></pre>

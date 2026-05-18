@@ -50,6 +50,10 @@ interface ChatRateLimitInfo {
 
 interface ChatStatusResponse extends ChatRateLimitInfo {
   caps: { hour: number; day: number };
+  /** False when ANTHROPIC_API_KEY is not set on the deploy. The
+   *  chat function returns 503 for every send when this is false;
+   *  the panel disables the send button preemptively. */
+  available?: boolean;
 }
 
 const STORAGE_KEY = 'selectbot-conversation-v1';
@@ -244,6 +248,26 @@ async function loadChatRateStatus(): Promise<void> {
     if (!res.ok) return;
     const info = (await res.json()) as ChatStatusResponse;
     renderChatRateHint(info);
+    // When the deploy reports the API key as unset, disable send
+    // immediately so the user doesn't waste effort writing a message
+    // that can't be delivered. The unavailable=true state is the
+    // primary-deploy default after Eric sets the key on Netlify;
+    // this path mostly matters for fresh deploys or for the local
+    // dev environment where the key isn't always present.
+    if (info.available === false) {
+      const send = document.getElementById('chat-send') as HTMLButtonElement | null;
+      const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+      if (send) send.disabled = true;
+      if (input) {
+        input.disabled = true;
+        input.placeholder =
+          'SelectBot is unavailable on this deploy (ANTHROPIC_API_KEY not set).';
+      }
+      setChatStatus(
+        'SelectBot is unavailable on this deploy. The Anthropic API key is not set; chat messages cannot be delivered.',
+        'error'
+      );
+    }
   } catch (err) {
     console.warn('chat-status fetch failed', err);
   }
