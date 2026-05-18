@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Open Graph image for selectsectors.com. 1200x630 is the standard OG
+  aspect ratio (Facebook, LinkedIn, Slack render at this size; Twitter
+  uses summary_large_image which also matches). SVG format because we
+  want vector crispness on retina displays and the image is text-and-
+  geometry-only with no photographic content. Platforms that don't
+  render SVG OG images (notably Twitter at the time of writing) will
+  fall back to no preview rather than a broken image; a future PNG
+  rasterization can address that.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background: bg-page from the palette -->
+  <rect width="1200" height="630" fill="#0d1117" />
+
+  <!-- Subtle grid lines to suggest a chart background -->
+  <g stroke="#1f2530" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="157" x2="1200" y2="157" />
+    <line x1="0" y1="315" x2="1200" y2="315" />
+    <line x1="0" y1="472" x2="1200" y2="472" />
+    <line x1="240" y1="0" x2="240" y2="630" />
+    <line x1="480" y1="0" x2="480" y2="630" />
+    <line x1="720" y1="0" x2="720" y2="630" />
+    <line x1="960" y1="0" x2="960" y2="630" />
+  </g>
+
+  <!-- Three equity-curve-like polylines suggesting the comparison
+       chart from the /compare/ page. Buy-and-hold reference in
+       accent-blue, two strategies in green and amber. -->
+  <polyline
+    points="60,400 130,395 200,380 270,360 340,340 410,310 480,295 550,275 620,240 690,220 760,200 830,170 900,150 970,135 1040,115 1110,90"
+    fill="none"
+    stroke="#2ecc71"
+    stroke-width="3"
+    opacity="0.95"
+  />
+  <polyline
+    points="60,420 130,415 200,408 270,395 340,385 410,370 480,365 550,350 620,330 690,320 760,305 830,285 900,275 970,265 1040,250 1110,240"
+    fill="none"
+    stroke="#f0a030"
+    stroke-width="3"
+    opacity="0.9"
+  />
+  <polyline
+    points="60,440 130,438 200,432 270,425 340,420 410,412 480,408 550,400 620,388 690,380 760,372 830,360 900,352 970,345 1040,335 1110,330"
+    fill="none"
+    stroke="#4a9eff"
+    stroke-width="2.5"
+    stroke-dasharray="6 4"
+    opacity="0.8"
+  />
+
+  <!-- Brand block at the bottom: title + subtitle in white-on-dark -->
+  <text
+    x="60"
+    y="520"
+    fill="#e6edf3"
+    font-family="Calibri, 'Segoe UI', system-ui, sans-serif"
+    font-size="72"
+    font-weight="700"
+    letter-spacing="-1"
+  >
+    selectsectors.com
+  </text>
+  <text
+    x="60"
+    y="572"
+    fill="#9aa6b2"
+    font-family="Calibri, 'Segoe UI', system-ui, sans-serif"
+    font-size="30"
+    font-weight="400"
+  >
+    Backtest the index, sectors, and top-by-volume names.
+  </text>
+  <text
+    x="60"
+    y="608"
+    fill="#4a9eff"
+    font-family="Calibri, 'Segoe UI', system-ui, sans-serif"
+    font-size="22"
+    font-weight="700"
+    letter-spacing="2"
+  >
+    AI GAMMA &middot; LEARN RUST BY READING REAL CODE
+  </text>
+</svg>

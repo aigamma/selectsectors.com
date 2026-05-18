@@ -688,6 +688,56 @@ a:hover {
   font-size: 0.95rem;
 }
 
+/* Other tools section (homepage discovery for /compare/, /scan/, /strategies/). */
+
+.other-tools {
+  margin: 2.5rem 0;
+}
+
+.other-tools h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+}
+
+.other-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.other-tools-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 0.12s ease;
+}
+
+.other-tools-card:hover {
+  border-color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.other-tools-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.other-tools-card-blurb {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
 /* Backtest form + rate banner + result panel */
 
 .backtest {
