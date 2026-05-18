@@ -305,6 +305,18 @@ async function sendMessage(content: string): Promise<void> {
     try {
       const body = await res.json();
       if (body?.error) message = `chat error: ${body.error}`;
+      // For 429 responses specifically, append the actual time-
+      // until-reset to the error message so the user sees the
+      // recovery time inline rather than having to look at the
+      // rate-hint panel. Matches the backtest dispatcher's
+      // rate-exceeded UX (iter 78). The reason field on the chat
+      // function's 429 body is 'hour-exceeded' or 'day-exceeded'
+      // exactly like the backtest dispatcher's.
+      if (res.status === 429 && body?.rateLimits && body?.reason) {
+        const window =
+          body.reason === 'hour-exceeded' ? 'hour' : 'day';
+        message = `chat error: rate limit exceeded; resets ${formatTimeUntilReset(body.rateLimits, window)}`;
+      }
       if (body?.rateLimits) renderChatRateHint(body.rateLimits);
     } catch {
       // body wasn't JSON; keep the status-code message
