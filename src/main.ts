@@ -118,7 +118,15 @@ function renderUniverseLoadError(): void {
 function renderList(id: string, items: string[]): void {
   const el = document.getElementById(id);
   if (!el) return;
-  el.innerHTML = items.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  // Each item carries data-symbol so the universe-list click delegate
+  // can pick the symbol up and pre-fill the form. The class is also
+  // the hook for the pointer-cursor and hover-blue CSS treatment.
+  el.innerHTML = items
+    .map(
+      (s) =>
+        `<li class="universe-list-item" data-symbol="${escapeHtml(s)}">${escapeHtml(s)}</li>`
+    )
+    .join('');
 }
 
 function renderStrategyParams(strategyName: string): void {
@@ -555,6 +563,34 @@ async function init(): Promise<void> {
       });
     });
   }
+
+  // Universe-list click-to-prefill: clicking a symbol in any of the
+  // three universe-section columns (SPX, sectors, anchors) sets the
+  // symbol picker's value to that symbol and scrolls the form into
+  // view. Event delegation on the .universe-grid parent so the
+  // sectors + anchors lists work after their async population from
+  // /api/universe. The hardcoded SPX li in index.html has the same
+  // .universe-list-item class + data-symbol attribute so it
+  // participates in the same handler.
+  const universeGrid = document.querySelector('.universe-grid');
+  universeGrid?.addEventListener('click', (ev) => {
+    const target = ev.target;
+    if (!(target instanceof HTMLElement)) return;
+    const item = target.closest('.universe-list-item') as HTMLLIElement | null;
+    if (!item) return;
+    const sym = item.dataset.symbol;
+    if (!sym) return;
+    const symbolSelect = document.getElementById('symbol') as HTMLSelectElement | null;
+    if (!symbolSelect) return;
+    const opt = Array.from(symbolSelect.options).find(
+      (o) => o.value.toUpperCase() === sym.toUpperCase()
+    );
+    if (!opt) return;
+    symbolSelect.value = opt.value;
+    document
+      .getElementById('backtest-form')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   const shareBtn = document.getElementById('share-button');
   shareBtn?.addEventListener('click', () => {
