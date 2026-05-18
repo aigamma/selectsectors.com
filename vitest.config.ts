@@ -7,7 +7,10 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['netlify/functions/**/__tests__/**/*.test.mts'],
+    include: [
+      'netlify/functions/**/__tests__/**/*.test.mts',
+      'src/__tests__/**/*.test.ts',
+    ],
     // .mts files import each other with explicit extensions which the
     // Vitest resolver needs help with on Node 22.
     server: {

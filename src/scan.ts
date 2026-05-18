@@ -1,29 +1,28 @@
 import './style.css';
 import { mountSiteShell } from './layout.ts';
 import { STRATEGY_SPECS } from './strategy-specs.ts';
+import {
+  escapeHtml,
+  loadRateStatus,
+  renderRateBanner,
+  setButtonDisabled,
+  setDefaultDateRange,
+  setStatus as setStatusUtil,
+  type RateLimitInfo,
+} from './page-utils.ts';
+import { dispatchAndPoll } from './dispatch.ts';
 
 // Cross-symbol scan page. One strategy, one date range, 23 backtests
 // in a single rate-limit slot. Result is a ranked table only (no
 // per-symbol equity curve charts; that's what the single-backtest
 // surface is for).
 //
-// The strategy picker and parameter controls are duplicated from
-// src/main.ts (STRATEGY_SPECS) because the scan page is a separate
-// entry and there's no shared module yet. A future refactor could
-// extract STRATEGY_SPECS into a shared module; for now the
-// duplication is small and the cost of getting them out of sync is
-// detectable (a frontend-emitted param would be rejected by the
-// Rust crate at the WASM boundary, producing a clean error rather
-// than silent wrong behavior).
-
-interface RateLimitInfo {
-  hourly: { limit: number; used: number; remaining: number; resetAt: number };
-  daily: { limit: number; used: number; remaining: number; resetAt: number };
-}
-
-interface RateStatusResponse extends RateLimitInfo {
-  caps: { hour: number; day: number };
-}
+// Refactored to use the shared page-utils + dispatch helpers, so the
+// page-specific code in this module is just: STRATEGY_SPECS-driven
+// form rendering, the request shape, and the result rendering. The
+// network plumbing (POST + poll), the rate-banner state, and the
+// form helpers (date range default, status line, button disable)
+// all live in src/page-utils.ts and src/dispatch.ts.
 
 interface ScanSymbolEntry {
   symbol: string;
@@ -50,107 +49,12 @@ interface ScanResult {
   computeMs?: number;
 }
 
-interface ScanDispatchResponse {
-  status: 'ready' | 'queued';
-  hash: string;
-  cached?: boolean;
-  result?: ScanResult;
-  rateLimits?: RateLimitInfo;
-}
-
-interface ScanErrorResponse {
-  error: string;
-  reason?: string;
-  rateLimits?: RateLimitInfo;
-}
-
-interface ResultPollResponse {
-  status: 'pending' | 'ready';
-  hash: string;
-  result?: ScanResult;
-}
-
-function escape(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => {
-    switch (c) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      case "'":
-        return '&#39;';
-      default:
-        return c;
-    }
-  });
-}
-
-async function loadRateStatus(): Promise<RateStatusResponse | null> {
-  try {
-    const res = await fetch('/api/rate-status');
-    if (!res.ok) return null;
-    return (await res.json()) as RateStatusResponse;
-  } catch {
-    return null;
-  }
-}
-
-function renderRateBanner(info: RateLimitInfo): void {
-  const el = document.getElementById('rate-banner');
-  if (!el) return;
-  const hourRemaining = info.hourly.remaining;
-  const dayRemaining = info.daily.remaining;
-  const exhausted = hourRemaining === 0 || dayRemaining === 0;
-  el.classList.toggle('exhausted', exhausted);
-
-  if (exhausted) {
-    const which = hourRemaining === 0 ? 'hour' : 'day';
-    const resetAt =
-      which === 'hour' ? info.hourly.resetAt : info.daily.resetAt;
-    const minutes = Math.max(1, Math.ceil((resetAt - Date.now()) / 60000));
-    el.innerHTML = `No backtests left this ${which}. Next slot opens in <span class="rate-banner-count">${minutes}</span> min.`;
-    return;
-  }
-
-  el.innerHTML = `You have <span class="rate-banner-count">${hourRemaining}</span> of ${info.hourly.limit} scans left this hour, and <span class="rate-banner-count">${dayRemaining}</span> of ${info.daily.limit} today.`;
-}
-
-function setStatus(message: string, kind: 'info' | 'error' = 'info'): void {
-  const el = document.getElementById('status-line');
-  if (!el) return;
-  el.textContent = message;
-  el.classList.toggle('error', kind === 'error');
-}
-
-function setRunDisabled(disabled: boolean): void {
-  const btn = document.getElementById('run-button') as HTMLButtonElement | null;
-  if (btn) btn.disabled = disabled;
-}
-
-function setDefaultDateRange(): void {
-  const today = new Date();
-  const endDate = today.toISOString().slice(0, 10);
-  const startDateD = new Date(today);
-  startDateD.setUTCDate(startDateD.getUTCDate() - 365);
-  const startDate = startDateD.toISOString().slice(0, 10);
-
-  const startEl = document.getElementById('start-date') as HTMLInputElement | null;
-  const endEl = document.getElementById('end-date') as HTMLInputElement | null;
-  if (startEl) {
-    startEl.value = startDate;
-    startEl.min = '2022-01-03';
-    startEl.max = endDate;
-  }
-  if (endEl) {
-    endEl.value = endDate;
-    endEl.min = '2022-01-03';
-    endEl.max = endDate;
-  }
-}
+const setStatus = (msg: string, kind: 'info' | 'error' = 'info') =>
+  setStatusUtil('status-line', msg, kind);
+const setRunDisabled = (disabled: boolean) =>
+  setButtonDisabled('run-button', disabled);
+const showRateBanner = (info: RateLimitInfo) =>
+  renderRateBanner('rate-banner', info, 'scans');
 
 function renderStrategyParams(strategyName: string): void {
   const spec = STRATEGY_SPECS[strategyName];
@@ -171,12 +75,12 @@ function renderStrategyParams(strategyName: string): void {
       const stepAttr = p.step !== undefined ? ` step="${p.step}"` : '';
       return `
         <div class="field">
-          <label for="param-${escape(p.key)}">${escape(p.label)}</label>
+          <label for="param-${escapeHtml(p.key)}">${escapeHtml(p.label)}</label>
           <input
             type="number"
-            id="param-${escape(p.key)}"
-            name="param-${escape(p.key)}"
-            data-param-key="${escape(p.key)}"
+            id="param-${escapeHtml(p.key)}"
+            name="param-${escapeHtml(p.key)}"
+            data-param-key="${escapeHtml(p.key)}"
             value="${p.defaultValue}"
             inputmode="decimal"${minAttr}${maxAttr}${stepAttr}
             required
@@ -232,69 +136,23 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
   setStatus('dispatching scan across the universe...');
   hideResultPanel();
 
-  let dispatched: ScanDispatchResponse | ScanErrorResponse;
-  try {
-    const res = await fetch('/api/scan', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    dispatched = (await res.json()) as ScanDispatchResponse | ScanErrorResponse;
-    if (res.status === 429) {
-      const err = dispatched as ScanErrorResponse;
-      const which = err.reason === 'hour-exceeded' ? 'hour' : 'day';
+  await dispatchAndPoll<ScanResult>({
+    endpoint: '/api/scan',
+    body,
+    pollTimeoutMs: 120_000,
+    onRateLimits: showRateBanner,
+    onStatus: setStatus,
+    onResult: (result) => renderResult(result),
+    onRateExceeded: (reason) => {
+      const which = reason === 'hour-exceeded' ? 'hour' : 'day';
       setStatus(
         `rate limit exceeded for this ${which}; retry after the banner resets`,
         'error'
       );
-      if (err.rateLimits) renderRateBanner(err.rateLimits);
-      setRunDisabled(false);
-      return;
-    }
-    if (!res.ok) {
-      const err = dispatched as ScanErrorResponse;
-      setStatus(`error: ${err.error ?? res.statusText}`, 'error');
-      setRunDisabled(false);
-      return;
-    }
-  } catch (err) {
-    setStatus(`network error: ${(err as Error).message}`, 'error');
-    setRunDisabled(false);
-    return;
-  }
+    },
+    onError: (message) => setStatus(`error: ${message}`, 'error'),
+  });
 
-  const dispatch = dispatched as ScanDispatchResponse;
-  if (dispatch.rateLimits) renderRateBanner(dispatch.rateLimits);
-
-  if (dispatch.status === 'ready' && dispatch.result) {
-    setStatus(dispatch.cached ? 'cached result returned instantly' : 'scan ready');
-    renderResult(dispatch.result);
-    setRunDisabled(false);
-    return;
-  }
-
-  setStatus('queued; scanning 23 symbols...');
-  const startT = Date.now();
-  const POLL_MS = 1500;
-  const TIMEOUT_MS = 120_000;
-  while (Date.now() - startT < TIMEOUT_MS) {
-    await new Promise((r) => setTimeout(r, POLL_MS));
-    try {
-      const pollRes = await fetch(
-        `/api/result?hash=${encodeURIComponent(dispatch.hash)}`
-      );
-      const pollJson = (await pollRes.json()) as ResultPollResponse;
-      if (pollJson.status === 'ready' && pollJson.result) {
-        setStatus(`done in ${((Date.now() - startT) / 1000).toFixed(1)}s`);
-        renderResult(pollJson.result);
-        setRunDisabled(false);
-        return;
-      }
-    } catch (err) {
-      console.warn('poll failed', err);
-    }
-  }
-  setStatus('timed out waiting for the scan; try again', 'error');
   setRunDisabled(false);
 }
 
@@ -326,12 +184,6 @@ function renderResult(result: ScanResult): void {
     return;
   }
 
-  // Build the URL params once per render so each row's link uses the
-  // same strategy + date range the scan was run with. The user
-  // clicking a row jumps to the homepage with this strategy + the
-  // row's symbol pre-filled, and can hit Run to see the per-bar
-  // equity curve (which the scan blob deliberately omits to keep
-  // payload small).
   const inputs = result.inputs as
     | { strategy?: { name?: string; params?: Record<string, number> } }
     | undefined;
@@ -353,16 +205,16 @@ function renderResult(result: ScanResult): void {
         if (s.error) {
           return `
             <tr class="compare-row compare-row-error">
-              <td>${escape(s.symbol)}</td>
-              <td>${escape(cat)}</td>
-              <td colspan="6" class="compare-row-error-cell">${escape(s.error)}</td>
+              <td>${escapeHtml(s.symbol)}</td>
+              <td>${escapeHtml(cat)}</td>
+              <td colspan="6" class="compare-row-error-cell">${escapeHtml(s.error)}</td>
             </tr>
           `;
         }
         return `
           <tr class="compare-row">
-            <td><a href="${escape(homeBaseUrl(s.symbol))}" class="scan-symbol-link"><strong>${escape(s.symbol)}</strong></a></td>
-            <td><span class="scan-category scan-category-${escape(s.category)}">${escape(cat)}</span></td>
+            <td><a href="${escapeHtml(homeBaseUrl(s.symbol))}" class="scan-symbol-link"><strong>${escapeHtml(s.symbol)}</strong></a></td>
+            <td><span class="scan-category scan-category-${escapeHtml(s.category)}">${escapeHtml(cat)}</span></td>
             <td class="num ${(s.totalReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.totalReturn)}</td>
             <td class="num ${(s.annualizedReturn ?? 0) >= 0 ? 'positive' : 'negative'}">${pctFmt(s.annualizedReturn)}</td>
             <td class="num">${numFmt(s.sharpe)}</td>
@@ -375,7 +227,7 @@ function renderResult(result: ScanResult): void {
       .join('');
   }
 
-  const footnote = `Strategy: ${escape(result.strategy)} &middot; ${result.symbols.length} symbols &middot; ${escape(result.dateRange.start)} to ${escape(result.dateRange.end)}${result.computeMs ? ` &middot; ${result.computeMs} ms backend` : ''}`;
+  const footnote = `Strategy: ${escapeHtml(result.strategy)} &middot; ${result.symbols.length} symbols &middot; ${escapeHtml(result.dateRange.start)} to ${escapeHtml(result.dateRange.end)}${result.computeMs ? ` &middot; ${result.computeMs} ms backend` : ''}`;
   const footnoteEl = document.getElementById('result-footnote');
   if (footnoteEl) footnoteEl.innerHTML = footnote;
 }
@@ -406,7 +258,7 @@ async function init(): Promise<void> {
   }
 
   const rateStatus = await loadRateStatus();
-  if (rateStatus) renderRateBanner(rateStatus);
+  if (rateStatus) showRateBanner(rateStatus);
 
   const form = document.getElementById('scan-form');
   form?.addEventListener('submit', (ev) => {

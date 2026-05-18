@@ -91,7 +91,7 @@ describe('STRATEGY_DEFAULTS', () => {
     // Round-trip: pass each strategy's default through toStrategyKind
     // and verify we get the same wire format. Locks in the invariant
     // that the two paths into the WASM agree.
-    const defaults = [
+    const defaults: Array<{ name: string; params: Record<string, number> }> = [
       { name: 'sma_crossover', params: { fast: 20, slow: 50 } },
       { name: 'momentum', params: { lookback: 60 } },
       { name: 'rsi_mean_reversion', params: { period: 14, oversold: 30, overbought: 70 } },
