@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="RSI mean reversion: enter long when Wilder's RSI dips below oversold, exit to flat when it rises above overbought. A fade-the-dip strategy."
+    />
+    <title>RSI mean reversion &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>RSI mean reversion.</h1>
+        <p class="lesson-lede">
+          Compute Wilder's RSI over a <code>period</code>-bar window.
+          Enter long when RSI dips below <code>oversold</code>; exit
+          to flat when RSI rises above <code>overbought</code>. A
+          fade-the-dip strategy that exploits short-term oversold
+          bounces in trending markets.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          RSI is a 0-100 oscillator that measures the recent balance
+          of up-day vs down-day moves. RSI near 100 means almost all
+          recent bars closed higher than the prior; RSI near 0 means
+          almost all closed lower. The conventional reading is that
+          RSI below 30 is "oversold" (the asset has fallen sharply
+          and is due for a bounce) and RSI above 70 is "overbought"
+          (it has risen sharply and is due for a pause).
+        </p>
+        <p>
+          The mean-reversion strategy takes the oversold reading as
+          a long entry signal and waits for RSI to climb back above
+          overbought to exit. The implicit bet is that short-term
+          extreme moves are followed by reversion to a more typical
+          range.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          In range-bound markets and on assets that have a strong
+          underlying support level (or a Fed-style policy floor). The
+          short-term oversold reading tends to mean-revert when the
+          asset is not in a structural downtrend; the strategy
+          captures the bounce and exits on the next overbought.
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          In sustained downtrends. RSI can stay below 30 for weeks
+          or months while the asset continues to fall. The strategy
+          enters at the first oversold reading and rides the trend
+          all the way down, exiting only when RSI eventually rises
+          above overbought (which may require a substantial bounce
+          that doesn't recover the initial loss). The 2008 financial
+          crisis was an extended period of "oversold gets more
+          oversold" that punished mean-reversion strategies broadly.
+        </p>
+
+        <h2>Parameters</h2>
+        <ul>
+          <li>
+            <code>period</code>: RSI window length, in bars. Wilder
+            originally suggested 14. Range: 2-100.
+          </li>
+          <li>
+            <code>oversold</code>: enter-long threshold. Typical:
+            20-30. Range: 0-100. Must be strictly less than
+            overbought.
+          </li>
+          <li>
+            <code>overbought</code>: exit threshold. Typical: 65-80.
+            Range: 0-100.
+          </li>
+        </ul>
+
+        <h2>The Rust</h2>
+        <p>
+          The Wilder smoothing recurrence is the interesting part.
+          Notice the seeding step that uses a simple mean of the
+          first <code>period</code> gain/loss observations and the
+          weight ratio <code>(period - 1) / period</code> on the
+          prior average.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/rsi_meanreversion.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=rsi_mean_reversion&amp;symbol=XLE">Run RSI 14, 30/70 on XLE</a>
+          across the last year. The energy sector tends to mean-
+          revert on a multi-week horizon, so this is a reasonable
+          test bed.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/momentum/">&larr; Momentum</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next strategy
+            <a href="/strategies/breakout/">Donchian breakout &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-rsi-mean-reversion.ts"></script>
+  </body>
+</html>

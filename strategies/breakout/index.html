@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Donchian breakout: long when today's close meets or exceeds the rolling high of the prior `lookback` bars. The Donchian / Turtle Traders rule."
+    />
+    <title>Donchian breakout &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>Donchian breakout.</h1>
+        <p class="lesson-lede">
+          Long when today's close meets or exceeds the rolling high of
+          the prior <code>lookback</code> bars; flat otherwise. The
+          simplest version of the "trade the new high" idea Richard
+          Donchian popularized in the 1960s and that Richard Dennis
+          later codified for the Turtle Traders in the 1980s.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          A new N-bar high is a statement: the asset just broke
+          through a level that has held for the entire prior
+          <code>lookback</code> window. That break is interpreted as
+          fresh demand and a continuation signal. We go long on the
+          breakout and stay long until the close falls back below the
+          rolling high (which means the breakout failed or the trend
+          has paused).
+        </p>
+        <p>
+          The Turtles' full system layered position-sizing,
+          volatility-based stops, and a symmetric short on N-bar
+          lows. This site's version is just the long-side entry; the
+          symmetric short would need risk-of-ruin work that isn't
+          baked into the WASM crate yet.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          On assets with persistent trends that break through prior
+          highs and run further. Commodity bull markets are the
+          classic case (the Turtles made their fortunes on commodity
+          breakouts in the early 1980s); equity index breakouts
+          through prior tops have also paid off historically when
+          the breakout was confirmed by volume and broader market
+          breadth.
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          On false breakouts. A close at a new high that immediately
+          reverses generates an entry that loses on the very next
+          bar. Choppy markets where the rolling high is constantly
+          tested and broken by tiny amounts produce a steady stream
+          of these whipsaws. The longer the lookback, the rarer the
+          breakout and the more meaningful when it happens, but the
+          slower the strategy is to react to genuine trend reversals.
+        </p>
+
+        <h2>Parameters</h2>
+        <ul>
+          <li>
+            <code>lookback</code>: number of prior bars to compute
+            the rolling high over. Typical values: 20-100. Defaults
+            to 20. Must be at least 2 (a 1-bar lookback degenerates
+            to single-bar momentum).
+          </li>
+        </ul>
+        <p>
+          The implementation uses the <code>high</code> field of each
+          bar rather than the <code>close</code>; the breakout idea
+          is "today's close exceeds the historical ceiling", and the
+          ceiling is the prior high not the prior close. For SPX
+          (where the WASM input projects close into all OHLC fields
+          because the upstream table has no high) this collapses to
+          a close-vs-prior-close comparison, which loses some
+          fidelity.
+        </p>
+
+        <h2>The Rust</h2>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/breakout.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=breakout&amp;symbol=XLE">Run 20-bar breakout on XLE</a>
+          across the last year, or extend the lookback to 55 (the
+          original Turtle Trader entry rule).
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/rsi-mean-reversion/">&larr; RSI mean reversion</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next
+            <a href="/learn/">Learn how it all fits together &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-breakout.ts"></script>
+  </body>
+</html>

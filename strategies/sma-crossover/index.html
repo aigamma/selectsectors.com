@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SMA crossover: long when fast SMA exceeds slow SMA. The textbook trend-following signal, with intuition, parameter tuning notes, and the exact Rust source."
+    />
+    <title>SMA crossover &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>SMA crossover.</h1>
+        <p class="lesson-lede">
+          Long when the fast simple moving average is above the slow
+          simple moving average; flat otherwise. The textbook
+          trend-following signal and one of the easiest to reason
+          about.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          The fast SMA tracks recent price action; the slow SMA
+          tracks longer-term price action. When the fast crosses
+          above the slow, recent prices are trending higher than the
+          long-run baseline, which we interpret as a confirmed
+          uptrend and go long. When the fast falls back below the
+          slow, the uptrend is broken and we exit to flat.
+        </p>
+        <p>
+          The crossover lags the actual trend reversal because
+          moving averages are inherently lagged. The trade-off:
+          smaller windows catch reversals sooner but produce more
+          false-positive whipsaws; larger windows are smoother but
+          enter and exit later.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          In persistent uptrends (think tech bull runs 2017-2021 or
+          2023-2024 on the top-by-volume single names). The strategy
+          stays long through the trend and captures most of the
+          move. Sharpe in these regimes can comfortably exceed buy
+          and hold's because the max drawdown is reduced; the
+          strategy exits to flat during corrections rather than
+          riding them down.
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          In choppy sideways markets. The fast SMA crosses above
+          and below the slow repeatedly, generating whipsaw entries
+          and exits that each cost a small loss in the round-trip.
+          Death by a thousand cuts. The historical regime where SMA
+          crossover underperformed buy and hold worst was
+          2015-2016, where the index was approximately flat and the
+          crossover thrashed.
+        </p>
+
+        <h2>Parameters</h2>
+        <ul>
+          <li>
+            <code>fast</code>: length of the fast SMA window, in
+            bars. Typical values: 5-50. Defaults to 20.
+          </li>
+          <li>
+            <code>slow</code>: length of the slow SMA window, in
+            bars. Typical values: 50-200. Defaults to 50. Must be
+            strictly greater than fast.
+          </li>
+        </ul>
+        <p>
+          The Rust crate validates <code>fast &lt; slow</code> and
+          <code>bars.len() &gt;= slow</code> up front; bad params
+          return a clean <code>InvalidParam</code> or
+          <code>NotEnoughBars</code> error before any computation
+          runs.
+        </p>
+
+        <h2>The Rust</h2>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/sma_crossover.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=sma_crossover&amp;symbol=SPY">Run SMA 20/50 on SPY</a>
+          across the last year, or change the windows on the form.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/buy-and-hold/">&larr; Buy and hold</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next strategy
+            <a href="/strategies/momentum/">Momentum &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-sma-crossover.ts"></script>
+  </body>
+</html>

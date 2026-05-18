@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Buy and hold: the reference benchmark every other strategy is judged against. The intuition, when it works, and the exact Rust source from crates/backtest-core."
+    />
+    <title>Buy and hold &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>Buy and hold.</h1>
+        <p class="lesson-lede">
+          Always long, no parameters. The strategy is the reference
+          benchmark every other strategy is judged against; if a
+          fancier strategy doesn't beat buy and hold on the same
+          universe and date range, the complexity is not earning
+          its keep.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          Buy on the first bar, hold to the last, no exits. The
+          position vector is all 1.0 across the entire bar series.
+          Realized return at bar i is simply the bar return times 1
+          (full exposure), which means the strategy's cumulative
+          return equals the cumulative price return of the asset
+          itself.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          On any asset that drifts up over the test window. Equity
+          indices over multi-year horizons tend to favor buy and hold
+          because the long-run equity premium is positive; you get
+          paid to take risk and stay in. The strategy's max drawdown,
+          however, equals the asset's max drawdown, which can be
+          deeply painful (SPX fell 50%+ in 2008-2009 and 35%+ in
+          March 2020).
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          On assets that decline over the test window. If the
+          universe is selected with hindsight (post-bankruptcy
+          survivors only), buy and hold looks great; if the universe
+          is selected without hindsight (you would have held GE
+          through 2000-2020), it looks much worse. This is the
+          survivorship-bias trap and is why the universe selection
+          is as important as the strategy.
+        </p>
+
+        <h2>Parameters</h2>
+        <p>None. The strategy has nothing to tune.</p>
+
+        <h2>The Rust</h2>
+        <p>
+          The shortest strategy in the crate. Just an empty-input
+          guard and a vec of 1.0s the same length as the input bars.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/buy_and_hold.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=buy_and_hold&amp;symbol=SPX">Run buy and hold on SPX</a>
+          across the last year, or pick a different symbol on the
+          homepage form.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/">&larr; All strategies</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next strategy
+            <a href="/strategies/sma-crossover/">SMA crossover &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-buy-and-hold.ts"></script>
+  </body>
+</html>

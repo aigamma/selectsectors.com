@@ -21,6 +21,36 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://selectsectors.com/strategies/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://selectsectors.com/strategies/buy-and-hold/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://selectsectors.com/strategies/sma-crossover/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://selectsectors.com/strategies/momentum/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://selectsectors.com/strategies/rsi-mean-reversion/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://selectsectors.com/strategies/breakout/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://selectsectors.com/quiz/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

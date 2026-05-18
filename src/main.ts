@@ -518,6 +518,44 @@ function renderEquityChart(
   `;
 }
 
+function applyQueryParamPrefill(): void {
+  // /strategies/{name}/ pages link back to / with `?strategy=<name>`
+  // (and optional &symbol=<sym>) so the user can run a backtest on the
+  // strategy they were just reading about without retyping anything.
+  const params = new URLSearchParams(window.location.search);
+  const strategy = params.get('strategy');
+  const symbol = params.get('symbol');
+
+  if (strategy) {
+    const select = document.getElementById('strategy') as HTMLSelectElement | null;
+    if (select && STRATEGY_SPECS[strategy]) {
+      select.value = strategy;
+      // Fire a synthetic change event so the params container re-renders.
+      select.dispatchEvent(new Event('change'));
+    }
+  }
+
+  if (symbol) {
+    const symbolSelect = document.getElementById('symbol') as HTMLSelectElement | null;
+    if (symbolSelect) {
+      // The symbol picker is populated asynchronously after /api/universe
+      // resolves, so retry briefly until the option exists or we time out.
+      let tries = 0;
+      const tryAssign = () => {
+        const opt = Array.from(symbolSelect.options).find(
+          (o) => o.value.toUpperCase() === symbol.toUpperCase()
+        );
+        if (opt) {
+          symbolSelect.value = opt.value;
+        } else if (tries++ < 20) {
+          setTimeout(tryAssign, 100);
+        }
+      };
+      tryAssign();
+    }
+  }
+}
+
 async function init(): Promise<void> {
   mountSiteShell('home');
   setDefaultDateRange();
@@ -537,6 +575,11 @@ async function init(): Promise<void> {
 
   if (universe) renderUniverseLists(universe);
   if (rateStatus) renderRateBanner(rateStatus);
+
+  // Apply ?strategy= and ?symbol= pre-fill after the universe loads so
+  // the symbol picker has its options populated by the time we look up
+  // the requested symbol.
+  applyQueryParamPrefill();
 
   const form = document.getElementById('backtest-form');
   if (form) {

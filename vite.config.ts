@@ -40,6 +40,21 @@ export default defineConfig({
           'quiz/this-sites-rust/index.html'
         ),
         quizQuantFinance: resolve(__dirname, 'quiz/quant-finance/index.html'),
+        strategies: resolve(__dirname, 'strategies/index.html'),
+        strategyBuyAndHold: resolve(
+          __dirname,
+          'strategies/buy-and-hold/index.html'
+        ),
+        strategySmaCrossover: resolve(
+          __dirname,
+          'strategies/sma-crossover/index.html'
+        ),
+        strategyMomentum: resolve(__dirname, 'strategies/momentum/index.html'),
+        strategyRsiMeanReversion: resolve(
+          __dirname,
+          'strategies/rsi-mean-reversion/index.html'
+        ),
+        strategyBreakout: resolve(__dirname, 'strategies/breakout/index.html'),
         notFound: resolve(__dirname, '404.html'),
       },
     },

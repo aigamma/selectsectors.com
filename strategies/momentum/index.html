@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Time-series momentum: long when today's close exceeds the close `lookback` bars ago. The oldest documented factor in modern finance."
+    />
+    <title>Momentum &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>Time-series momentum.</h1>
+        <p class="lesson-lede">
+          Long when today's close exceeds the close
+          <code>lookback</code> bars ago; flat otherwise. Equivalent to
+          the classic 12-1 momentum signal at smaller scales. Cheap to
+          compute and surprisingly competitive at horizons in the
+          60-250 bar range on equity index series.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          "Has this asset gone up over the last N days? If yes, go
+          long. If no, stay flat." That's the entire decision rule.
+          The signal asks one question: is the most recent close
+          higher than a reference close from some time back? The
+          choice of how far back is the only knob.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          Famously well across many asset classes and decades. The
+          original Jegadeesh-Titman paper (1993) documented strong
+          momentum returns in US equities at 3-12 month horizons;
+          subsequent work extended it to commodities, currencies,
+          and indices. The reason it works is debated (behavioral
+          underreaction, slow information diffusion, risk-premium
+          compensation) but the empirical pattern is robust enough
+          that it has its own factor model.
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          At very short horizons (lookback &lt; 20 bars) the signal
+          becomes noise-dominated and reverses; mean-reversion
+          dominates at short horizons in many equity series. At very
+          long horizons (lookback &gt; 252 bars / 1 year) the signal
+          becomes too sluggish to react to genuine reversals. The
+          sweet spot is the 60-250-bar range that the academic
+          literature converges on.
+        </p>
+        <p>
+          Momentum also crashes spectacularly during sharp regime
+          changes. The 2009 momentum crash (when previously losing
+          stocks ripped higher in the post-Lehman bounce) cost a
+          long-only momentum strategy ~20% in a single quarter.
+          History suggests these crashes are infrequent but
+          severe.
+        </p>
+
+        <h2>Parameters</h2>
+        <ul>
+          <li>
+            <code>lookback</code>: number of bars to compare against.
+            Typical values: 20-250. Defaults to 60. Must be at least
+            1; the bar series must have at least
+            <code>lookback + 1</code> bars.
+          </li>
+        </ul>
+
+        <h2>The Rust</h2>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/momentum.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=momentum&amp;symbol=NVDA">Run 60-bar momentum on NVDA</a>
+          across the last year, or tune the lookback on the form.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/sma-crossover/">&larr; SMA crossover</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next strategy
+            <a href="/strategies/rsi-mean-reversion/">RSI mean reversion &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-momentum.ts"></script>
+  </body>
+</html>
