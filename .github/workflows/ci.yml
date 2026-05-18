@@ -5,7 +5,13 @@
 #      strategy library. Fast (~10 seconds on a cold cache, ~2 seconds
 #      hot).
 #   2. TypeScript checks: `npm run typecheck` plus `npm run test`
-#      (Vitest on the rate-limit and canonicalize helpers).
+#      (Vitest, 19 test files at v0.1.4: module-level helpers like
+#      rate-limit/canonical-json/strategy, plus the source-of-truth
+#      regression test surface covering sitemap + internal-link +
+#      JSON-LD + env-vars + version + vite-config + HTML-script +
+#      Rust-TS strategy catalog + Rust Params + STRATEGY_SPECS +
+#      explainer pages + catalog rows + quiz catalog + philosophy +
+#      learn catalogs + universe-roster + chat-prompt parity.)
 #   3. Build verification: `npm run build` (which runs wasm-pack
 #      first, then Vite) to make sure the full production bundle
 #      compiles cleanly.
