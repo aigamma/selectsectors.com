@@ -71,11 +71,17 @@
             <label for="strategy">Strategy</label>
             <select id="strategy" name="strategy" required>
               <option value="buy_and_hold">Buy and hold</option>
+              <option value="sma_crossover">SMA crossover</option>
+              <option value="momentum">Momentum</option>
+              <option value="rsi_mean_reversion">RSI mean reversion</option>
+              <option value="breakout">Donchian breakout</option>
             </select>
-            <div class="field-hint">
-              Additional strategies arrive as the WASM backtest core grows; the placeholder buy-and-hold is the scaffold's smoke test for the end-to-end path.
+            <div class="field-hint" id="strategy-description">
+              Buy on the first bar and hold to the last. The reference benchmark every other strategy is judged against.
             </div>
           </div>
+
+          <div id="strategy-params" class="strategy-params"></div>
 
           <div class="field-row">
             <div class="field">
@@ -101,12 +107,20 @@
               <div class="result-meta-value" id="result-total-return">-</div>
             </div>
             <div class="result-meta-cell">
+              <div class="result-meta-label">CAGR</div>
+              <div class="result-meta-value" id="result-cagr">-</div>
+            </div>
+            <div class="result-meta-cell">
               <div class="result-meta-label">Sharpe (annualized)</div>
               <div class="result-meta-value" id="result-sharpe">-</div>
             </div>
             <div class="result-meta-cell">
               <div class="result-meta-label">Max drawdown</div>
               <div class="result-meta-value" id="result-drawdown">-</div>
+            </div>
+            <div class="result-meta-cell">
+              <div class="result-meta-label">Hit rate</div>
+              <div class="result-meta-value" id="result-hit-rate">-</div>
             </div>
             <div class="result-meta-cell">
               <div class="result-meta-label">Bars</div>

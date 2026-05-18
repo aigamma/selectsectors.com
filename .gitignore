@@ -29,6 +29,9 @@ desktop.ini
 # Claude session context (local only)
 CLAUDE.md
 
+# Claude Code harness state (per-machine, never shared)
+.claude/
+
 # Rust build artifacts
 target/
 **/*.rs.bk

@@ -1,4 +1,4 @@
-// Frontend entry. Three concerns mounted at page load:
+// Frontend entry. Five concerns mounted at page load:
 //
 //   1. Universe roster — fetched from /api/universe and rendered into
 //      the sector + anchor lists in the universe panel AND into the
@@ -8,13 +8,19 @@
 //      consumed; the read-only endpoint is the right shape for an
 //      always-on indicator that lets the user know before clicking
 //      Run whether they have allowance left.
-//   3. Backtest run — submit handler that POSTs to /api/backtest,
+//   3. Strategy picker — five strategies wired to the WASM engine.
+//      Each strategy carries a description and (where applicable) a
+//      set of parameter fields with sensible defaults. The params
+//      container re-renders whenever the strategy changes; the submit
+//      handler reads the fields' current values into the params
+//      object on the request body.
+//   4. Backtest run — submit handler that POSTs to /api/backtest,
 //      handles the three response shapes (ready/cached, queued,
 //      429), and on queued, polls /api/result every 1.5 seconds
-//      until either a result is ready or the wait exceeds 60 s
-//      (the polling timeout is generous because the placeholder
-//      strategy is fast but the eventual WASM strategy library will
-//      include longer-running scans).
+//      until either a result is ready or the wait exceeds 60 s.
+//   5. Result panel — six metric cells (total return, CAGR, sharpe,
+//      max drawdown, hit rate, bars) plus an inline SVG equity curve
+//      colored by sign of final equity.
 
 interface UniverseResponse {
   sectors: string[];
@@ -50,8 +56,10 @@ interface BacktestResult {
   firstDate?: string;
   lastDate?: string;
   totalReturn: number;
+  annualizedReturn?: number;
   sharpe: number;
   maxDrawdown: number;
+  hitRate?: number;
   equityCurve?: Array<{ date: string; ret: number; equity: number }>;
   note?: string;
   error?: string;
@@ -64,6 +72,73 @@ interface ResultPollResponse {
   hash: string;
   result?: BacktestResult;
 }
+
+// Strategy specs. The label, description, and parameter list are the
+// frontend's view of what the WASM crate accepts; the Rust crate is
+// the source of truth for actual parameter validation, but mirroring
+// the parameter list here lets us render usable defaults and saves a
+// round-trip on a malformed first request. The keys in `params` MUST
+// match the field names in the Rust `Params` struct for each strategy
+// (e.g. `fast`/`slow` for `sma_crossover::Params`).
+interface StrategyParamSpec {
+  key: string;
+  label: string;
+  defaultValue: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  hint?: string;
+}
+
+interface StrategySpec {
+  name: string;
+  description: string;
+  params: StrategyParamSpec[];
+}
+
+const STRATEGY_SPECS: Record<string, StrategySpec> = {
+  buy_and_hold: {
+    name: 'Buy and hold',
+    description:
+      'Buy on the first bar and hold to the last. The reference benchmark every other strategy is judged against.',
+    params: [],
+  },
+  sma_crossover: {
+    name: 'SMA crossover',
+    description:
+      'Long when the fast simple moving average is above the slow simple moving average; flat otherwise. The textbook trend-following signal.',
+    params: [
+      { key: 'fast', label: 'Fast window (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
+      { key: 'slow', label: 'Slow window (bars)', defaultValue: 50, min: 3, max: 250, step: 1 },
+    ],
+  },
+  momentum: {
+    name: 'Momentum',
+    description:
+      'Long when today\'s close exceeds the close `lookback` bars ago; flat otherwise. The oldest documented factor in modern finance.',
+    params: [
+      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 60, min: 2, max: 252, step: 1 },
+    ],
+  },
+  rsi_mean_reversion: {
+    name: 'RSI mean reversion',
+    description:
+      'Long when Wilder\'s RSI dips below the oversold threshold; exits to flat when RSI rises above overbought. A fade-the-dip strategy.',
+    params: [
+      { key: 'period', label: 'RSI period (bars)', defaultValue: 14, min: 2, max: 100, step: 1 },
+      { key: 'oversold', label: 'Oversold threshold', defaultValue: 30, min: 0, max: 50, step: 1 },
+      { key: 'overbought', label: 'Overbought threshold', defaultValue: 70, min: 50, max: 100, step: 1 },
+    ],
+  },
+  breakout: {
+    name: 'Donchian breakout',
+    description:
+      'Long when today\'s close is at or above the rolling high of the prior `lookback` bars. The Richard Donchian / Turtle Traders rule.',
+    params: [
+      { key: 'lookback', label: 'Lookback (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
+    ],
+  },
+};
 
 async function loadUniverse(): Promise<UniverseResponse | null> {
   try {
@@ -186,6 +261,56 @@ function setDefaultDateRange(): void {
   }
 }
 
+function renderStrategyParams(strategyName: string): void {
+  const spec = STRATEGY_SPECS[strategyName];
+  const container = document.getElementById('strategy-params');
+  const descEl = document.getElementById('strategy-description');
+  if (!container || !spec) return;
+  if (descEl) descEl.textContent = spec.description;
+
+  if (spec.params.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const cells = spec.params
+    .map((p) => {
+      const minAttr = p.min !== undefined ? ` min="${p.min}"` : '';
+      const maxAttr = p.max !== undefined ? ` max="${p.max}"` : '';
+      const stepAttr = p.step !== undefined ? ` step="${p.step}"` : '';
+      return `
+        <div class="field">
+          <label for="param-${escape(p.key)}">${escape(p.label)}</label>
+          <input
+            type="number"
+            id="param-${escape(p.key)}"
+            name="param-${escape(p.key)}"
+            data-param-key="${escape(p.key)}"
+            value="${p.defaultValue}"
+            inputmode="decimal"${minAttr}${maxAttr}${stepAttr}
+            required
+          />
+        </div>
+      `;
+    })
+    .join('');
+  container.innerHTML = `<div class="strategy-params-grid">${cells}</div>`;
+}
+
+function readStrategyParams(): Record<string, number> {
+  const container = document.getElementById('strategy-params');
+  if (!container) return {};
+  const inputs = container.querySelectorAll<HTMLInputElement>('input[data-param-key]');
+  const params: Record<string, number> = {};
+  inputs.forEach((input) => {
+    const key = input.dataset.paramKey;
+    if (!key) return;
+    const value = Number(input.value);
+    if (Number.isFinite(value)) params[key] = value;
+  });
+  return params;
+}
+
 interface BacktestRequest {
   symbol: string;
   strategy: { name: string; params: Record<string, number> };
@@ -211,7 +336,7 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
 
   const body: BacktestRequest = {
     symbol,
-    strategy: { name: strategyName, params: {} },
+    strategy: { name: strategyName, params: readStrategyParams() },
     dateRange: { start, end },
   };
 
@@ -261,7 +386,6 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
     return;
   }
 
-  // Status was 'queued' — poll /api/result for up to 60 seconds.
   setStatus('queued; polling for the result...');
   const start_t = Date.now();
   const POLL_MS = 1500;
@@ -281,7 +405,6 @@ async function handleSubmit(ev: SubmitEvent): Promise<void> {
       }
     } catch (err) {
       console.warn('poll failed', err);
-      // Continue polling on a transient failure.
     }
   }
   setStatus('timed out waiting for the result; try again', 'error');
@@ -305,11 +428,25 @@ function renderResult(result: BacktestResult): void {
     setStatus(`backtest error: ${result.error}`, 'error');
   }
 
-  // Metric cells. Color total return on its sign.
   const totalReturnPct = (result.totalReturn * 100).toFixed(2);
   setTextWithSign('result-total-return', `${totalReturnPct}%`, result.totalReturn);
+
+  if (result.annualizedReturn !== undefined) {
+    const cagrPct = (result.annualizedReturn * 100).toFixed(2);
+    setTextWithSign('result-cagr', `${cagrPct}%`, result.annualizedReturn);
+  } else {
+    setText('result-cagr', '-');
+  }
+
   setText('result-sharpe', result.sharpe.toFixed(2));
   setText('result-drawdown', `${(result.maxDrawdown * 100).toFixed(2)}%`);
+
+  if (result.hitRate !== undefined) {
+    setText('result-hit-rate', `${(result.hitRate * 100).toFixed(1)}%`);
+  } else {
+    setText('result-hit-rate', '-');
+  }
+
   setText('result-bars', String(result.bars));
 
   const footnote = result.note
@@ -317,10 +454,6 @@ function renderResult(result: BacktestResult): void {
     : `computed in ${result.computeMs ?? '?'} ms`;
   setText('result-footnote', footnote);
 
-  // Equity curve as an inline SVG line. Generous width because the
-  // chart stretches across the result panel's content box and the
-  // SVG uses preserveAspectRatio=none so we drive the aspect ratio
-  // from the CSS height.
   renderEquityChart(result.equityCurve ?? []);
 }
 
@@ -371,15 +504,10 @@ function renderEquityChart(
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   });
 
-  // Color the line green if the final equity is above 1.0 (positive
-  // total return), coral if below. The baseline 1.0 is the starting
-  // equity by construction (buy-and-hold normalized to 1.0).
   const finalEq = curve[curve.length - 1].equity;
   const color = finalEq >= 1.0 ? '#2ecc71' : '#d85a30';
 
-  // Render: a baseline at equity=1.0 plus the equity polyline.
-  const baselineY =
-    padTop + ((maxEq - 1.0) / range) * innerH;
+  const baselineY = padTop + ((maxEq - 1.0) / range) * innerH;
   svg.innerHTML = `
     <line x1="${padLeft}" y1="${baselineY.toFixed(2)}" x2="${padLeft + innerW}" y2="${baselineY.toFixed(2)}"
           stroke="#1f2530" stroke-width="1" stroke-dasharray="4 4" />
@@ -389,6 +517,14 @@ function renderEquityChart(
 
 async function init(): Promise<void> {
   setDefaultDateRange();
+
+  const strategySelect = document.getElementById('strategy') as HTMLSelectElement | null;
+  if (strategySelect) {
+    renderStrategyParams(strategySelect.value);
+    strategySelect.addEventListener('change', () => {
+      renderStrategyParams(strategySelect.value);
+    });
+  }
 
   const [universe, rateStatus] = await Promise.all([
     loadUniverse(),
