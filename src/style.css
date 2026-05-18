@@ -1101,6 +1101,11 @@ a:hover {
   font-weight: 700;
 }
 
+.compare-table th[title] {
+  cursor: help;
+  border-bottom-style: dotted;
+}
+
 .compare-table th.num,
 .compare-table td.num {
   text-align: right;

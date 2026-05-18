@@ -78,11 +78,11 @@
               <thead>
                 <tr>
                   <th>Strategy</th>
-                  <th class="num">Total return</th>
-                  <th class="num">CAGR</th>
-                  <th class="num">Sharpe</th>
-                  <th class="num">Max DD</th>
-                  <th class="num">Hit rate</th>
+                  <th class="num" title="Cumulative percent return from first bar to last bar of the strategy's equity curve.">Total return</th>
+                  <th class="num" title="Compound annual growth rate. (1 + total return) ^ (1/years) − 1. The honest way to talk about a multi-year backtest's return.">CAGR</th>
+                  <th class="num" title="Mean daily return divided by std dev of daily returns, annualized by multiplying by sqrt(252). No risk-free rate adjustment.">Sharpe</th>
+                  <th class="num" title="Worst peak-to-trough decline in the equity curve, as a positive fraction. 0.20 = the curve fell 20% from its running peak at the worst point.">Max DD</th>
+                  <th class="num" title="Fraction of daily realized returns that are strictly positive. Different shape for trend strategies vs mean-reversion.">Hit rate</th>
                 </tr>
               </thead>
               <tbody></tbody>
