@@ -142,3 +142,82 @@ describe('chat system prompt numbers parity', () => {
     }
   );
 });
+
+// Slug enumeration parity. The prompt explicitly lists every quiz
+// category and every philosophy primer by its human-readable name.
+// If a future iteration renames a directory slug (or adds a new
+// page in either section), the prompt must be updated to match;
+// otherwise the bot enumerates a stale list and tells users about
+// a different catalog than what's live. Each pair below maps the
+// directory slug to the prose fragment the prompt is expected to
+// contain. Philosophy slugs map cleanly via kebab-to-space, but
+// quiz slugs use human-friendlier prose ("wasm-internals" appears
+// as "WebAssembly internals" in the prompt; "quant-finance" appears
+// as "Quant finance basics"), so the mapping is hardcoded explicitly.
+
+const QUIZ_SLUG_PROSE: Record<string, string> = {
+  'rust-basics': 'Rust basics',
+  'this-sites-rust': "This site's Rust",
+  'quant-finance': 'Quant finance basics',
+  'rust-intermediate': 'Rust intermediate',
+  'wasm-internals': 'WebAssembly internals',
+};
+
+const PHILOSOPHY_SLUG_PROSE: Record<string, string> = {
+  overfitting: 'overfitting',
+  'survivorship-bias': 'survivorship bias',
+  'lookahead-bias': 'lookahead bias',
+  'backtest-vs-live': 'backtest vs live',
+  regimes: 'regimes',
+};
+
+function listSubdirSlugs(dir: string): string[] {
+  const sectionDir = resolve(ROOT, dir);
+  return readdirSync(sectionDir)
+    .filter((entry) => {
+      const p = resolve(sectionDir, entry);
+      if (!statSync(p).isDirectory()) return false;
+      return existsSync(resolve(p, 'index.html'));
+    })
+    .sort();
+}
+
+describe('chat system prompt /quiz/ slug enumeration parity', () => {
+  const slugs = listSubdirSlugs('quiz');
+
+  it.each(slugs.map((s) => [s]))(
+    'quiz slug %s has a mapped prose name in QUIZ_SLUG_PROSE and the prompt mentions it',
+    (slug) => {
+      const prose = QUIZ_SLUG_PROSE[slug];
+      expect(
+        prose,
+        `quiz/${slug}/index.html exists but QUIZ_SLUG_PROSE has no mapping. Add { '${slug}': '<prose name>' } and ensure the chat-system-prompt mentions that prose name in the /quiz/ enumeration.`
+      ).toBeDefined();
+      if (!prose) return;
+      expect(
+        CHAT_SYSTEM_PROMPT.includes(prose),
+        `chat-system-prompt does not contain the prose "${prose}" expected for /quiz/${slug}/. Update the prompt's quiz enumeration.`
+      ).toBe(true);
+    }
+  );
+});
+
+describe('chat system prompt /philosophy/ slug enumeration parity', () => {
+  const slugs = listSubdirSlugs('philosophy');
+
+  it.each(slugs.map((s) => [s]))(
+    'philosophy slug %s has a mapped prose name in PHILOSOPHY_SLUG_PROSE and the prompt mentions it',
+    (slug) => {
+      const prose = PHILOSOPHY_SLUG_PROSE[slug];
+      expect(
+        prose,
+        `philosophy/${slug}/index.html exists but PHILOSOPHY_SLUG_PROSE has no mapping. Add { '${slug}': '<prose name>' } and ensure the chat-system-prompt mentions that prose name in the /philosophy/ enumeration.`
+      ).toBeDefined();
+      if (!prose) return;
+      expect(
+        CHAT_SYSTEM_PROMPT.includes(prose),
+        `chat-system-prompt does not contain the prose "${prose}" expected for /philosophy/${slug}/. Update the prompt's philosophy enumeration.`
+      ).toBe(true);
+    }
+  );
+});
