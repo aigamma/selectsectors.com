@@ -333,3 +333,172 @@ to 2024-04-25 for the 22 stock/ETF symbols (left as a separately-
 authorized operation since it spends Massive API quota).
 
 ---
+
+## 2026-05-18 - v0.1.0 ships: iterations 12-27 of the /loop
+
+**Current task.** This entry closes out the multi-day /loop session
+that started 2026-05-17 with an empty directory and ends with a
+feature-complete v0.1.0 of selectsectors.com. The prior entry
+covered iterations 3-11; this one covers 12-27 plus the v0.1.0
+release marker. The site is functionally done; future work will be
+slower-paced minor releases rather than the high-cadence build
+session that produced v0.1.0.
+
+**Iteration 12 (strategy-comparison feature, commit bf2fbe1).**
+/api/compare + /api/compare-background + /compare/ page. Runs all
+five strategies against one symbol in a single rate-limit slot
+(instead of the five a user would burn running them individually).
+Overlay chart of five equity curves on a shared y-axis with the
+strategy-color palette; ranked table linked back to per-strategy
+explainer pages.
+
+**Iteration 13 (polish pass, commit 4654839).** /compare/ added to
+the top nav (was reachable only via the /strategies/ callout
+before). Skip-to-content link for keyboard accessibility; id="main-
+content" added to <main> across all 25 pages so the skip target
+resolves. SelectBot system prompt updated to mention /compare/ and
+the buy-and-hold benchmark overlay. aria-label="Primary" on the
+top nav.
+
+**Iteration 14 (cross-symbol scan, commit 3f47713).** /api/scan +
+/api/scan-background + /scan/ page. The inverse axis of /compare/:
+one strategy, all 23 symbols. One IN-clause Supabase query for the
+22 equity/ETF symbols + a separate query for SPX from
+daily_volatility_stats, vs the naive 23 sequential queries.
+Per-symbol Sharpe-ranked table; equity curves omitted from the
+result blob to keep payload small. Per-symbol failures (NotEnoughBars
+on a strategy whose window exceeds the bar count) captured in the
+per-row error field so the other symbols still ship. Category
+badges (Index, Broad ETF, Sector ETF, Anchor name) with palette-
+tinted colors.
+
+**Iteration 15 (disclaimer + scan click-through, commits b1a9c96 +
+74534d5).** /disclaimer/ page (was footer-linked but 404'ing).
+/scan/ symbol cells link back to the homepage with ?strategy= +
+?symbol= pre-filled so the user can jump from scan-ranked-symbol to
+per-bar equity chart in one click.
+
+**Iteration 16 (DRY refactor of strategy translation + specs,
+commit ad6a77c).** Extracted toStrategyKind into
+_lib/strategy.mts (used by backtest-background, scan-background,
+and compare-background which each had near-identical copies).
+Extracted STRATEGY_SPECS into src/strategy-specs.ts (used by both
+src/main.ts and src/scan.ts). Net ~120 lines of duplicated code
+removed; 11 new Vitest tests pinning the toStrategyKind translation
+contract.
+
+**Iteration 17 (extracted page-utils + dispatch, commit 3265ef0).**
+src/page-utils.ts (escapeHtml, setStatus, setButtonDisabled,
+setDefaultDateRange, loadRateStatus, renderRateBanner,
+populateSymbolGroup) + src/dispatch.ts (generic dispatchAndPoll<T>
+for the three rate-limited backtest endpoints). /scan/ refactored
+to use them as the proof-of-concept; src/scan.ts dropped from 477
+to 257 lines.
+
+**Iteration 18 (main.ts + compare.ts refactored, commit 0afbe82).**
+Completed the consolidation. main.ts dropped from 606 to 393 lines
+(~35% reduction); compare.ts dropped from 458 to 296 lines
+(~35%). Homepage bundle dropped from 7.92 KB to 5.72 KB gzipped.
+Total net deletion across the three files: 308 lines.
+
+**Iteration 19 (homepage discovery + OG image, commit 5c3fd0e).**
+Other-tools section on the homepage pointing at /compare/, /scan/,
+/strategies/ so first-time visitors discover the secondary surfaces.
+1200x630 SVG OG image at /og-image.svg with the brand block and
+three equity-curve lines hinting at the comparison chart. OG +
+Twitter Card meta tags on the homepage.
+
+**Iteration 20 (OG tags everywhere, commit 5071702).** Script
+add-og-tags.mjs in scratch/ injected OG + Twitter Card meta into
+all 25 remaining pages (homepage already had them from iter 19).
+404 deliberately skipped (no description; correct for noindex).
+
+**Iteration 21 (full CI verification + JSON-LD, commits d347d70 +
+f79ff52).** cargo test + vitest + typecheck + build all green;
+WebSite + Organization + SearchAction structured data on the
+homepage. README test-count updated from 60 to 76 (39 Rust + 37
+TS) and grew a /compare/ + /scan/ bullet.
+
+**Iteration 22 (Article JSON-LD on content pages, commit 763ea88).**
+Scripted (scratch/add-article-jsonld.mjs) injection of schema.org
+Article + TechArticle blocks on all 15 content-heavy pages: 6
+curriculum lessons (TechArticle), 5 strategy explainers
+(TechArticle), 4 philosophy essays (Article). datePublished +
+dateModified + author Organization + publisher Organization +
+mainEntityOfPage.
+
+**Iteration 23 (BreadcrumbList JSON-LD, commit 03a214b).** Scripted
+breadcrumbs on all 18 nested pages (lessons + strategies +
+philosophy + quizzes). 3-element ListItem array: Home -> Section ->
+Leaf with the leaf name extracted from the visible h1.
+
+**Iteration 24 (visible breadcrumbs, commit 4bc12ca).** Mirrored
+the JSON-LD breadcrumbs as visible <nav class="page-breadcrumb"> at
+the top of all 18 nested-page articles. aria-label="Breadcrumb",
+aria-current="page" on the leaf, › separators in <li>::after so
+screen readers don't announce them.
+
+**Iteration 25 (metric tooltips on homepage, commits e259ea2 +
+df592b0).** title attribute hover definitions on all six result-
+panel metric labels (Total return, CAGR, Sharpe, Max drawdown,
+Hit rate, Bars). Dotted-underline visual hint + cursor: help. New
+.result-help paragraph below the chart cross-references /philosophy/
+and SelectBot for longer-form explanations.
+
+**Iteration 26 (tooltips mirrored to compare + scan, commit
+1e7669c).** Same metric definitions on the /compare/ and /scan/
+table column headers, so the explainer text is consistent across
+the three result surfaces. CSS rule swaps the th[title] bottom
+border from solid to dotted on tooltipped headers.
+
+**Iteration 27 (/changelog/ page, commit 6309122).** Public-facing
+changelog at /changelog/ with the v0.1.0 release notes grouped by
+feature area (Backtester, Cross-axis exploration, Educational
+content, SelectBot, Tooling and infrastructure). Each item links
+to the corresponding feature page. Closes with a roadmap callout
+and a pointer to the GitHub commit log for developer-grade detail.
+
+**v0.1.0 state at end of iteration 27.**
+
+- 28 production HTML pages total: 1 homepage, 1 /compare/, 1 /scan/,
+  1 /strategies/ landing + 5 per-strategy, 1 /learn/ landing + 6
+  lessons, 1 /philosophy/ landing + 4 essays, 1 /quiz/ landing + 3
+  category quizzes, 1 /disclaimer/, 1 /changelog/, 1 /404.html.
+- 5-strategy WASM backtester end-to-end (frontend -> dispatcher ->
+  Supabase -> Rust crate compiled to WASM -> result blob -> polling
+  frontend rendering).
+- SelectBot chat (Anthropic SDK + prompt caching + SSE streaming).
+- 76 unit tests (39 Rust + 37 TypeScript) with a three-job GitHub
+  Actions CI workflow.
+- Full structured-data coverage: WebSite + Organization on home,
+  Article/TechArticle on 15 content pages, BreadcrumbList on 18
+  nested pages, OG + Twitter Card meta tags on 26 pages.
+- Accessibility: skip-to-content link, aria-labelled nav, visible
+  breadcrumbs with aria-current, semantic HTML throughout.
+- Repo size: ~6000 lines of TypeScript + ~1500 lines of Rust +
+  ~3500 lines of HTML + ~1500 lines of CSS.
+
+**Deployment dependencies still pending.** ANTHROPIC_API_KEY needs
+to be set on the Netlify project for the chatbot to function in
+production. GitHub repo linked to Netlify project in the UI.
+Custom domain selectsectors.com attached.
+
+**Open follow-ups (none blocking v0.1.0).** PNG OG image
+rasterization for Twitter previews. Conversation-memory variant of
+SelectBot. Custom-strategy editor where users supply Rust-like
+expressions. Parameter-sweep view (a Sharpe heatmap across two
+param dimensions). More strategies in the Rust crate (Bollinger,
+dual-momentum, cross-sectional). Lighthouse performance audit on a
+fresh deploy. /api/ OpenAPI documentation. daily_eod backfill from
+2022-01-03 to 2024-04-25 for the 22 stock/ETF symbols (a one-time
+operation that costs Massive API quota under Eric's key, separately
+authorized).
+
+**Closing.** The /loop session that built this site started with an
+empty directory at 2026-05-17 and ended with v0.1.0 at 2026-05-18.
+Every commit message is verbose and self-contained; the git log is
+the most detailed record this site has. STATUS.md is the high-level
+summary; CLAUDE.md is the per-machine session context that any
+future Claude Code session should read before touching the code.
+
+---
