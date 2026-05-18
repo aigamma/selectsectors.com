@@ -572,3 +572,204 @@ the loop keeps running; future STATUS.md additions will be shorter
 as the cadence slows.
 
 ---
+
+## 2026-05-18 (still same day) - v0.1.3 release
+
+**What landed in iterations 47 through 61** (after the
+"v0.1.2 state at end of iteration 45" line above). Posted as a
+single contiguous block rather than per-iteration entries because
+many of the iterations were source-of-truth audits that produced
+tight focused commits rather than the broad feature work the
+earlier entries described.
+
+**Two new reference pages.**
+
+- `/glossary/` (iteration 47). Alphabetical reference of every
+  domain-specific term used on the site. 22 quant-finance entries
+  (annualized Sharpe, bar, benchmark, CAGR, daily bar, drawdown,
+  EOD, equity curve, hit rate, lookahead bias, mean reversion,
+  momentum, OHLC, overfitting, regime, RSI, Sharpe, SMA,
+  survivorship bias, total return, trend following, volatility)
+  plus 13 Rust/WASM entries (borrow, Cargo, crate, enum, lifetime,
+  module, move semantics, ownership, Result, serde, trait,
+  WebAssembly, wasm-bindgen, wasm-pack). Cross-linked back into
+  the curriculum + philosophy + quiz pages where the term first
+  appears in context. New CSS `.glossary-list` rule with
+  accent-blue bold dt terms and indented left-border dd
+  definitions. Linked from the footer between Disclaimer and
+  Changelog.
+
+- `/api-docs/` (iteration 49). Developer-facing HTTP API reference
+  for the nine endpoints under `/api/`. Documents method, request
+  body shape, response shapes for every status code, rate-limit
+  treatment per endpoint. Includes the result-blob shape for
+  single backtests, `/api/compare`, `/api/scan`; the shared
+  RateLimitInfo shape; the strategy-catalog cheat sheet with
+  default parameter values. The page went through two source-of-
+  truth fix passes (iterations 50 and 51) after the initial draft
+  was written from memory and got 13 fields wrong: 8 in the first
+  pass (wrong field names kind/name, fastWindow/fast,
+  window/lookback, stdMultiplier/k; wrong request structure with
+  flat dates instead of nested dateRange; wrong rate-status
+  response shape; nonexistent `available` boolean flag claim;
+  nonexistent 500 status code) and 5 in the second pass (universe
+  envelope, barCount/bars, cagr/annualizedReturn, flat equity
+  number array vs equityCurve object array, benchmark.label/name).
+  By iteration 51 every example body and response shape was
+  verified against the actual dispatcher and background-function
+  source code. Linked from the footer between Glossary and
+  Changelog.
+
+**Source-of-truth consolidation work.**
+
+- iteration 48. README.md and docs/architecture.md synced to the
+  actual v0.1.2 state. README's Status block had been stuck at
+  v0.1.0 framing (claimed 5 strategies, 3 quizzes, 4 philosophy
+  essays, 76 tests, missing the cross-axis exploration surface
+  and the reference pages); now reads v0.1.2 with the correct
+  counts. docs/architecture.md's "Future surfaces" section had
+  described features that already shipped (per-page chatbot,
+  strategy library page, cross-symbol comparison) as if they were
+  aspirational; split into a "Surfaces that shipped after the
+  scaffold" enumeration plus a much smaller "Future surfaces"
+  block listing only genuinely open extensions.
+
+- iteration 54. chat-system-prompt.mts re-grounded against the
+  current site. Two drifts caught: the footer-links listing only
+  enumerated three links (Disclaimer, Changelog, GitHub) when the
+  actual footer renders five (added Glossary + API after iter 47
+  and iter 49) - SelectBot asking "where's the glossary?" would
+  have answered "I don't think there is one". And the prompt
+  claimed "current version v0.1.0 shipped 2026-05-18" when the
+  actual version was v0.1.2 - asking SelectBot "what version
+  is this site?" would have returned the wrong answer. Both
+  fixed.
+
+- iteration 57. Extracted the 22-name universe roster (11 SPDR
+  sectors + 11 anchor single names) from three duplicate
+  hardcoded copies into a single canonical module at
+  netlify/functions/_lib/universe-roster.mts. Previously
+  universe.mts, scan-background.mts, and chat-system-prompt.mts
+  each had their own hardcoded SECTORS and ANCHORS arrays.
+  chat-system-prompt.mts now uses ${ANCHORS.join(', ')} template
+  interpolation rather than a hardcoded literal anchor list.
+
+- iteration 58. Resolved a long-standing 23-vs-24 universe-count
+  ambiguity by dropping SPY from ALL_EQUITY_SYMBOLS and
+  ALL_SYMBOLS. Site marketing copy declared "23 symbols" by
+  category (SPX + 11 sectors + 11 anchors) but the actual
+  scan-background's ALL_EQUITY_SYMBOLS included SPY, so /api/scan
+  returned 24 rows. SPY's daily returns are near-identical to SPX
+  (both track the S&P 500), so the scan SPY row was a visually-
+  redundant near-duplicate of the SPX row. Dropping SPY aligned
+  all surfaces at 23 symbols. categorize() function in
+  scan-background.mts also tightened from `'index' | 'broad' |
+  'sector' | 'anchor'` to `'index' | 'sector' | 'anchor'`.
+
+- iteration 59. Cleaned up the user-facing SPY references that
+  remained after iter 58. Two Try-it deep links pointed at
+  /?strategy=...&symbol=SPY which would silently produce a blank
+  form since SPY is no longer a pickable optgroup option;
+  changed both to SPX. README universe table dropped its
+  "Broad-market ETF | SPY" row. Three api-docs SPY references
+  updated (universe envelope claim, example bodies, category
+  union).
+
+**Other v0.1.3 work.**
+
+- iteration 55. "Built in Rust. Learn it here." callout section
+  on the homepage. Three cards pointing at /learn/, /quiz/, and
+  /glossary/ rendered via the existing .other-tools-grid CSS so
+  the site's dual-purpose (backtester + Rust teaching) is visible
+  from the primary entry point rather than discoverable only via
+  top-nav.
+
+- iteration 56. One-word fact-check fix to crates/backtest-core/
+  src/strategies/bollinger_bands.rs docstring: previous version
+  attributed the book "Bollinger on Bollinger Bands" to "Wilder's
+  own description". Wilder wrote *New Concepts in Technical
+  Trading Systems* (1978, introduces RSI); John Bollinger wrote
+  *Bollinger on Bollinger Bands* (2001). The strategy explainer
+  HTML page already said "Bollinger's own book" correctly; only
+  the Rust docstring had the misattribution.
+
+**New regression tests.**
+
+- iteration 52. JSON-validity test (`src/__tests__/json-validity.
+  test.ts`). Parses every `<script type="application/ld+json">`
+  block in every HTML file plus every `<pre><code>{...}</code>
+  </pre>` block in /api-docs/, runs each through JSON.parse with
+  helpful failure messages. 64 new test cases. Caught + fixed a
+  TypeScript-union notation defect in the 429 response example
+  (`"hour-exceeded" | "day-exceeded"` is not valid JSON).
+
+- iteration 53. Rust-TS strategy parity test (`netlify/functions/
+  _lib/__tests__/rust-ts-parity.test.mts`). Parses the
+  StrategyKind enum from crates/backtest-core/src/strategies/
+  mod.rs at test time, extracts the PascalCase variants, runs
+  them through a pascalToSnake helper that mirrors serde's
+  rename_all = "snake_case" semantics, and asserts the resulting
+  list matches Object.keys(STRATEGY_DEFAULTS) in strategy.mts.
+  Catches the drift class where a strategy lands in Rust but
+  the TS catalog doesn't know about it.
+
+- iteration 57. Universe-roster shape + parity test (`netlify/
+  functions/_lib/__tests__/universe-roster.test.mts`). 6 tests:
+  SECTORS is 11, ANCHORS is 11, ALL_EQUITY_SYMBOLS is the
+  expected count, ALL_SYMBOLS is the expected count, no
+  duplicates, plus a parity check that every name in ANCHORS
+  appears as a literal token in CHAT_SYSTEM_PROMPT (so the
+  template-literal interpolation can't accidentally regress).
+
+- iteration 61. Version-parity test (`netlify/functions/_lib/
+  __tests__/version-parity.test.mts`). 4 tests: package.json
+  version matches the semver regex, health.mts VERSION constant
+  matches package.json, layout.ts footer string contains
+  v{version}, changelog lede claims "currently v{version}".
+  Closes the drift pattern that left the changelog lede stuck at
+  v0.1.0 through three version bumps because the bump scripts
+  only touched the obvious version constants.
+
+**Tag.**
+
+- iteration 60. v0.1.2 -> v0.1.3 bump. Three places carry the
+  version string: package.json line 4, netlify/functions/
+  health.mts VERSION constant, src/layout.ts footer string. All
+  three updated in lockstep. New v0.1.3 entry on /changelog/
+  enumerates the 9 substantive landings above. Changelog meta
+  description and og:description also refreshed from the stale
+  v0.1.0 framing they'd carried since scaffold time.
+
+**v0.1.3 state at end of iteration 61.**
+
+- 31 production HTML pages (added /glossary/ and /api-docs/).
+- 6-strategy WASM backtester unchanged.
+- 5 quiz categories / 36 questions unchanged.
+- 5 philosophy essays unchanged.
+- 6 curriculum lessons unchanged.
+- 23-symbol universe (SPX + 11 sectors + 11 anchors); SPY
+  removed from /api/scan results.
+- 158 tests (44 Rust + 114 TypeScript across 10 test files;
+  added JSON validity + Rust-TS parity + universe-roster +
+  version-parity test files).
+- v0.1.3 tagged across package.json, /api/health, footer,
+  /changelog/ lede.
+- Homepage now surfaces Rust-learning identity from primary
+  entry point.
+- Footer has 5 links (Disclaimer + Glossary + API + Changelog
+  + Source).
+- Universe roster centralized in a single canonical module.
+
+**Closing for v0.1.3.** The post-v0.1.2 work was overwhelmingly
+source-of-truth audit + automated regression test work, plus the
+two reference pages (glossary + api-docs) that the site genuinely
+needed. The site now has both a stronger drift-resistance posture
+(every source-of-truth class that's been touched in earlier
+iterations now has a Vitest regression test covering it: sitemap
+validity, internal links, JSON-LD validity, Rust-TS strategy
+parity, universe-roster cardinality + chat-prompt interpolation,
+version-string parity across the four version-carrying surfaces)
+and a more complete reference surface (a developer-facing API
+docs page and a glossary for the vocabulary the site assumes).
+
+---
