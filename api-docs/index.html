@@ -75,17 +75,17 @@
 }</code></pre>
 
         <h3>GET /api/universe</h3>
-        <p>The 23-symbol roster. SPX index, SPY broad-market ETF,
-        eleven SPDR sector ETFs, eleven anchor single names.</p>
+        <p>The 22-name roster from the upstream
+        options-volume-roster: eleven SPDR sector ETFs plus eleven
+        anchor single names. SPX and SPY are added client-side
+        because they're the index and the broad-market proxy
+        (always present) rather than rotating universe members.</p>
         <pre><code>{
-  "categories": {
-    "index":   ["SPX"],
-    "broad":   ["SPY"],
-    "sectors": ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK",
-                "XLP", "XLU", "XLV", "XLY", "XLRE"],
-    "anchors": ["NVDA", "TSLA", "AAPL", "AMD", "AMZN", "META",
-                "MSFT", "GOOGL", "PLTR", "COIN", "SMCI"]
-  }
+  "sectors": ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK",
+              "XLP", "XLU", "XLV", "XLY", "XLRE"],
+  "anchors": ["NVDA", "TSLA", "AAPL", "AMD", "AMZN", "META",
+              "MSFT", "GOOGL", "PLTR", "COIN", "SMCI"],
+  "note":    "Eleven SPDR sector ETFs plus eleven anchor single names..."
 }</code></pre>
 
         <h3>GET /api/rate-status</h3>
@@ -178,22 +178,8 @@
   "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
 }</code></pre>
 
-        <h4>Result shape (when ready)</h4>
-        <pre><code>{
-  "symbol": "XLE",
-  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" },
-  "strategies": [
-    {
-      "name": "buy_and_hold",
-      "totalReturn": 0.234,
-      "sharpe": 1.12,
-      "maxDrawdown": 0.083,
-      "hitRate": 0.534,
-      "barCount": 504
-    }
-    /* ... five more strategies ... */
-  ]
-}</code></pre>
+        <p>See the Compare result shape section below for the
+        full result blob structure.</p>
 
         <h3>POST /api/scan</h3>
         <p>Run one strategy across all 23 universe symbols for one
@@ -212,22 +198,8 @@
   "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
 }</code></pre>
 
-        <h4>Result shape (when ready)</h4>
-        <pre><code>{
-  "strategy": { "name": "momentum", "params": { "lookback": 60 } },
-  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" },
-  "symbols": [
-    {
-      "symbol": "NVDA",
-      "totalReturn": 0.847,
-      "sharpe": 1.83,
-      "maxDrawdown": 0.214,
-      "hitRate": 0.521,
-      "barCount": 504
-    }
-    /* ... 22 more symbols ... */
-  ]
-}</code></pre>
+        <p>See the Scan result shape section below for the full
+        result blob structure.</p>
 
         <h3>POST /api/chat</h3>
         <p>SelectBot. Server-Sent Events streaming response from
@@ -278,28 +250,127 @@
   "error": "missing or malformed hash; expected a 64-char hex sha256"
 }</code></pre>
 
-        <h2>Result shape (single backtest)</h2>
-        <p>The <code>/api/backtest</code> result blob. The compare
-        and scan aggregates each contain trimmed versions of this
-        shape (no equity-curve arrays in the per-row entries; only
-        the summary metrics).</p>
+        <h2>Result shapes</h2>
+
+        <h3>Single backtest (/api/backtest)</h3>
+        <p>What <code>backtest-background.mts</code> writes into the
+        result blob and what <code>/api/result?hash=</code> returns
+        under <code>result</code>. The original request body is
+        echoed back under <code>inputs</code>; computed metrics live
+        at the top level; the equity curve is an array of objects
+        (one per bar) carrying the trading date plus the per-bar
+        return and the cumulative equity value.</p>
         <pre><code>{
-  "symbol":      "SPY",
-  "dateRange":   { "start": "2024-01-01", "end": "2025-12-31" },
-  "strategy":    { "name": "sma_crossover", "params": { "fast": 20, "slow": 50 } },
-  "barCount":    504,
-  "totalReturn": 0.187,
-  "cagr":        0.093,
-  "sharpe":      1.04,
-  "maxDrawdown": 0.072,
-  "hitRate":     0.542,
-  "equity":      [ 1.0, 1.002, 1.001 /* ... barCount entries ... */ ],
+  "inputs": {
+    "symbol":    "SPY",
+    "strategy":  { "name": "sma_crossover", "params": { "fast": 20, "slow": 50 } },
+    "dateRange": { "start": "2024-01-01", "end": "2025-12-31" }
+  },
+  "bars":             504,
+  "firstDate":        "2024-01-02",
+  "lastDate":         "2025-12-30",
+  "totalReturn":      0.187,
+  "annualizedReturn": 0.093,
+  "sharpe":           1.04,
+  "maxDrawdown":      0.072,
+  "hitRate":          0.542,
+  "equityCurve": [
+    { "date": "2024-01-02", "ret":  0.000, "equity": 1.000 },
+    { "date": "2024-01-03", "ret":  0.002, "equity": 1.002 }
+    /* ... one entry per bar ... */
+  ],
   "benchmark": {
-    "label":       "buy and hold",
-    "totalReturn": 0.211,
-    "sharpe":      1.18,
-    "equity":      [ 1.0 /* ... barCount entries ... */ ]
-  }
+    "name":             "buy_and_hold",
+    "totalReturn":      0.211,
+    "annualizedReturn": 0.108,
+    "sharpe":           1.18,
+    "maxDrawdown":      0.058,
+    "equityCurve": [ /* same shape, one entry per bar */ ]
+  },
+  "note":       "WASM ... over 504 bars from 2024-01-02 to 2025-12-30",
+  "computedAt": "2026-05-18T05:30:00.000Z",
+  "computeMs":  847
+}</code></pre>
+        <p><code>benchmark</code> is <code>null</code> when the
+        user's chosen strategy is itself <code>buy_and_hold</code>
+        (the result and benchmark would be byte-identical).</p>
+
+        <h3>Compare (/api/compare)</h3>
+        <p>What <code>compare-background.mts</code> writes. One
+        entry per strategy in the <code>strategies</code> array;
+        already sorted by Sharpe descending. Per-strategy failures
+        carry an <code>error</code> field instead of metrics.</p>
+        <pre><code>{
+  "inputs":    { /* echoed request */ },
+  "mode":      "compare-all",
+  "bars":      504,
+  "firstDate": "2024-01-02",
+  "lastDate":  "2025-12-30",
+  "strategies": [
+    {
+      "name":             "momentum",
+      "totalReturn":      0.234,
+      "annualizedReturn": 0.118,
+      "sharpe":           1.41,
+      "maxDrawdown":      0.083,
+      "hitRate":          0.534,
+      "equityCurve": [ /* per-bar */ ]
+    },
+    /* ... five more, or one of: */
+    { "name": "rsi_mean_reversion", "error": "NotEnoughBars: ..." }
+  ],
+  "computedAt": "...",
+  "computeMs":  4123
+}</code></pre>
+
+        <h3>Scan (/api/scan)</h3>
+        <p>What <code>scan-background.mts</code> writes. One entry
+        per symbol in the <code>symbols</code> array; sorted by
+        Sharpe descending. Equity curves are deliberately omitted
+        per-symbol to keep the blob compact (~5-12K points across
+        23 symbols would bloat both the result blob and the
+        frontend payload). Use <code>/api/backtest</code> for the
+        full equity curve on any one symbol.</p>
+        <pre><code>{
+  "inputs":    { /* echoed request */ },
+  "mode":      "scan-all",
+  "strategy":  "momentum",
+  "dateRange": { "start": "2024-01-01", "end": "2025-12-31" },
+  "symbols": [
+    {
+      "symbol":           "NVDA",
+      "category":         "anchor",
+      "bars":             504,
+      "firstDate":        "2024-01-02",
+      "lastDate":         "2025-12-30",
+      "totalReturn":      0.847,
+      "annualizedReturn": 0.382,
+      "sharpe":           1.83,
+      "maxDrawdown":      0.214,
+      "hitRate":          0.521
+    },
+    /* ... 22 more, or one of: */
+    { "symbol": "XYZ", "category": "sector",
+      "error":  "not enough bars (0) in 2024-01-01..2025-12-31" }
+  ],
+  "computedAt": "...",
+  "computeMs":  3812
+}</code></pre>
+        <p><code>category</code> is one of <code>"index"</code>
+        (SPX), <code>"broad"</code> (SPY), <code>"sector"</code>
+        (the 11 SPDR ETFs), or <code>"anchor"</code> (the 11
+        single names).</p>
+
+        <h3>Error result blob</h3>
+        <p>When a background function fails before producing
+        metrics (Supabase env missing, fetch bars failed, WASM
+        crashed, bad strategy params), it writes an error blob
+        rather than nothing, so <code>/api/result</code> can
+        distinguish a still-running run from a failed one:</p>
+        <pre><code>{
+  "error":      "fetch bars failed: ...",
+  "inputs":     { /* echoed request */ },
+  "computedAt": "..."
 }</code></pre>
 
         <h2>RateLimitInfo shape</h2>
