@@ -401,6 +401,17 @@ function applyQueryParamPrefill(): void {
 
   if (strategy) {
     const select = document.getElementById('strategy') as HTMLSelectElement | null;
+    if (select && !STRATEGY_SPECS[strategy]) {
+      // The URL specifies a strategy name that isn't in the catalog.
+      // Most common cause: a stale bookmark from a deploy that
+      // renamed or removed the strategy. Surface a non-blocking
+      // warning rather than silently ignoring the param so the
+      // recipient understands why the form didn't pre-fill.
+      setStatus(
+        `unknown strategy "${strategy}" in URL; using default. The strategy may have been renamed or removed since this link was generated.`,
+        'error'
+      );
+    }
     if (select && STRATEGY_SPECS[strategy]) {
       select.value = strategy;
       // Fire a synthetic change event so the params container re-renders.
