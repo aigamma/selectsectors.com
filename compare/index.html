@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Compare all five strategies on the same symbol and date range in a single backtest call. See the equity curves overlaid and the metrics ranked side-by-side."
+    />
+    <title>Compare strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main">
+      <section class="hero">
+        <h1>Compare all five strategies.</h1>
+        <p class="lede">
+          Run every strategy in the catalog against the same symbol
+          and date range in a single backtest. The result panel
+          overlays the five equity curves and ranks them by Sharpe.
+          One rate-limit slot instead of five.
+        </p>
+      </section>
+
+      <section class="backtest">
+        <h2>Run a comparison</h2>
+
+        <div class="rate-banner" id="rate-banner" aria-live="polite">
+          <span class="rate-banner-loading">checking your daily allowance...</span>
+        </div>
+
+        <form id="compare-form" class="backtest-form">
+          <div class="field">
+            <label for="symbol">Symbol</label>
+            <select id="symbol" name="symbol" required>
+              <option value="">select an instrument...</option>
+              <optgroup label="Index">
+                <option value="SPX">SPX</option>
+              </optgroup>
+              <optgroup label="SPDR sectors" id="symbol-sectors-group"></optgroup>
+              <optgroup label="Top-by-options-volume names" id="symbol-anchors-group"></optgroup>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="start-date">Start date</label>
+              <input type="date" id="start-date" name="start-date" required />
+            </div>
+            <div class="field">
+              <label for="end-date">End date</label>
+              <input type="date" id="end-date" name="end-date" required />
+            </div>
+          </div>
+
+          <button type="submit" id="run-button" class="run-button">Compare strategies</button>
+        </form>
+
+        <div id="status-line" class="status-line" aria-live="polite"></div>
+
+        <div id="result-panel" class="result-panel" hidden>
+          <h3>Ranked by Sharpe</h3>
+          <div class="compare-table-wrap">
+            <table id="compare-table" class="compare-table">
+              <thead>
+                <tr>
+                  <th>Strategy</th>
+                  <th class="num">Total return</th>
+                  <th class="num">CAGR</th>
+                  <th class="num">Sharpe</th>
+                  <th class="num">Max DD</th>
+                  <th class="num">Hit rate</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div id="result-chart-wrap" class="result-chart-wrap">
+            <svg id="compare-chart" viewBox="0 0 800 280" preserveAspectRatio="none" aria-label="Strategy equity curves"></svg>
+            <div id="compare-chart-legend" class="result-chart-legend"></div>
+          </div>
+          <div class="result-footnote" id="result-footnote"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/compare.ts"></script>
+  </body>
+</html>

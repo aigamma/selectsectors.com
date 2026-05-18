@@ -46,6 +46,14 @@
 [functions."backtest-background"]
   included_files = ["pkg/**"]
   node_bundler = "esbuild"
+
+# Same packaging as backtest-background: needs the WASM artifact
+# bundled alongside the function code, and the esbuild bundler is the
+# right pick for the wasm-pack CJS output that does a runtime
+# fs.readFileSync on the sibling .wasm file.
+[functions."compare-background"]
+  included_files = ["pkg/**"]
+  node_bundler = "esbuild"
 #
 # Long-cache the static frontend assets. Vite emits content-hashed
 # filenames under `/assets/`, so the URLs are immutable by

@@ -50,6 +50,7 @@ export default defineConfig({
           'quiz/this-sites-rust/index.html'
         ),
         quizQuantFinance: resolve(__dirname, 'quiz/quant-finance/index.html'),
+        compare: resolve(__dirname, 'compare/index.html'),
         strategies: resolve(__dirname, 'strategies/index.html'),
         strategyBuyAndHold: resolve(
           __dirname,

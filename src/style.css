@@ -957,6 +957,89 @@ a:hover {
   font-style: italic;
 }
 
+/* Strategy comparison page (/compare/). */
+
+.compare-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--bg-card-border);
+  font-weight: 700;
+}
+
+.compare-table th.num,
+.compare-table td.num {
+  text-align: right;
+}
+
+.compare-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--bg-card-border);
+  color: var(--text-primary);
+}
+
+.compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.compare-row a {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.compare-row a:hover {
+  color: var(--accent-blue);
+}
+
+.compare-row-swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 2px;
+  margin-right: 0.55rem;
+  vertical-align: -1px;
+}
+
+.compare-row-error {
+  color: var(--text-secondary);
+}
+
+.compare-row-error-cell {
+  font-style: italic;
+  color: var(--accent-coral);
+}
+
+.compare-table td.positive {
+  color: var(--accent-green);
+}
+
+.compare-table td.negative {
+  color: var(--accent-coral);
+}
+
+/* Comparison-chart legend uses a CSS custom property --swatch-color
+   on each item so we can color each chip from the per-strategy
+   palette without a CSS class per strategy. */
+
+#compare-chart-legend .legend-item::before {
+  background: var(--swatch-color, var(--text-secondary));
+}
+
 .page-footer {
   display: flex;
   align-items: center;
