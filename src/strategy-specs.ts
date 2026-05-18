@@ -59,7 +59,7 @@ export const STRATEGY_SPECS: Record<string, StrategySpec> = {
   momentum: {
     name: 'Momentum',
     description:
-      "Long when today's close exceeds the close `lookback` bars ago; flat otherwise. The oldest documented factor in modern finance.",
+      "Long when today's close exceeds the close `lookback` bars ago; flat otherwise. Documented by Jegadeesh and Titman (1993) and now one of the most-cited factors in academic finance.",
     params: [
       { key: 'lookback', label: 'Lookback (bars)', defaultValue: 60, min: 2, max: 252, step: 1 },
     ],
@@ -80,6 +80,15 @@ export const STRATEGY_SPECS: Record<string, StrategySpec> = {
       "Long when today's close is at or above the rolling high of the prior `lookback` bars. The Richard Donchian / Turtle Traders rule.",
     params: [
       { key: 'lookback', label: 'Lookback (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
+    ],
+  },
+  bollinger_bands: {
+    name: 'Bollinger Bands mean reversion',
+    description:
+      "Long when the close drops below SMA − k × std over a `period`-bar window; exits at the SMA centerline. A dispersion-based fade-the-dip, complementary to RSI mean reversion.",
+    params: [
+      { key: 'period', label: 'Period (bars)', defaultValue: 20, min: 2, max: 200, step: 1 },
+      { key: 'k', label: 'k (std multiplier)', defaultValue: 2.0, min: 0.5, max: 4, step: 0.1 },
     ],
   },
 };
