@@ -1,4 +1,4 @@
-import { initChat } from './chat.ts';
+import { mountSiteShell } from './layout.ts';
 
 // Frontend entry. Six concerns mounted at page load:
 //
@@ -519,6 +519,7 @@ function renderEquityChart(
 }
 
 async function init(): Promise<void> {
+  mountSiteShell('home');
   setDefaultDateRange();
 
   const strategySelect = document.getElementById('strategy') as HTMLSelectElement | null;
@@ -547,8 +548,6 @@ async function init(): Promise<void> {
       });
     });
   }
-
-  initChat();
 }
 
 init();

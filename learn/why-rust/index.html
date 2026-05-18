@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Why this site uses Rust. When Rust is the right tool, when it isn't, and the four concrete reasons selectsectors.com picked it for the backtest math."
+    />
+    <title>Why Rust? &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 01 &middot; Why Rust</span>
+        <h1>Why Rust?</h1>
+        <p class="lesson-lede">
+          Rust is not the right tool for every problem. It is the right
+          tool for some of them. This site's backtest math is one of
+          those problems, and the four reasons it picked Rust over the
+          plausible alternatives are the same four reasons most teams
+          that pick Rust pick it.
+        </p>
+
+        <h2>The four reasons</h2>
+
+        <h3>1. Native-speed math without a runtime tax</h3>
+        <p>
+          The dominant cost of a backtest is walking the bar series
+          and computing rolling statistics. For our universe a single
+          strategy on a 1000-bar SPX history is a few hundred
+          thousand floating-point operations. Done in TypeScript with
+          <code>for</code> loops over typed arrays, that takes ~5-20
+          ms because V8 has to dynamically dispatch every operation
+          and check types at runtime. Done in Rust compiled to
+          WebAssembly, the same workload takes ~0.5-2 ms because the
+          loop is monomorphized at compile time and the inner ops
+          become tight scalar code the WASM engine can vectorize.
+        </p>
+        <p>
+          The ~10x speedup matters because a strategy library scaling
+          to hundreds of parameter combinations across 23 symbols and
+          5 years of bars wants to run on one CPU core in seconds,
+          not minutes. Rust gets us there with margin to spare.
+        </p>
+
+        <h3>2. Predictable memory behavior</h3>
+        <p>
+          The bar series for a typical backtest is 1000-2000 doubles
+          (40-160 KB). In Rust we allocate it once, walk it in-place,
+          and free it deterministically when the request handler
+          returns. There is no garbage collector to fire on a request
+          we care about, no second-call latency spike because the GC
+          decided this was the moment to compact.
+        </p>
+        <p>
+          For a Netlify function with a 26-second synchronous budget
+          (and 15 minutes for the background variant), determinism is
+          worth more than peak throughput. A 2-ms backtest that
+          always takes 2 ms is more useful than a 1-ms backtest that
+          occasionally takes 200 ms because a GC pause fired in the
+          middle.
+        </p>
+
+        <h3>3. Compile-time errors that catch real bugs</h3>
+        <p>
+          Rust's type system catches a specific class of bugs that
+          dynamically-typed languages catch at runtime if at all:
+          accidentally indexing past the end of a slice, accidentally
+          passing the wrong argument to a function that expected a
+          different shape, accidentally returning <code>None</code>
+          from a function whose caller assumed <code>Some</code>.
+          In a numerical context where the inputs come from JSON and
+          the outputs go back to JSON, having the compiler check the
+          shape end-to-end means we ship fewer "backtest returned
+          NaN" bugs.
+        </p>
+        <p>
+          The trade-off is real: Rust will reject code that another
+          language would accept, and you have to rewrite the code
+          until the compiler is happy. The first month of writing
+          Rust is mostly an argument with the borrow checker. The
+          second month is mostly winning those arguments. After
+          that, the friction is replaced by a quiet confidence that
+          the code does what you think it does.
+        </p>
+
+        <h3>4. Clean WebAssembly output</h3>
+        <p>
+          Rust is one of the few languages with first-class WebAssembly
+          tooling. <code>wasm-pack build --target nodejs</code> takes
+          our crate and produces a 98 KB <code>.wasm</code> file plus
+          ~16 KB of JS glue that the Netlify function can
+          <code>require()</code> directly. No additional runtime, no
+          standard library that has to be re-implemented in WASM, no
+          glue layer that interprets the language at runtime.
+        </p>
+        <p>
+          The alternative path (write the math in Python and have the
+          function call Python via a sidecar) would add a process
+          boundary, multiple seconds of cold start, and a complete
+          extra runtime for what amounts to a few hundred lines of
+          numerical code. Rust + wasm-pack ships the entire engine as
+          two files the function can load in ~20 ms.
+        </p>
+
+        <h2>When NOT to reach for Rust</h2>
+        <p>
+          The reasons above are also the cases where Rust is overkill:
+        </p>
+        <ul>
+          <li>
+            <strong>Glue code, I/O orchestration, request routing.</strong>
+            The dispatcher at <code>/api/backtest</code> is TypeScript
+            because it spends 99% of its time waiting on Supabase, the
+            cache lookup, and the background-function dispatch. Rust
+            would buy nothing here and would cost the simpler tooling
+            story TypeScript has on Netlify Functions.
+          </li>
+          <li>
+            <strong>Frontend logic that does not have tight math.</strong>
+            The chart rendering, the form handling, the chat panel: all
+            vanilla TypeScript. Bringing Rust to the frontend for
+            non-math work pays the WASM bundle cost (60-100 KB
+            uncompressed) for no measurable benefit.
+          </li>
+          <li>
+            <strong>Prototypes and scripts.</strong> A one-off Python
+            script that downloads the Massive grouped endpoint and
+            writes a CSV is fine in Python. Rust here is the wrong
+            point on the iteration-speed-vs-runtime-speed curve.
+          </li>
+          <li>
+            <strong>Code that does not have to run fast.</strong> If
+            the workload is small enough that even a 10x speedup is
+            invisible to the user, the speedup is not worth the cost
+            of writing the workload in Rust.
+          </li>
+        </ul>
+
+        <div class="lesson-callout">
+          <strong>The decision rule.</strong> Reach for Rust when the
+          code is in a hot path (the user notices the difference), is
+          numerical or systems-y (the type system pays off), and will
+          be touched by multiple developers over time (the compile-
+          time guarantees compound). Reach for TypeScript or Python
+          otherwise.
+        </div>
+
+        <h2>What this means for the site</h2>
+        <p>
+          The architecture follows directly. Frontend in vanilla TS.
+          Netlify Functions in TypeScript for the request flow. Rust
+          for the strategy library, compiled to WebAssembly, called
+          from inside the background function. Each language is in
+          the layer where it adds the most value, and the cost of
+          working across the boundary (the WASM bridge,
+          <code>serde-wasm-bindgen</code> for JSON marshalling, the
+          <code>StrategyKind</code> dispatch enum) is paid once and
+          benefits every strategy that ships.
+        </p>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/">&larr; Curriculum index</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next lesson
+            <a href="/learn/this-sites-rust/">A tour of this site's Rust &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-why-rust.ts"></script>
+  </body>
+</html>

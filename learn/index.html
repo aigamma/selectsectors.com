@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Learn Rust through the lens of a working backtesting engine. The same crate that powers selectsectors.com is the teaching surface: modules, enums, traits, errors, iterators, WASM."
+    />
+    <title>Learn Rust &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <section class="hero">
+        <h1>Learn Rust by reading a real backtesting engine.</h1>
+        <p class="lede">
+          Every concept here ties back to the actual code in
+          <code>crates/backtest-core/</code> &mdash; the Rust crate that
+          powers this site's WASM-backed backtester. No toy examples,
+          no synthetic snippets. The code you read is the code that
+          runs every backtest you click.
+        </p>
+      </section>
+
+      <section class="curriculum">
+        <h2>Curriculum</h2>
+        <ol class="curriculum-list">
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/why-rust/">
+              <span class="curriculum-num">01</span>
+              <span class="curriculum-title">Why Rust?</span>
+              <span class="curriculum-blurb">
+                When to reach for Rust over Python, Go, or TypeScript.
+                The four reasons this site picked it: native-speed
+                math, predictable memory, sharp compile-time errors,
+                and clean WASM output.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/this-sites-rust/">
+              <span class="curriculum-num">02</span>
+              <span class="curriculum-title">A tour of this site's Rust</span>
+              <span class="curriculum-blurb">
+                Walks through the crate top to bottom: lib.rs, the
+                module split, how StrategyKind dispatches, and how
+                wasm-bindgen exports map to the JS the Netlify
+                function calls.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/ownership/">
+              <span class="curriculum-num">03</span>
+              <span class="curriculum-title">Ownership and borrowing in numerical code</span>
+              <span class="curriculum-blurb">
+                The ownership model explained through the
+                <code>&amp;[DailyBar]</code> parameter shape every
+                strategy uses. Why the borrow is the right default
+                here, and what owning the slice would buy or cost.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/enums-and-dispatch/">
+              <span class="curriculum-num">04</span>
+              <span class="curriculum-title">Enums and dispatch</span>
+              <span class="curriculum-blurb">
+                Tagged enums as a dispatch table.
+                <code>StrategyKind</code> walked through in detail
+                with the serde JSON wire format and the matching
+                deserialization pattern from the JS side.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/error-handling/">
+              <span class="curriculum-num">05</span>
+              <span class="curriculum-title">Error handling without thiserror</span>
+              <span class="curriculum-blurb">
+                Why <code>BacktestError</code> is a hand-rolled
+                <code>enum</code> with manual <code>Display</code> and
+                <code>Error</code> impls. The WASM-bundle-size
+                trade-off and when <code>thiserror</code> becomes the
+                right pick.
+              </span>
+            </a>
+          </li>
+          <li class="curriculum-item">
+            <a class="curriculum-link" href="/learn/wasm/">
+              <span class="curriculum-num">06</span>
+              <span class="curriculum-title">Rust to WebAssembly with wasm-bindgen</span>
+              <span class="curriculum-blurb">
+                How <code>#[wasm_bindgen]</code> exports work, how
+                <code>serde-wasm-bindgen</code> bridges JS objects to
+                Rust structs, and what
+                <code>wasm-pack build --target nodejs</code> actually
+                produces inside the <code>pkg/</code> directory.
+              </span>
+            </a>
+          </li>
+        </ol>
+      </section>
+
+      <section class="learn-callout">
+        <h2>Have a question while you read?</h2>
+        <p>
+          Click <strong>SelectBot</strong> at the bottom-right of any
+          page. It is grounded in this site's own code, the strategy
+          library, the quant finance primer, and the philosophy of
+          backtesting. Try
+          <em>"Explain how StrategyKind::positions dispatches"</em> or
+          <em>"What does sqrt(252) mean in annualized Sharpe?"</em>.
+        </p>
+      </section>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn.ts"></script>
+  </body>
+</html>

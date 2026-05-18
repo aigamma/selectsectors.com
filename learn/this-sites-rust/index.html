@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A guided tour of the Rust crate that powers selectsectors.com. The code blocks on this page are the actual code that ships, inlined from crates/backtest-core/ at build time."
+    />
+    <title>A tour of this site's Rust &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main class="page-main page-main-narrow">
+      <article class="lesson">
+        <span class="lesson-eyebrow">Lesson 02 &middot; This site's Rust</span>
+        <h1>A tour of this site's Rust.</h1>
+        <p class="lesson-lede">
+          Every code block on this page is inlined from
+          <code>crates/backtest-core/src/</code> at build time via
+          Vite's <code>?raw</code> import. When the Rust source changes,
+          this page changes on the next deploy. There is no separate
+          copy of the code to drift out of sync.
+        </p>
+
+        <h2>The crate at a glance</h2>
+        <p>
+          The crate has one job: take a bar series and a strategy spec,
+          return a backtest result. The implementation splits into
+          four concerns:
+        </p>
+        <ul>
+          <li>
+            <code>bars.rs</code> defines the input type (one daily OHLC
+            bar plus volume).
+          </li>
+          <li>
+            <code>metrics.rs</code> holds the pure-function performance
+            metrics (Sharpe, drawdown, CAGR, hit rate, equity curve).
+          </li>
+          <li>
+            <code>strategies/</code> is one module per strategy, each
+            exposing a <code>positions(bars, params)</code> function,
+            plus a <code>StrategyKind</code> enum that dispatches by
+            variant.
+          </li>
+          <li>
+            <code>error.rs</code> holds the hand-rolled error enum.
+          </li>
+          <li>
+            <code>lib.rs</code> ties everything together and exposes
+            the <code>#[wasm_bindgen]</code> entry point that the
+            Netlify function calls.
+          </li>
+        </ul>
+
+        <h2>The WASM entry point</h2>
+        <p>
+          Everything starts here. The JS side calls
+          <code>run_backtest({ symbol, bars, strategy })</code>; the
+          Rust side deserializes the input, runs the strategy, and
+          returns a serializable result struct. The
+          <code>#[wasm_bindgen]</code> attribute is the only WASM-
+          specific code in the function body; the rest is plain Rust.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/lib.rs</p>
+          <pre><code id="src-lib"></code></pre>
+        </div>
+
+        <h2>Strategy dispatch via tagged enum</h2>
+        <p>
+          The <code>StrategyKind</code> enum is the dispatch table.
+          Each variant either has no payload (<code>BuyAndHold</code>)
+          or wraps a strategy-specific <code>Params</code> struct.
+          The <code>positions</code> method matches on
+          <code>self</code> and forwards to the right submodule. This
+          is the idiomatic Rust replacement for a virtual dispatch
+          table; no <code>dyn Trait</code>, no allocation, no runtime
+          lookup.
+        </p>
+        <p>
+          The <code>#[serde(rename_all = "snake_case")]</code>
+          attribute tells serde to encode <code>BuyAndHold</code> as
+          <code>"buy_and_hold"</code> on the wire, which is the
+          convention the JS dispatcher expects.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/mod.rs</p>
+          <pre><code id="src-strategies-mod"></code></pre>
+        </div>
+
+        <h2>A concrete strategy: SMA crossover</h2>
+        <p>
+          Each strategy is a small module that takes
+          <code>bars: &amp;[DailyBar]</code> and a
+          <code>Params</code> struct and returns a
+          <code>Result&lt;Vec&lt;f64&gt;, BacktestError&gt;</code>.
+          The vector has the same length as the input bar series; each
+          entry is the strategy's desired exposure at the close of
+          that bar (1.0 long, 0.0 flat, -1.0 short for a future
+          short-capable strategy).
+        </p>
+        <p>
+          Three patterns worth noticing in the SMA implementation:
+        </p>
+        <ol>
+          <li>
+            <strong>Parameter validation up front.</strong> Bad params
+            return <code>InvalidParam</code> errors rather than
+            producing nonsense output. The cost of the check is
+            negligible; the benefit is the caller sees a clean error
+            message instead of a NaN-filled result.
+          </li>
+          <li>
+            <strong>Length check next.</strong> A 50-bar SMA needs at
+            least 50 bars before it can compute its first value. We
+            check and return <code>NotEnoughBars</code> rather than
+            silently producing zeros for the warm-up period.
+          </li>
+          <li>
+            <strong>Sliding-window mean.</strong> The
+            <code>rolling_mean</code> helper adds the new value and
+            subtracts the value leaving the window each step. O(n)
+            total work for n bars regardless of window size, vs O(n*w)
+            if we recomputed the mean from scratch each step.
+          </li>
+        </ol>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/sma_crossover.rs</p>
+          <pre><code id="src-sma"></code></pre>
+        </div>
+
+        <h2>Pure-function metrics</h2>
+        <p>
+          The metrics module is the simplest part of the crate to read
+          and the easiest to test. Each function takes a slice of
+          <code>f64</code> and returns a single <code>f64</code> (or
+          a <code>Vec&lt;f64&gt;</code> for the equity curve). No
+          state, no I/O, no error paths beyond the empty-input
+          degenerate case. This is the kind of code where Rust's
+          strictness costs you nothing because there is nothing
+          tricky to be strict about.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/metrics.rs</p>
+          <pre><code id="src-metrics"></code></pre>
+        </div>
+
+        <h2>The no-lookahead engine</h2>
+        <p>
+          The hardest part of writing a correct backtest is making sure
+          your strategy cannot see the future. The naive bug is using
+          <code>close[i]</code> in a signal that determines
+          <code>position[i]</code> &mdash; the position at bar i is now
+          determined by information that includes bar i. In live
+          trading you would only learn that close after the bar ended;
+          you cannot have already taken that position.
+        </p>
+        <p>
+          We solve this at the engine layer with
+          <code>apply_positions_to_bars</code>: the position at the
+          close of bar i determines the exposure during bar i+1's
+          price change. Individual strategies cannot accidentally
+          cheat because they never see the realized return; they only
+          set the position vector and the engine lags it.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/mod.rs (excerpt)</p>
+          <pre><code id="src-apply"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Why this is the right shape.</strong> The lag is
+          centralized in one function. Every strategy in the crate
+          gets the no-lookahead guarantee for free, and a future
+          strategy author cannot accidentally violate it without
+          rewriting the engine itself. Invariants like this are best
+          enforced at the layer that owns them, not asked of every
+          caller.
+        </div>
+
+        <h2>Where to go next</h2>
+        <ul>
+          <li>
+            <a href="/learn/ownership/">Ownership and borrowing</a>
+            &mdash; the <code>&amp;[DailyBar]</code> story in depth.
+          </li>
+          <li>
+            <a href="/learn/enums-and-dispatch/">Enums and dispatch</a>
+            &mdash; how <code>StrategyKind</code> compares to trait
+            objects, function pointers, and HashMap dispatch.
+          </li>
+          <li>
+            <a href="/learn/error-handling/">Error handling</a> &mdash;
+            why <code>BacktestError</code> is hand-rolled.
+          </li>
+          <li>
+            <a href="/learn/wasm/">Rust to WASM</a> &mdash; how
+            <code>wasm-pack</code> and
+            <code>serde-wasm-bindgen</code> bridge the JS and Rust
+            worlds.
+          </li>
+        </ul>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/learn/why-rust/">&larr; Why Rust?</a>
+          </div>
+          <div class="lesson-nav-next">
+            Next lesson
+            <a href="/learn/ownership/">Ownership and borrowing &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/learn-this-sites-rust.ts"></script>
+  </body>
+</html>

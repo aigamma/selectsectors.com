@@ -1,0 +1,6 @@
+# Allow everything. The site is a public educational resource and
+# wants to be indexed.
+User-agent: *
+Allow: /
+
+Sitemap: https://selectsectors.com/sitemap.xml

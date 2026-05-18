@@ -19,6 +19,16 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Catch-all 404 for any path that doesn't resolve to a built page or
+# a public asset. The 404.html itself is a real page in dist/ with the
+# site shell mounted; this redirect just makes sure the right HTTP
+# status code is returned and the right file is served on unknown
+# paths.
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
 # Background functions for the heavy backtest work. The `-background`
 # suffix is the Netlify-required marker that flips the function into
 # the 15-minute wall-clock execution path; the function returns 202

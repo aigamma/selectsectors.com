@@ -1,22 +1,40 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
-// Vite config for the static frontend. The Rust → WASM backtest core
-// lives at `crates/backtest-core/` and builds to `pkg/` via wasm-pack;
-// the frontend itself does NOT import that WASM (the backtest runs
-// inside the Netlify background function, server-side). The WASM is
-// only present in the repo as an artifact the function bundles at
-// deploy time.
+// Vite config for the multi-page static frontend. The site is an MPA
+// (multi-page application): each route is its own HTML file with its
+// own JS entry, and Vite produces one bundled HTML + JS pair per
+// route in dist/. The right call for an educational site where each
+// page is content-heavy and benefits from static SEO rendering and
+// where there is no shared SPA state to coordinate across routes.
 //
-// Two reasons to keep the frontend small: cold-start time on a fresh
-// page load is dominated by JS parse + execute on weak hardware, and
-// a minimal frontend means the entire surface ships under 20 KB
-// gzipped so the static CDN cache returns the page in under 100 ms
-// to a first-time visitor anywhere in the world.
+// The Rust to WASM backtest core lives at `crates/backtest-core/` and
+// builds to `pkg/` via wasm-pack; the frontend itself does NOT import
+// that WASM at runtime (the backtest runs inside the Netlify
+// background function, server-side). What the frontend DOES use is
+// Vite's `?raw` import syntax to inline the Rust source code at build
+// time so the curriculum pages render the exact code that ships, with
+// no separate copy of the source to drift out of sync.
+//
+// As new pages come online (quiz, strategies, philosophy, individual
+// curriculum pages), add their HTML path to the `input` map below.
+// Vite needs each entry listed explicitly; routes that exist in the
+// filesystem but aren't in `input` are not part of the production
+// bundle.
 export default defineConfig({
   build: {
     target: 'es2022',
     rollupOptions: {
-      input: 'index.html',
+      input: {
+        home: resolve(__dirname, 'index.html'),
+        learn: resolve(__dirname, 'learn/index.html'),
+        learnWhyRust: resolve(__dirname, 'learn/why-rust/index.html'),
+        learnThisSitesRust: resolve(
+          __dirname,
+          'learn/this-sites-rust/index.html'
+        ),
+        notFound: resolve(__dirname, '404.html'),
+      },
     },
   },
   server: {
