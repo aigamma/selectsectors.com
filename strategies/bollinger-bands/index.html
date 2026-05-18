@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Bollinger Bands mean reversion: enter long when the close drops below SMA minus k standard deviations, exit when it crosses back above the SMA centerline."
+    />
+    <title>Bollinger Bands mean reversion &middot; Strategies &middot; Select Sectors</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bollinger Bands mean reversion" />
+    <meta property="og:description" content="Bollinger Bands mean reversion: enter long when the close drops below SMA minus k standard deviations, exit when it crosses back above the SMA centerline." />
+    <meta property="og:url" content="https://selectsectors.com/strategies/bollinger-bands/" />
+    <meta property="og:image" content="https://selectsectors.com/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bollinger Bands mean reversion" />
+    <meta name="twitter:description" content="Bollinger Bands mean reversion: enter long when the close drops below SMA minus k standard deviations, exit when it crosses back above the SMA centerline." />
+    <meta name="twitter:image" content="https://selectsectors.com/og-image.svg" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "Bollinger Bands mean reversion",
+      "description": "Bollinger Bands mean reversion: enter long when the close drops below SMA minus k standard deviations, exit when it crosses back above the SMA centerline.",
+      "url": "https://selectsectors.com/strategies/bollinger-bands/",
+      "image": "https://selectsectors.com/og-image.svg",
+      "datePublished": "2026-05-18",
+      "dateModified": "2026-05-18",
+      "author": { "@type": "Organization", "name": "AI Gamma", "url": "https://aigamma.com" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "AI Gamma",
+        "url": "https://aigamma.com",
+        "logo": { "@type": "ImageObject", "url": "https://selectsectors.com/og-image.svg" }
+      },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://selectsectors.com/strategies/bollinger-bands/" }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://selectsectors.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Strategies", "item": "https://selectsectors.com/strategies/" },
+        { "@type": "ListItem", "position": 3, "name": "Bollinger Bands mean reversion", "item": "https://selectsectors.com/strategies/bollinger-bands/" }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="site-header-mount"></div>
+
+    <main id="main-content" class="page-main page-main-narrow">
+      <nav class="page-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><a href="/strategies/">Strategies</a></li>
+          <li aria-current="page">Bollinger Bands mean reversion</li>
+        </ol>
+      </nav>
+
+      <article class="lesson">
+        <p class="lesson-eyebrow"><a href="/strategies/">&larr; Strategies</a></p>
+        <h1>Bollinger Bands mean reversion.</h1>
+        <p class="lesson-lede">
+          Compute a rolling SMA and rolling standard deviation over a
+          <code>period</code>-bar window. Construct the lower band at
+          <code>SMA &minus; k &times; std</code>. Enter long when the
+          close drops below the lower band; exit to flat when the
+          close rises back above the SMA. A dispersion-based fade-the-
+          dip strategy, complementary to RSI mean reversion.
+        </p>
+
+        <h2>Intuition</h2>
+        <p>
+          Bollinger Bands assume that prices revert toward a rolling
+          mean and that excursions beyond a fixed multiple of the
+          rolling standard deviation are uncommon enough to bet on.
+          When the close drops below the lower band, the price is
+          unusually far from its short-term centerline; the bet is
+          that it bounces back. The exit at the SMA centerline is
+          the more pragmatic of the two exit choices (centerline vs
+          upper band); the upper-band exit is much rarer and would
+          spend most of its time in choppy drawdown waiting for the
+          full bounce.
+        </p>
+
+        <h2>When it works</h2>
+        <p>
+          In range-bound markets and on assets that have a strong
+          underlying support level. The lower-band breach is rare in
+          calm markets and reliably tags genuine short-term oversold
+          conditions; the centerline exit captures the easier half
+          of the reversion. This strategy and RSI mean reversion
+          both fade dips, but they read "oversold" differently and
+          tend to disagree at the edges where one signal triggers
+          and the other does not.
+        </p>
+
+        <h2>When it fails</h2>
+        <p>
+          In sustained downtrends. The lower band itself drifts down
+          with the SMA, so a strategy that bought at the lower band
+          can find the band move below it before the bounce
+          materializes. Worse: the volatility spike during a
+          breakdown widens the band, so the entry threshold moves
+          further from the SMA at exactly the moment the strategy
+          most needs a tight band. The 2008 financial crisis and the
+          March 2020 collapse both punished long-only mean-reversion
+          strategies broadly, including Bollinger.
+        </p>
+
+        <h2>Parameters</h2>
+        <ul>
+          <li>
+            <code>period</code>: rolling-window length, in bars.
+            Bollinger's original 1983 recommendation is 20. Range:
+            2-200.
+          </li>
+          <li>
+            <code>k</code>: number of standard deviations from the
+            SMA to draw the bands. Bollinger's original
+            recommendation is 2.0; this captures ~95% of bars if
+            returns were normally distributed (they aren't, but
+            it's a reasonable starting point). Range: 0.5-4.0.
+          </li>
+        </ul>
+
+        <h2>The Rust</h2>
+        <p>
+          The implementation walks the bar series once. For each
+          bar, slices the rolling window of length
+          <code>period</code> ending at the current bar, computes
+          the mean and the population standard deviation, derives
+          the lower band, and updates the position state. The
+          population std (divide by N) matches the convention every
+          charting platform uses; the sample std (divide by N - 1)
+          would be marginally smaller and shift the band threshold
+          slightly. The Wikipedia and Bollinger's own book
+          definition use population, so we match.
+        </p>
+        <div class="lesson-source">
+          <p class="lesson-source-caption">crates/backtest-core/src/strategies/bollinger_bands.rs</p>
+          <pre><code id="strategy-source"></code></pre>
+        </div>
+
+        <div class="lesson-callout">
+          <strong>Try it.</strong>
+          <a href="/?strategy=bollinger_bands&amp;symbol=XLE">Run Bollinger 20, k=2.0 on XLE</a>
+          across the last year. The energy sector tends to mean-
+          revert on a multi-week horizon and is a reasonable test
+          bed. Or try
+          <a href="/?strategy=bollinger_bands&amp;symbol=SPY">SPY across a longer date range</a>
+          to see how the strategy handles a broad-market index in
+          mixed regimes.
+        </div>
+
+        <nav class="lesson-nav">
+          <div class="lesson-nav-prev">
+            <a href="/strategies/breakout/">&larr; Donchian breakout</a>
+          </div>
+          <div class="lesson-nav-next">
+            Back to
+            <a href="/strategies/">All strategies &rarr;</a>
+          </div>
+        </nav>
+      </article>
+    </main>
+
+    <div id="site-footer-mount"></div>
+    <div id="chat-mount"></div>
+
+    <script type="module" src="/src/strategy-bollinger-bands.ts"></script>
+  </body>
+</html>

@@ -67,6 +67,10 @@ export default defineConfig({
           'strategies/rsi-mean-reversion/index.html'
         ),
         strategyBreakout: resolve(__dirname, 'strategies/breakout/index.html'),
+        strategyBollingerBands: resolve(
+          __dirname,
+          'strategies/bollinger-bands/index.html'
+        ),
         philosophy: resolve(__dirname, 'philosophy/index.html'),
         philosophyOverfitting: resolve(
           __dirname,
