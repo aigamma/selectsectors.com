@@ -113,11 +113,11 @@
         </p>
         <ul>
           <li>
-            <code>wasm32-unknown-unknown</code> &mdash; bare WASM,
+            <code>wasm32-unknown-unknown</code> &ndash; bare WASM,
             no OS, no stdlib. The default for wasm-pack output.
           </li>
           <li>
-            <code>wasm32-wasi</code> &mdash; WASM with the WASI
+            <code>wasm32-wasi</code> &ndash; WASM with the WASI
             system interface, used for server-side WASM runtimes.
           </li>
         </ul>
@@ -139,21 +139,21 @@
         </p>
         <ul>
           <li>
-            <code>backtest_core_bg.wasm</code> &mdash; the actual
+            <code>backtest_core_bg.wasm</code> &ndash; the actual
             WebAssembly binary (~98 KB for this site's crate).
           </li>
           <li>
-            <code>backtest_core.js</code> &mdash; the JS glue that
+            <code>backtest_core.js</code> &ndash; the JS glue that
             instantiates the WASM module and exposes the
             <code>#[wasm_bindgen]</code> functions as CommonJS
             exports.
           </li>
           <li>
-            <code>backtest_core.d.ts</code> &mdash; TypeScript
+            <code>backtest_core.d.ts</code> &ndash; TypeScript
             declarations for the exports.
           </li>
           <li>
-            <code>package.json</code> &mdash; a package manifest
+            <code>package.json</code> &ndash; a package manifest
             that lets npm-style consumers pick up the JS as the
             <code>main</code> entry.
           </li>

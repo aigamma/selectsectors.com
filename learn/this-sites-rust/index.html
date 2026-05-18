@@ -233,7 +233,7 @@
           The hardest part of writing a correct backtest is making sure
           your strategy cannot see the future. The naive bug is using
           <code>close[i]</code> in a signal that determines
-          <code>position[i]</code> &mdash; the position at bar i is now
+          <code>position[i]</code> &ndash; the position at bar i is now
           determined by information that includes bar i. In live
           trading you would only learn that close after the bar ended;
           you cannot have already taken that position.
@@ -265,19 +265,19 @@
         <ul>
           <li>
             <a href="/learn/ownership/">Ownership and borrowing</a>
-            &mdash; the <code>&amp;[DailyBar]</code> story in depth.
+            &ndash; the <code>&amp;[DailyBar]</code> story in depth.
           </li>
           <li>
             <a href="/learn/enums-and-dispatch/">Enums and dispatch</a>
-            &mdash; how <code>StrategyKind</code> compares to trait
+            &ndash; how <code>StrategyKind</code> compares to trait
             objects, function pointers, and HashMap dispatch.
           </li>
           <li>
-            <a href="/learn/error-handling/">Error handling</a> &mdash;
+            <a href="/learn/error-handling/">Error handling</a> &ndash;
             why <code>BacktestError</code> is hand-rolled.
           </li>
           <li>
-            <a href="/learn/wasm/">Rust to WASM</a> &mdash; how
+            <a href="/learn/wasm/">Rust to WASM</a> &ndash; how
             <code>wasm-pack</code> and
             <code>serde-wasm-bindgen</code> bridge the JS and Rust
             worlds.
