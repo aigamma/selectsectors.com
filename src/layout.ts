@@ -93,7 +93,11 @@ function headerHtml(active: ActivePage): string {
 function footerHtml(): string {
   return `
     <footer class="page-footer">
-      <a href="/disclaimer/" class="disclaimer-link">Disclaimer</a>
+      <div class="page-footer-links">
+        <a href="/disclaimer/" class="disclaimer-link">Disclaimer</a>
+        <a href="/changelog/" class="footer-link">Changelog</a>
+        <a href="https://github.com/aigamma/selectsectors.com" class="footer-link">Source</a>
+      </div>
       <span class="footer-meta">AI Gamma &middot; Select Sectors &middot; v0.1.0</span>
     </footer>
   `;

@@ -1222,9 +1222,26 @@ a:hover {
   text-transform: uppercase;
 }
 
+.page-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
 .disclaimer-link {
   color: var(--accent-coral);
   font-weight: 700;
+}
+
+.footer-link {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.footer-link:hover {
+  color: var(--accent-blue);
+  text-decoration: none;
 }
 
 /* SelectBot chat panel. Floating toggle at bottom-right of every page;
