@@ -94,15 +94,21 @@ Two rolling windows enforced together, both per-IP:
 - **Daily.** 5 backtests in any 24-hour window. Same rolling logic.
 
 Both apply simultaneously; whichever exhausts first wins. The
-counters live in the `rate-limit` Netlify Blob store keyed by IP.
+counters live in two Netlify Blob stores, both keyed by IP:
+`rate-limit-backtest` for the backtest dispatcher and
+`rate-limit-chat` for the chat dispatcher. The two stores live in
+separate namespaces so the two rate limits don't interact (a user
+who has chatted 30 times still has their full 2 backtests/hour).
 Reads and writes are atomic at the blob level, which is sufficient
 for the load profile (each backtest is expected to take seconds to
 minutes, so concurrent requests from a single IP are vanishingly
 rare in practice).
 
-The read-only `/api/rate-status` endpoint returns the current
-counters without consuming a slot, so the frontend can render a
-"you have 2 backtests left this hour" banner on page load.
+The read-only `/api/rate-status` and `/api/chat-status` endpoints
+return the current counters from each respective store without
+consuming a slot, so the frontend can render a "you have 2
+backtests left this hour" banner on page load and disable the chat
+input preemptively when the chat window is exhausted.
 
 ### Daily data refresh
 
