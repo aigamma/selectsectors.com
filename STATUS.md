@@ -9,7 +9,7 @@ aigamma-backtester repo uses.
 ## 2026-05-17 - Repository bootstrapped inside the aigamma.com /loop
 
 **Current task.** Initial scaffold of selectsectors.com. Eric opened
-the directory `C:\selectsectors.com\` empty and asked the loop to
+the directory `D:\selectsectors.com\` empty and asked the loop to
 populate it. This entry captures the scaffold pass that landed
 inside that loop iteration.
 
